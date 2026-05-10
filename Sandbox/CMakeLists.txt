@@ -11,6 +11,7 @@ set_target_properties(Sandbox PROPERTIES
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES ${SANDBOX_SOURCES})
+source_group("Precompiled Headers" REGULAR_EXPRESSION ".*pch.*")
 
 target_sources(Sandbox PRIVATE ${SANDBOX_SOURCES})
 

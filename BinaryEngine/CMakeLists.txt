@@ -12,6 +12,7 @@ set_target_properties(BinaryEngine PROPERTIES
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "" FILES ${BINARYENGINE_SOURCES})
+source_group("Precompiled Headers" REGULAR_EXPRESSION ".*pch.*")
 
 target_sources(BinaryEngine PRIVATE ${BINARYENGINE_SOURCES})
 
