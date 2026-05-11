@@ -13,33 +13,62 @@ URL: https://youtu.be/dZr-53LAlOw
 #include <spdlog/logger.h>
 
 namespace BinaryEngine {
+
 	class Log {
 	public:
-		static void Init(const std::string& appName = "Application");
-		static void Shutdown();
+		enum class Level {
+			Trace = 0,
+			Debug,
+			Info,
+			Warn,
+			Error,
+			Critical,
+			Off
+		};
 
-		inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-		inline static std::shared_ptr<spdlog::logger>& GetAppLogger() { return s_AppLogger; }
+		static void Init(const std::string& appName = "Application");
+		~Log();
+
+		Log(const Log&) = delete;
+		Log& operator=(const Log&) = delete;
+		Log(const Log&&) = delete;
+		Log& operator=(const Log&&) = delete;
+
+		inline static Log& Get() { return *s_Instance; }
+		inline static bool IsInitialised() { return s_Instance != nullptr; }
+		static void SetCoreLevel(Level level);
+		static void SetAppLevel(Level level);
+
+		inline std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+		inline std::shared_ptr<spdlog::logger>& GetAppLogger() { return s_AppLogger; }
 
 	private:
-		static std::shared_ptr<spdlog::logger>s_CoreLogger;
-		static std::shared_ptr<spdlog::logger>s_AppLogger;
+		Log() = default;
+
+	private:
+		static std::unique_ptr<Log> s_Instance;
+
+		std::shared_ptr<spdlog::logger>s_CoreLogger{ nullptr };
+		std::shared_ptr<spdlog::logger>s_AppLogger{ nullptr };
 	};
 }
 
 #ifndef BINARY_ENGINE_LOGGING_DISABLE
 
-#define CORE_TRACE(...)         do { if (::BinaryEngine::Log::GetCoreLogger()){::BinaryEngine::Log::GetCoreLogger()->trace(__VA_ARGS__);} } while (0)
-#define CORE_INFO(...)          do { if (::BinaryEngine::Log::GetCoreLogger()){::BinaryEngine::Log::GetCoreLogger()->info(__VA_ARGS__);} } while (0)
-#define CORE_WARN(...)          do { if (::BinaryEngine::Log::GetCoreLogger()){::BinaryEngine::Log::GetCoreLogger()->warn(__VA_ARGS__);} } while (0)
-#define CORE_ERROR(...)         do { if (::BinaryEngine::Log::GetCoreLogger()){::BinaryEngine::Log::GetCoreLogger()->error(__VA_ARGS__);} } while (0)
-#define CORE_CRITICAL(...)		do { if (::BinaryEngine::Log::GetCoreLogger()){::BinaryEngine::Log::GetCoreLogger()->critical(__VA_ARGS__);} } while (0)
+#define CORE_TRACE(...)         do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetCoreLogger()->trace(__VA_ARGS__);} } while (0)
+#define CORE_INFO(...)          do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetCoreLogger()->info(__VA_ARGS__);} } while (0)
+#define CORE_WARN(...)          do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetCoreLogger()->warn(__VA_ARGS__);} } while (0)
+#define CORE_ERROR(...)         do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetCoreLogger()->error(__VA_ARGS__);} } while (0)
+#define CORE_CRITICAL(...)		do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetCoreLogger()->critical(__VA_ARGS__);} } while (0)
 
-#define APP_TRACE(...)          do { if (::BinaryEngine::Log::GetAppLogger()){::BinaryEngine::Log::GetAppLogger()->trace(__VA_ARGS__);} } while (0)
-#define APP_INFO(...)           do { if (::BinaryEngine::Log::GetAppLogger()){::BinaryEngine::Log::GetAppLogger()->info(__VA_ARGS__);} } while (0)
-#define APP_WARN(...)           do { if (::BinaryEngine::Log::GetAppLogger()){::BinaryEngine::Log::GetAppLogger()->warn(__VA_ARGS__);} } while (0)
-#define APP_ERROR(...)          do { if (::BinaryEngine::Log::GetAppLogger()){::BinaryEngine::Log::GetAppLogger()->error(__VA_ARGS__);} } while (0)
-#define APP_CRITICAL(...)       do { if (::BinaryEngine::Log::GetAppLogger()){::BinaryEngine::Log::GetAppLogger()->critical(__VA_ARGS__);} } while (0)
+#define APP_TRACE(...)          do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetAppLogger()->trace(__VA_ARGS__);} } while (0)
+#define APP_INFO(...)           do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetAppLogger()->info(__VA_ARGS__);} } while (0)
+#define APP_WARN(...)           do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetAppLogger()->warn(__VA_ARGS__);} } while (0)
+#define APP_ERROR(...)          do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetAppLogger()->error(__VA_ARGS__);} } while (0)
+#define APP_CRITICAL(...)       do { if (::BinaryEngine::Log::IsInitialised()){::BinaryEngine::Log::Get().GetAppLogger()->critical(__VA_ARGS__);} } while (0)
+
+#define CORE_SET_LEVEL(level)   ::BinaryEngine::Log::SetCoreLevel(level)
+#define APP_SET_LEVEL(level)    ::BinaryEngine::Log::SetAppLevel(level)
 
 #else
 
@@ -54,5 +83,8 @@ namespace BinaryEngine {
 #define APP_WARN(...)           
 #define APP_ERROR(...)          
 #define APP_CRITICAL(...)       
+
+#define CORE_SET_LEVEL(level)
+#define APP_SET_LEVEL(level)
 
 #endif

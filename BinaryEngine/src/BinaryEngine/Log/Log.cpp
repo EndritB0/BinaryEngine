@@ -6,29 +6,76 @@
 
 namespace BinaryEngine {
 
-	std::shared_ptr<spdlog::logger> Log::s_CoreLogger{ nullptr };
-	std::shared_ptr<spdlog::logger> Log::s_AppLogger{ nullptr };
+	std::unique_ptr<Log> Log::s_Instance{ nullptr };
+
+	static spdlog::level::level_enum ConvertLogLevel(Log::Level level)
+	{
+		switch (level)
+		{
+			case Log::Level::Trace:
+				return spdlog::level::trace;
+
+			case Log::Level::Info:
+				return spdlog::level::info;
+
+			case Log::Level::Warn:
+				return spdlog::level::warn;
+
+			case Log::Level::Error:
+				return spdlog::level::err;
+
+			case Log::Level::Critical:
+				return spdlog::level::critical;
+
+			case Log::Level::Off:
+				return spdlog::level::off;
+		}
+		return spdlog::level::trace;
+	}
 
 	void Log::Init(const std::string& appName)
 	{
-		if (s_CoreLogger || s_AppLogger)
+		if (s_Instance)
 		{
 			CORE_WARN("[Logger] Logger already initialised, skipping initialization");
 			return;
 		}
 
+		s_Instance.reset(new Log());
+
 		spdlog::set_pattern("%^[%T] %n: %v%$");
-		s_CoreLogger = spdlog::stdout_color_mt("Binary Engine");
-		s_CoreLogger->set_level(spdlog::level::trace);
+		s_Instance->s_CoreLogger = spdlog::stdout_color_mt("Binary Engine");
+		s_Instance->s_CoreLogger->set_level(spdlog::level::trace);
 		CORE_INFO("[Logger] Binary Engine Logger Initialised");
 
-		s_AppLogger = spdlog::stdout_color_mt(appName);
-		s_AppLogger->set_level(spdlog::level::trace);
+		s_Instance->s_AppLogger = spdlog::stdout_color_mt(appName);
+		s_Instance->s_AppLogger->set_level(spdlog::level::trace);
 		APP_INFO("[Logger] Application Logger Initialised");
 	}
 
-	void Log::Shutdown()
+	void Log::SetCoreLevel(Level level)
 	{
+		if (s_Instance && s_Instance->s_CoreLogger)
+		{
+			s_Instance->s_CoreLogger->set_level(ConvertLogLevel(level));
+		}
+	}
+
+	void Log::SetAppLevel(Level level)
+	{
+		if (s_Instance && s_Instance->s_AppLogger)
+		{
+			s_Instance->s_AppLogger->set_level(ConvertLogLevel(level));
+		}
+	}
+
+	Log::~Log()
+	{
+		if (this != s_Instance.get())
+		{
+			return;
+		}
+
 		APP_INFO("[Logger] Application Logger Shutdown");
 		CORE_INFO("[Logger] Binary Engine Logger Shutdown");
 		spdlog::shutdown();
