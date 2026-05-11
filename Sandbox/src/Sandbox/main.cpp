@@ -1,10 +1,16 @@
 #include "pch.h"
 
-#include <BinaryEngine/Application.h>
-
 int main()
 {
-	BinaryEngine::Application app;
+	BinaryEngine::WindowSpecification specification{
+		.title {"SandBox"},
+		.resolution {BinaryEngine::Vector2i{ 1280, 720 }},
+		.fpsLimit {120},
+		.fullscreen {false},
+		.vsync {false}
+	};
+
+	BinaryEngine::Application app(specification);
 	app.Run();
 
 	return 0;

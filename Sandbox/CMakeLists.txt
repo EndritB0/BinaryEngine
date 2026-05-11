@@ -1,8 +1,8 @@
 add_executable(Sandbox)
 
 set(SANDBOX_SOURCES
-    src/Sandbox/main.cpp
-    src/pch.h
+    "src/pch.h"
+    "src/Sandbox/main.cpp"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")

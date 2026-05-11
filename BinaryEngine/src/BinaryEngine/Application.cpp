@@ -3,17 +3,48 @@
 
 namespace BinaryEngine {
 
-	void Application::Run()
+	Application::Application(const WindowSpecification specification)
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
-			SDL_Log("SDL failed to initialize: %s\n", SDL_GetError());
+			//TODO: Log failed initialization
 			return;
 		}
 
-		SDL_Log("Hello World!");
+		m_Window.emplace(specification);
+		m_Renderer.emplace(*m_Window);
+	}
 
+	Application::~Application()
+	{
 		SDL_Quit();
+	}
+
+	void Application::Run()
+	{
+		m_IsRunning = true;
+
+		while (m_IsRunning)
+		{
+			ProcessEvents();
+			m_Renderer->SetDrawColor(Color::White);
+			m_Renderer->Clear();
+			m_Renderer->Present();
+		}
+
+	}
+
+	void Application::ProcessEvents()
+	{
+		SDL_Event event;
+		while (SDL_PollEvent(&event))
+		{
+			if (event.type == SDL_EVENT_QUIT)
+			{
+				m_IsRunning = false;
+				return;
+			}
+		}
 	}
 
 }
