@@ -10,6 +10,8 @@ int main()
 		.vsync {false}
 	};
 
+	BinaryEngine::Log::Init(specification.title);
+
 	BinaryEngine::Application app(specification);
 	app.Run();
 

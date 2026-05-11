@@ -11,7 +11,10 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Window/Window.h"
     "src/BinaryEngine/Window/WindowSpecification.h"
     "src/BinaryEngine/Renderer/Renderer.cpp"
-    "src/BinaryEngine/Renderer/Renderer.h")
+    "src/BinaryEngine/Renderer/Renderer.h"
+    "src/BinaryEngine/Log/Log.h"
+    "src/BinaryEngine/Log/Log.cpp"
+)
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 set_target_properties(BinaryEngine PROPERTIES
@@ -27,4 +30,4 @@ target_compile_features(BinaryEngine PRIVATE cxx_std_20)
 target_include_directories(BinaryEngine PUBLIC src)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
-target_link_libraries(BinaryEngine PUBLIC glm::glm PRIVATE SDL3::SDL3-static ProjectWarnings)
+target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog PRIVATE SDL3::SDL3-static ProjectWarnings)
