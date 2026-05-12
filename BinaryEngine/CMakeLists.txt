@@ -14,6 +14,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Renderer.h"
     "src/BinaryEngine/Log/Log.h"
     "src/BinaryEngine/Log/Log.cpp"
+    "src/BinaryEngine/Event/Event.h"
+    "src/BinaryEngine/Event/EventTypes.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")

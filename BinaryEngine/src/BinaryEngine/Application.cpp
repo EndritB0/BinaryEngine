@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "BinaryEngine/Application.h"
 
+#include "BinaryEngine/Event/EventTypes.h"
+
 namespace BinaryEngine {
 
 	Application::Application(const WindowSpecification specification)
@@ -13,6 +15,7 @@ namespace BinaryEngine {
 
 		m_Window.emplace(specification);
 		m_Renderer.emplace(*m_Window);
+		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
 	}
 
 	Application::~Application()
@@ -26,7 +29,7 @@ namespace BinaryEngine {
 
 		while (m_IsRunning)
 		{
-			ProcessEvents();
+			m_Window->ProcessEvents();
 			m_Renderer->SetDrawColor(Color::White);
 			m_Renderer->Clear();
 			m_Renderer->Present();
@@ -34,17 +37,21 @@ namespace BinaryEngine {
 
 	}
 
-	void Application::ProcessEvents()
+	void Application::OnEvent(Event& event)
 	{
-		SDL_Event event;
-		while (SDL_PollEvent(&event))
+		switch (event.GetEventType())
 		{
-			if (event.type == SDL_EVENT_QUIT)
+			case EventType::WindowClosed:
 			{
 				m_IsRunning = false;
 				return;
 			}
+
+			case EventType::WindowResized:
+			{
+				CORE_INFO("Window resized to {0}x{1}", m_Window->GetWidth(), m_Window->GetHeight());
+				return;
+			}
 		}
 	}
-
 }

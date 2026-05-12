@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <functional>
+#include <type_traits>
 
 #include "BinaryEngine/Log/Log.h"
 #include "BinaryEngine/Core/Math.h"

@@ -3,6 +3,8 @@
 
 #include "BinaryEngine/Window/Window.h"
 #include "BinaryEngine/Renderer/Renderer.h"
+#include "BinaryEngine/Event/Event.h"
+#include "Window/WindowSpecification.h"
 
 namespace BinaryEngine {
 
@@ -19,8 +21,7 @@ namespace BinaryEngine {
 		void Run();
 
 	private:
-		void ProcessEvents();
-
+		void OnEvent(Event& event);
 	private:
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;

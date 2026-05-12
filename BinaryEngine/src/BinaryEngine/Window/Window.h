@@ -1,11 +1,18 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
+#include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Window/WindowSpecification.h"
+#include "BinaryEngine/Event/Event.h"
 
 namespace BinaryEngine {
 
 	class Window {
 	public:
+		using EventCallback = std::function<void(Event&)>;
+
 		Window(const WindowSpecification& specification);
 		~Window();
 
@@ -16,10 +23,20 @@ namespace BinaryEngine {
 
 		void* GetNativeWindow() const { return static_cast<void*>(m_Window); }
 		const WindowSpecification GetSpecification() const { return m_WindowSpecification; }
+		int GetWidth() const;
+		int GetHeight() const;
+		Vector2i GetResolution() const;
+		bool IsFullscreen() const { return m_WindowSpecification.fullscreen; }
+		void SetTitle(const std::string& title);
+		void SetSize(const Vector2i& size);
+		void SetFullscreen(bool fullscreen);
+		void SetEventCallback(const EventCallback& callback) { m_EventCallback = callback; }
+		void ProcessEvents();
 
 	private:
 		WindowSpecification m_WindowSpecification;
 		struct SDL_Window* m_Window{ nullptr };
+		EventCallback m_EventCallback;
 	};
 
 }
