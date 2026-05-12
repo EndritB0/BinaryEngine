@@ -52,6 +52,9 @@ namespace BinaryEngine {
 				CORE_INFO("Window resized to {0}x{1}", m_Window->GetWidth(), m_Window->GetHeight());
 				return;
 			}
+
+			default:
+				return;
 		}
 	}
 }

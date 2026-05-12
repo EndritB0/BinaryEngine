@@ -29,8 +29,10 @@ namespace BinaryEngine {
 
 			case Log::Level::Off:
 				return spdlog::level::off;
+
+			default:
+				return spdlog::level::trace;
 		}
-		return spdlog::level::trace;
 	}
 
 	void Log::Init(const std::string& appName)
