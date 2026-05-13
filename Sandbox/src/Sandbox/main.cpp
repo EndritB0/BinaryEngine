@@ -12,8 +12,10 @@ int main()
 
 	BinaryEngine::Log::Init(specification.title);
 
-	BinaryEngine::Application app(specification);
-	app.Run();
+	{
+		BinaryEngine::Application app(specification);
+		app.Run();
+	}
 
 	return 0;
 }

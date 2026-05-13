@@ -46,40 +46,34 @@ namespace BinaryEngine {
 		s_Instance.reset(new Log());
 
 		spdlog::set_pattern("%^[%T] %n: %v%$");
-		s_Instance->s_CoreLogger = spdlog::stdout_color_mt("Binary Engine");
-		s_Instance->s_CoreLogger->set_level(spdlog::level::trace);
+		s_Instance->m_CoreLogger = spdlog::stdout_color_mt("Binary Engine");
+		s_Instance->m_CoreLogger->set_level(spdlog::level::trace);
 		CORE_INFO("[Logger] Binary Engine Logger Initialised");
 
-		s_Instance->s_AppLogger = spdlog::stdout_color_mt(appName);
-		s_Instance->s_AppLogger->set_level(spdlog::level::trace);
+		s_Instance->m_AppLogger = spdlog::stdout_color_mt(appName);
+		s_Instance->m_AppLogger->set_level(spdlog::level::trace);
 		APP_INFO("[Logger] Application Logger Initialised");
 	}
 
 	void Log::SetCoreLevel(Level level)
 	{
-		if (s_Instance && s_Instance->s_CoreLogger)
+		if (s_Instance && s_Instance->m_CoreLogger)
 		{
-			s_Instance->s_CoreLogger->set_level(ConvertLogLevel(level));
+			s_Instance->m_CoreLogger->set_level(ConvertLogLevel(level));
 		}
 	}
 
 	void Log::SetAppLevel(Level level)
 	{
-		if (s_Instance && s_Instance->s_AppLogger)
+		if (s_Instance && s_Instance->m_AppLogger)
 		{
-			s_Instance->s_AppLogger->set_level(ConvertLogLevel(level));
+			s_Instance->m_AppLogger->set_level(ConvertLogLevel(level));
 		}
 	}
 
 	Log::~Log()
 	{
-		if (this != s_Instance.get())
-		{
-			return;
-		}
-
 		APP_INFO("[Logger] Application Logger Shutdown");
 		CORE_INFO("[Logger] Binary Engine Logger Shutdown");
-		spdlog::shutdown();
 	}
 }
