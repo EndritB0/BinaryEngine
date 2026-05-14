@@ -5,6 +5,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/BinaryEngine.h"
     "src/BinaryEngine/Application.cpp"
     "src/BinaryEngine/Application.h"
+    "src/BinaryEngine/Core/Core.h"
     "src/BinaryEngine/Core/Math.h"
     "src/BinaryEngine/Core/Color.h"
     "src/BinaryEngine/Window/Window.cpp"

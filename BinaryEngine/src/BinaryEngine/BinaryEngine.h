@@ -2,8 +2,7 @@
 
 #include "BinaryEngine/Log/Log.h"
 
-#include "BinaryEngine/Core/Math.h"
-#include "BinaryEngine/Core/Color.h"
+#include "BinaryEngine/Core/Core.h"
 
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Event/EventTypes.h"
