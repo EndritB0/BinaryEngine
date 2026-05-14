@@ -12,10 +12,14 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Window/WindowSpecification.h"
     "src/BinaryEngine/Renderer/Renderer.cpp"
     "src/BinaryEngine/Renderer/Renderer.h"
-    "src/BinaryEngine/Log/Log.h"
     "src/BinaryEngine/Log/Log.cpp"
+    "src/BinaryEngine/Log/Log.h"
     "src/BinaryEngine/Event/Event.h"
     "src/BinaryEngine/Event/EventTypes.h"
+    "src/BinaryEngine/State/State.h"
+    "src/BinaryEngine/State/Context.h"
+    "src/BinaryEngine/State/StateManager.cpp"
+    "src/BinaryEngine/State/StateManager.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")

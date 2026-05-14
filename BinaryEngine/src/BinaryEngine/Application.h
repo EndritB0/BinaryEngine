@@ -1,10 +1,14 @@
 #pragma once
+
 #include <optional>
+#include <type_traits>
 
 #include "BinaryEngine/Window/Window.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/Event/Event.h"
-#include "Window/WindowSpecification.h"
+#include "BinaryEngine/Window/WindowSpecification.h"
+#include "BinaryEngine/State/StateManager.h"
+#include "BinaryEngine/State/State.h"
 
 namespace BinaryEngine {
 
@@ -18,13 +22,27 @@ namespace BinaryEngine {
 		Application(Application&&) = delete;
 		Application& operator=(Application&&) = delete;
 
+		template<typename T, typename... Args>
+			requires(std::is_base_of_v<State, T>)
+		void Add(Args&&... args)
+		{
+			m_StateManager->RequestPushState<T>(std::forward<Args>(args)...);
+			m_StateManager->ApplyPendingChanges();
+		}
+
 		void Run();
 
 	private:
 		void OnEvent(Event& event);
+		void StopApplication();
+		void ProcessEvents();
+		void Update();
+		void Render();
+		void PostFrame();
 	private:
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;
+		std::optional<StateManager> m_StateManager;
 		bool m_IsRunning{ false };
 
 	};

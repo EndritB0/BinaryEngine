@@ -16,6 +16,7 @@ namespace BinaryEngine {
 		m_Window.emplace(specification);
 		m_Renderer.emplace(*m_Window);
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
+		m_StateManager.emplace(Context{ *m_Window, *m_Renderer });
 	}
 
 	Application::~Application()
@@ -29,10 +30,10 @@ namespace BinaryEngine {
 
 		while (m_IsRunning)
 		{
-			m_Window->ProcessEvents();
-			m_Renderer->SetDrawColor(Color::White);
-			m_Renderer->Clear();
-			m_Renderer->Present();
+			ProcessEvents();
+			Update();
+			Render();
+			PostFrame();
 		}
 
 	}
@@ -43,18 +44,57 @@ namespace BinaryEngine {
 		{
 			case EventType::WindowClosed:
 			{
-				m_IsRunning = false;
+				StopApplication();
+				event.handled = true;
 				return;
 			}
 
 			case EventType::WindowResized:
 			{
 				CORE_INFO("Window resized to {0}x{1}", m_Window->GetWidth(), m_Window->GetHeight());
-				return;
+				break;
 			}
 
 			default:
+			{
 				return;
+			}
+		}
+
+		if (!event.handled)
+		{
+			m_StateManager->ProcessEvent(event);
+		}
+	}
+
+	void Application::StopApplication()
+	{
+		m_IsRunning = false;
+	}
+
+	void Application::ProcessEvents()
+	{
+		m_Window->ProcessEvents();
+	}
+
+	void Application::Update()
+	{
+		m_StateManager->ProcessUpdate();
+	}
+
+	void Application::Render()
+	{
+		m_Renderer->Clear();
+		m_StateManager->ProcessRender();
+		m_Renderer->Present();
+	}
+
+	void Application::PostFrame()
+	{
+		m_StateManager->ApplyPendingChanges();
+		if (!m_StateManager->HasState())
+		{
+			StopApplication();
 		}
 	}
 }
