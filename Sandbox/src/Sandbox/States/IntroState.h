@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BinaryEngine/State/State.h"
+#include "BinaryEngine/Event/EventTypes.h"
 
 namespace Sandbox {
 
