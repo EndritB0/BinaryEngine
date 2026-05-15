@@ -73,7 +73,7 @@ namespace BinaryEngine {
 		{
 			if (!m_EventCallback)
 			{
-				return;
+				continue;
 			}
 
 			switch (sdlEvent.type)
@@ -82,14 +82,14 @@ namespace BinaryEngine {
 				{
 					WindowClosedEvent event;
 					m_EventCallback(event);
-					return;
+					break;
 				}
 
 				case SDL_EVENT_WINDOW_RESIZED:
 				{
 					WindowResizedEvent event{ {sdlEvent.window.data1, sdlEvent.window.data2} };
 					m_EventCallback(event);
-					return;
+					break;
 				}
 			}
 		}
