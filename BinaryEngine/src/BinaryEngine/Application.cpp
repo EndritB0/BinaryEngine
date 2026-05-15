@@ -57,7 +57,7 @@ namespace BinaryEngine {
 
 			default:
 			{
-				return;
+				break;
 			}
 		}
 

@@ -91,6 +91,24 @@ namespace BinaryEngine {
 					m_EventCallback(event);
 					break;
 				}
+
+				case SDL_EVENT_MOUSE_BUTTON_DOWN:
+				{
+					MouseButtonPressedEvent event{
+						static_cast<MouseCode>(sdlEvent.button.button),
+						{sdlEvent.button.x, sdlEvent.button.y} };
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_MOUSE_BUTTON_UP:
+				{
+					MouseButtonReleasedEvent event{
+						static_cast<MouseCode>(sdlEvent.button.button),
+						{sdlEvent.button.x, sdlEvent.button.y} };
+					m_EventCallback(event);
+					break;
+				}
 			}
 		}
 	}

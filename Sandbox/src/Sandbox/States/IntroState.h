@@ -14,6 +14,9 @@ namespace Sandbox {
 		virtual void OnEvent(BinaryEngine::Event& event) override;
 		virtual void OnUpdate() override;
 		virtual void OnRender() override;
+
+	private:
+		bool OnMouseButtonReleased(BinaryEngine::MouseButtonReleasedEvent& event);
 	};
 
 }

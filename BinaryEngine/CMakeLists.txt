@@ -15,6 +15,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Renderer.h"
     "src/BinaryEngine/Log/Log.cpp"
     "src/BinaryEngine/Log/Log.h"
+    "src/BinaryEngine/Event/MouseCodes.h"
     "src/BinaryEngine/Event/Event.h"
     "src/BinaryEngine/Event/EventTypes.h"
     "src/BinaryEngine/State/State.h"

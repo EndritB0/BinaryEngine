@@ -29,7 +29,7 @@ namespace Sandbox {
 	void MainMenuState::OnEvent(BinaryEngine::Event& event)
 	{
 		BinaryEngine::EventDispatcher dispatcher(event);
-		dispatcher.Dispatch<BinaryEngine::WindowResizedEvent>([this](BinaryEngine::WindowResizedEvent& e) { e; m_StateManager.RequestClearStates(); m_StateManager.RequestPushState<IntroState>(); return true; });
+		dispatcher.Dispatch<BinaryEngine::MouseButtonPressedEvent>(BIND_FUNCTION(OnMouseButtonPressed));
 	}
 
 	void MainMenuState::OnUpdate()
@@ -39,6 +39,21 @@ namespace Sandbox {
 	void MainMenuState::OnRender()
 	{
 		m_Context.renderer.SetDrawColor(BinaryEngine::Color::Blue);
+	}
+
+	bool MainMenuState::OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event)
+	{
+		switch (event.GetButton())
+		{
+			case BinaryEngine::Mouse::Right:
+			{
+				APP_INFO("[MainMenuState] Button 1 Pressed");
+				m_StateManager.RequestClearStates();
+				m_StateManager.RequestPushState<IntroState>();
+				return true;
+			}
+		}
+		return false;
 	}
 
 }
