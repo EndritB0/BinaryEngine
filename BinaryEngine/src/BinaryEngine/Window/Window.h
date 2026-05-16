@@ -33,6 +33,8 @@ namespace BinaryEngine {
 		void StartTextInput();
 		void StopTextInput();
 		bool IsTextInputActive() const;
+		bool IsMinimized() const { return m_IsMinimized; }
+		bool IsMaximized() const { return m_IsMaximized; }
 		void SetEventCallback(const EventCallback& callback) { m_EventCallback = callback; }
 		void ProcessEvents();
 
@@ -40,6 +42,8 @@ namespace BinaryEngine {
 		WindowSpecification m_WindowSpecification;
 		struct SDL_Window* m_Window{ nullptr };
 		EventCallback m_EventCallback;
+		bool m_IsMinimized{ false };
+		bool m_IsMaximized{ false };
 	};
 
 }

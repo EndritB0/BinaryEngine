@@ -8,7 +8,7 @@ namespace BinaryEngine {
 
 	enum class EventType {
 		None = 0,
-		WindowClosed, WindowResized,
+		WindowClosed, WindowResized, WindowFocusedGained, WindowFocusedLost, WindowMinimized, WindowMaximized, WindowRestored,
 		KeyPressed, KeyReleased,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
 		TextInput,

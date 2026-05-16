@@ -102,25 +102,50 @@ namespace BinaryEngine {
 
 				case SDL_EVENT_WINDOW_RESIZED:
 				{
-					WindowResizedEvent event{ {sdlEvent.window.data1, sdlEvent.window.data2} };
+					WindowResizedEvent event{
+						{ sdlEvent.window.data1, sdlEvent.window.data2 }
+					};
 					m_EventCallback(event);
 					break;
 				}
 
-				case SDL_EVENT_MOUSE_BUTTON_DOWN:
+				case SDL_EVENT_WINDOW_FOCUS_GAINED:
 				{
-					MouseButtonPressedEvent event{
-						static_cast<MouseCode>(sdlEvent.button.button),
-						{sdlEvent.button.x, sdlEvent.button.y} };
+					WindowFocusedGainedEvent event;
 					m_EventCallback(event);
 					break;
 				}
 
-				case SDL_EVENT_MOUSE_BUTTON_UP:
+				case SDL_EVENT_WINDOW_FOCUS_LOST:
 				{
-					MouseButtonReleasedEvent event{
-						static_cast<MouseCode>(sdlEvent.button.button),
-						{sdlEvent.button.x, sdlEvent.button.y} };
+					WindowFocusedGainedEvent event;
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_WINDOW_MINIMIZED:
+				{
+					m_IsMinimized = true;
+					m_IsMaximized = false;
+					WindowMinimizedEvent event;
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_WINDOW_MAXIMIZED:
+				{
+					m_IsMinimized = false;
+					m_IsMaximized = true;
+					WindowMaximizedEvent event;
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_WINDOW_RESTORED:
+				{
+					m_IsMinimized = false;
+					m_IsMaximized = false;
+					WindowRestoredEvent event;
 					m_EventCallback(event);
 					break;
 				}
@@ -148,6 +173,45 @@ namespace BinaryEngine {
 					break;
 				}
 
+				case SDL_EVENT_MOUSE_BUTTON_DOWN:
+				{
+					MouseButtonPressedEvent event{
+						static_cast<MouseCode>(sdlEvent.button.button),
+						{ sdlEvent.button.x, sdlEvent.button.y }
+					};
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_MOUSE_BUTTON_UP:
+				{
+					MouseButtonReleasedEvent event{
+						static_cast<MouseCode>(sdlEvent.button.button),
+						{ sdlEvent.button.x, sdlEvent.button.y }
+					};
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_MOUSE_MOTION:
+				{
+					MouseMovedEvent event{
+						{ sdlEvent.motion.x, sdlEvent.motion.y },
+						{ sdlEvent.motion.xrel, sdlEvent.motion.yrel }
+					};
+					m_EventCallback(event);
+					break;
+				}
+
+				case SDL_EVENT_MOUSE_WHEEL:
+				{
+					MouseScrolledEvent event{
+						{ sdlEvent.wheel.x, sdlEvent.wheel.y }
+					};
+					m_EventCallback(event);
+					break;
+				}
+
 				case SDL_EVENT_TEXT_INPUT:
 				{
 					TextInputEvent event{ sdlEvent.text.text };
@@ -156,6 +220,7 @@ namespace BinaryEngine {
 				}
 
 			}
+
 		}
 	}
 
