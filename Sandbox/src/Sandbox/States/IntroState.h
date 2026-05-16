@@ -18,6 +18,7 @@ namespace Sandbox {
 
 	private:
 		bool OnMouseButtonReleased(BinaryEngine::MouseButtonReleasedEvent& event);
+		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 	};
 
 }

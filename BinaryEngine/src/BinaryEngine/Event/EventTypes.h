@@ -3,6 +3,8 @@
 #include <format>
 
 #include "BinaryEngine/Event/MouseCodes.h"
+#include "BinaryEngine/Event/KeyCodes.h"
+#include "BinaryEngine/Event/ScanCodes.h"
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Core/Math.h"
 
@@ -81,6 +83,51 @@ namespace BinaryEngine {
 		virtual std::string ToString() const override
 		{
 			return std::format("{}: Button {} at ({}, {})", GetName(), m_Button, m_Position.x, m_Position.y);
+		}
+	};
+
+	class KeyEvent : public Event {
+	public:
+		KeyCode GetKeyCode() const { return m_KeyCode; }
+		ScanCode GetScanCode() const { return m_ScanCode; }
+		KeyModifier GetModifiers() const { return m_Modifiers; }
+
+	protected:
+		KeyEvent(KeyCode key, ScanCode scan, KeyModifier modifiers) : m_KeyCode(key), m_ScanCode(scan), m_Modifiers(modifiers) {}
+
+	protected:
+		KeyCode m_KeyCode;
+		ScanCode m_ScanCode;
+		KeyModifier m_Modifiers;
+	};
+
+	class KeyPressedEvent : public KeyEvent {
+	public:
+		KeyPressedEvent(KeyCode key, ScanCode scan, KeyModifier modifiers, bool repeat) :KeyEvent(key, scan, modifiers), m_Repeat(repeat) {}
+
+		bool IsRepeat() const { return m_Repeat; }
+		static EventType GetStaticType() { return EventType::KeyPressed; }
+		virtual EventType GetEventType() const override { return GetStaticType(); }
+		virtual const char* GetName() const override { return "KeyPressed"; };
+		virtual std::string ToString() const override
+		{
+			return std::format("{}: KeyCode {}, Scancode {}, Modifiers: {}, Repeat = {}", GetName(), GetKeyName(m_KeyCode), GetScanCodeName(m_ScanCode), GetKeyModifierName(m_Modifiers), m_Repeat);
+		}
+
+	private:
+		bool m_Repeat{ false };
+	};
+
+	class KeyReleasedEvent : public KeyEvent {
+	public:
+		KeyReleasedEvent(KeyCode key, ScanCode scan, KeyModifier modifiers) : KeyEvent(key, scan, modifiers) {}
+
+		static EventType GetStaticType() { return EventType::KeyReleased; }
+		virtual EventType GetEventType() const override { return GetStaticType(); }
+		virtual const char* GetName() const override { return "KeyReleased"; };
+		virtual std::string ToString() const override
+		{
+			return std::format("{}: KeyCode {}, Scancode {}, Modifiers: {}", GetName(), GetKeyName(m_KeyCode), GetScanCodeName(m_ScanCode), GetKeyModifierName(m_Modifiers));
 		}
 	};
 

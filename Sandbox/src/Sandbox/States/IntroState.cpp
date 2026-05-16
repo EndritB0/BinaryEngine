@@ -30,6 +30,7 @@ namespace Sandbox {
 	{
 		BinaryEngine::EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<BinaryEngine::MouseButtonReleasedEvent>(BIND_FUNCTION(OnMouseButtonReleased));
+		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
 	void IntroState::OnUpdate()
@@ -52,6 +53,20 @@ namespace Sandbox {
 				return true;
 			}
 		}
+		return false;
+	}
+
+	bool IntroState::OnKeyPressed(BinaryEngine::KeyPressedEvent& event)
+	{
+		switch (event.GetKeyCode())
+		{
+			case BinaryEngine::Key::Q:
+			{
+				m_StateManager.RequestClearStates();
+				return true;
+			}
+		}
+
 		return false;
 	}
 

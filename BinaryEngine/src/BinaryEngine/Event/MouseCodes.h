@@ -8,6 +8,7 @@ namespace BinaryEngine {
 
 	namespace Mouse {
 
+		inline constexpr MouseCode Unknown{ 0 };
 		inline constexpr MouseCode Button1{ 1 };
 		inline constexpr MouseCode Button2{ 3 };
 		inline constexpr MouseCode Button3{ 2 };

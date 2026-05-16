@@ -109,6 +109,31 @@ namespace BinaryEngine {
 					m_EventCallback(event);
 					break;
 				}
+
+				case SDL_EVENT_KEY_DOWN:
+				{
+					KeyPressedEvent event{
+						static_cast<KeyCode>(sdlEvent.key.key),
+						static_cast<ScanCode>(sdlEvent.key.scancode),
+						static_cast<KeyModifier>(sdlEvent.key.mod),
+						sdlEvent.key.repeat != 0
+					};
+					m_EventCallback(event);
+					CORE_INFO("{}", event.ToString());
+					break;
+				}
+
+				case SDL_EVENT_KEY_UP:
+				{
+					KeyReleasedEvent event{
+						static_cast<KeyCode>(sdlEvent.key.key),
+						static_cast<ScanCode>(sdlEvent.key.scancode),
+						static_cast<KeyModifier>(sdlEvent.key.mod),
+					};
+					m_EventCallback(event);
+					CORE_INFO("{}", event.ToString());
+					break;
+				}
 			}
 		}
 	}
