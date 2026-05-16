@@ -11,6 +11,7 @@ namespace BinaryEngine {
 		WindowClosed, WindowResized,
 		KeyPressed, KeyReleased,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
+		TextInput,
 	};
 
 	class Event {

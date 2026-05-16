@@ -30,6 +30,9 @@ namespace BinaryEngine {
 		void SetTitle(const std::string& title);
 		void SetSize(const Vector2i& size);
 		void SetFullscreen(bool fullscreen);
+		void StartTextInput();
+		void StopTextInput();
+		bool IsTextInputActive() const;
 		void SetEventCallback(const EventCallback& callback) { m_EventCallback = callback; }
 		void ProcessEvents();
 

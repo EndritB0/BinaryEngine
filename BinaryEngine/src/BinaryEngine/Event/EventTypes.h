@@ -131,4 +131,21 @@ namespace BinaryEngine {
 		}
 	};
 
+	class TextInputEvent : public Event {
+	public:
+		TextInputEvent(const std::string& text) : m_Text(text) {}
+
+		const std::string& GetText() const { return m_Text; }
+		static EventType GetStaticType() { return EventType::TextInput; }
+		virtual EventType GetEventType() const override { return GetStaticType(); }
+		virtual const char* GetName() const override { return "TextInput"; };
+		virtual std::string ToString() const override
+		{
+			return std::format("{}: \"{}\"", GetName(), m_Text);
+		}
+
+	private:
+		std::string m_Text;
+	};
+
 }

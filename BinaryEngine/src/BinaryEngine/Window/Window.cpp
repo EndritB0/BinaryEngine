@@ -66,6 +66,21 @@ namespace BinaryEngine {
 		SDL_SetWindowFullscreen(m_Window, fullscreen);
 	}
 
+	void Window::StartTextInput()
+	{
+		SDL_StartTextInput(m_Window);
+	}
+
+	void Window::StopTextInput()
+	{
+		SDL_StopTextInput(m_Window);
+	}
+
+	bool Window::IsTextInputActive() const
+	{
+		return SDL_TextInputActive(m_Window);
+	}
+
 	void Window::ProcessEvents()
 	{
 		SDL_Event sdlEvent;
@@ -119,7 +134,6 @@ namespace BinaryEngine {
 						sdlEvent.key.repeat != 0
 					};
 					m_EventCallback(event);
-					CORE_INFO("{}", event.ToString());
 					break;
 				}
 
@@ -131,9 +145,16 @@ namespace BinaryEngine {
 						static_cast<KeyModifier>(sdlEvent.key.mod),
 					};
 					m_EventCallback(event);
-					CORE_INFO("{}", event.ToString());
 					break;
 				}
+
+				case SDL_EVENT_TEXT_INPUT:
+				{
+					TextInputEvent event{ sdlEvent.text.text };
+					m_EventCallback(event);
+					break;
+				}
+
 			}
 		}
 	}
