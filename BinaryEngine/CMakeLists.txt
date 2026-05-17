@@ -2,6 +2,7 @@ add_library(BinaryEngine STATIC)
 
 set(BINARYENGINE_SOURCES
     "src/pch.h"
+    "src/BinaryEngine/vendor/stb_image.cpp"
     "src/BinaryEngine/BinaryEngine.h"
     "src/BinaryEngine/Application.cpp"
     "src/BinaryEngine/Application.h"
@@ -45,4 +46,4 @@ target_compile_features(BinaryEngine PRIVATE cxx_std_20)
 target_include_directories(BinaryEngine PUBLIC src)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
-target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog PRIVATE SDL3::SDL3-static ProjectWarnings)
+target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog stb PRIVATE SDL3::SDL3-static ProjectWarnings)
