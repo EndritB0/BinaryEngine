@@ -26,6 +26,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/State/Context.h"
     "src/BinaryEngine/State/StateManager.cpp"
     "src/BinaryEngine/State/StateManager.h"
+    "src/BinaryEngine/Input/Input.cpp"
+    "src/BinaryEngine/Input/Input.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
