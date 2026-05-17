@@ -32,7 +32,7 @@ namespace Sandbox {
 		dispatcher.Dispatch<BinaryEngine::MouseButtonPressedEvent>(BIND_FUNCTION(OnMouseButtonPressed));
 	}
 
-	void MainMenuState::OnUpdate()
+	void MainMenuState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
 	{
 	}
 

@@ -27,11 +27,16 @@ namespace BinaryEngine {
 	void Application::Run()
 	{
 		m_IsRunning = true;
+		m_LastFrameTime = SDL_GetTicksNS();
 
 		while (m_IsRunning)
 		{
+			std::uint64_t currentFrameTime{ SDL_GetTicksNS() };
+			TimeStep dt{ currentFrameTime - m_LastFrameTime };
+			m_LastFrameTime = currentFrameTime;
+
 			ProcessEvents();
-			Update();
+			Update(dt);
 			Render();
 			PostFrame();
 		}
@@ -77,9 +82,9 @@ namespace BinaryEngine {
 		m_Window->ProcessEvents();
 	}
 
-	void Application::Update()
+	void Application::Update(TimeStep dt)
 	{
-		m_StateManager->ProcessUpdate();
+		m_StateManager->ProcessUpdate(dt);
 	}
 
 	void Application::Render()

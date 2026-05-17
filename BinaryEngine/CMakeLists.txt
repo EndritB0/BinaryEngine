@@ -8,6 +8,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Core/Core.h"
     "src/BinaryEngine/Core/Math.h"
     "src/BinaryEngine/Core/Color.h"
+    "src/BinaryEngine/Core/Timestep.h"
     "src/BinaryEngine/Window/Window.cpp"
     "src/BinaryEngine/Window/Window.h"
     "src/BinaryEngine/Window/WindowSpecification.h"

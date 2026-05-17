@@ -13,7 +13,7 @@ namespace Sandbox {
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
 		virtual void OnEvent(BinaryEngine::Event& event) override;
-		virtual void OnUpdate() override;
+		virtual void OnUpdate(BinaryEngine::TimeStep dt) override;
 		virtual void OnRender() override;
 
 	private:

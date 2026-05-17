@@ -2,6 +2,7 @@
 
 #include "BinaryEngine/State/Context.h"
 #include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/Core/Timestep.h"
 
 namespace BinaryEngine {
 
@@ -18,7 +19,7 @@ namespace BinaryEngine {
 		virtual void OnAttach() {};
 		virtual void OnDetach() {};
 		virtual void OnEvent(Event& event) = 0;
-		virtual void OnUpdate() = 0;
+		virtual void OnUpdate(TimeStep dt) = 0;
 		virtual void OnRender() = 0;
 	protected:
 		StateManager& m_StateManager;

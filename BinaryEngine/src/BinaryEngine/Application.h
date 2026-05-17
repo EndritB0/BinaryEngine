@@ -9,6 +9,7 @@
 #include "BinaryEngine/Window/WindowSpecification.h"
 #include "BinaryEngine/State/StateManager.h"
 #include "BinaryEngine/State/State.h"
+#include "BinaryEngine/Core/Timestep.h"
 
 namespace BinaryEngine {
 
@@ -36,13 +37,14 @@ namespace BinaryEngine {
 		void OnEvent(Event& event);
 		void StopApplication();
 		void ProcessEvents();
-		void Update();
+		void Update(TimeStep dt);
 		void Render();
 		void PostFrame();
 	private:
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;
 		std::optional<StateManager> m_StateManager;
+		std::uint64_t m_LastFrameTime{};
 		bool m_IsRunning{ false };
 
 	};

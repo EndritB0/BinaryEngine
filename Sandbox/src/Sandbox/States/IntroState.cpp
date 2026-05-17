@@ -33,7 +33,7 @@ namespace Sandbox {
 		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
-	void IntroState::OnUpdate()
+	void IntroState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
 	{
 	}
 

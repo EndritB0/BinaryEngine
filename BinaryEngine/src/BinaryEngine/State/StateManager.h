@@ -7,6 +7,7 @@
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/State/Context.h"
 #include "BinaryEngine/State/State.h"
+#include "BinaryEngine/Core/Timestep.h"
 
 namespace BinaryEngine {
 
@@ -44,7 +45,7 @@ namespace BinaryEngine {
 		void RequestRemoveState(State& target);
 		void RequestClearStates();
 		void ProcessEvent(Event& event);
-		void ProcessUpdate();
+		void ProcessUpdate(TimeStep dt);
 		void ProcessRender();
 		void ApplyPendingChanges();
 

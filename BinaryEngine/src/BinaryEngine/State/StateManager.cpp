@@ -49,11 +49,11 @@ namespace BinaryEngine {
 		}
 	}
 
-	void StateManager::ProcessUpdate()
+	void StateManager::ProcessUpdate(TimeStep dt)
 	{
 		for (auto& state : m_States)
 		{
-			state->OnUpdate();
+			state->OnUpdate(dt);
 		}
 	}
 
