@@ -15,6 +15,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Window/WindowSpecification.h"
     "src/BinaryEngine/Renderer/Renderer.cpp"
     "src/BinaryEngine/Renderer/Renderer.h"
+    "src/BinaryEngine/Renderer/Texture2D.cpp"
+    "src/BinaryEngine/Renderer/Texture2D.h"
     "src/BinaryEngine/Log/Log.cpp"
     "src/BinaryEngine/Log/Log.h"
     "src/BinaryEngine/Event/MouseCodes.h"

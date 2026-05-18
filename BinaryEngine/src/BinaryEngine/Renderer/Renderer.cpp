@@ -40,4 +40,16 @@ namespace BinaryEngine {
 		SDL_SetRenderDrawColor(m_Renderer, color.red, color.green, color.blue, color.alpha);
 	}
 
+	void Renderer::DrawTexture(const Texture2D& texture, const Vector2f position, const Vector2f size)
+	{
+		SDL_FRect dstRect{
+			.x {position.x},
+			.y {position.y},
+			.w {size.x},
+			.h {size.y}
+		};
+
+		SDL_RenderTexture(m_Renderer, static_cast<SDL_Texture*>(texture.GetNativeTexture()), nullptr, &dstRect);
+	}
+
 }

@@ -1,0 +1,4 @@
+Asset Name: [PLATFORMER/METROIDVANIA ASSET PACK]
+Author: o_lobster
+URL: https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack
+Notes: [Used for character sprite]
