@@ -35,14 +35,36 @@ namespace Sandbox {
 
 	void MainMenuState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
 	{
+		m_Camera.SetPosition({ m_CharacterTransform.Position.x, m_CharacterTransform.Position.y, 20 });
+
+		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W))
+		{
+			m_CharacterTransform.Position.y -= 100.f * dt.GetSeconds();
+		}
+		else if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::S))
+		{
+			m_CharacterTransform.Position.y += 100.f * dt.GetSeconds();
+		}
+
+		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::A))
+		{
+			m_CharacterTransform.Position.x -= 100.f * dt.GetSeconds();
+		}
+		else if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::D))
+		{
+			m_CharacterTransform.Position.x += 100.f * dt.GetSeconds();
+		}
+
 	}
 
 	void MainMenuState::OnRender()
 	{
 		m_Context.renderer.SetDrawColor(BinaryEngine::Color::Blue);
-
+		m_Context.renderer.BeginScene(m_Camera);
 		auto characterAsset = m_Context.assetManager.GetAsset<BinaryEngine::Texture2D>(m_CharacterTexture);
-		m_Context.renderer.DrawTexture(*characterAsset, { 100, 100 }, { characterAsset->GetWidth(), characterAsset->GetHeight() });
+		m_Context.renderer.DrawTexture(*characterAsset, m_CharacterTransform);
+		m_Context.renderer.DrawTexture(*characterAsset, m_CharacterTransform2);
+		m_Context.renderer.EndScene();
 	}
 
 	bool MainMenuState::OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event)

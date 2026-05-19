@@ -17,6 +17,7 @@
 
 #include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
+#include "BinaryEngine/Renderer/OrthographicCamera.h"
 
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Asset/Asset.h"

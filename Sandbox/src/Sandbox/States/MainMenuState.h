@@ -20,7 +20,11 @@ namespace Sandbox {
 		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
 
 	private:
+	private:
+		BinaryEngine::OrthographicCamera m_Camera{ m_Context.window.GetResolution() };
 		BinaryEngine::AssetHandle m_CharacterTexture;
+		BinaryEngine::Transform m_CharacterTransform{ { 200.0f, 200.0f, 1.f }, { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f } };
+		BinaryEngine::Transform m_CharacterTransform2{ { 100.0f, 100.0f, 0.f }, { 0.f, 0.f, 0.f }, { 2.f, 1.f, 1.f } };
 	};
 
 }
