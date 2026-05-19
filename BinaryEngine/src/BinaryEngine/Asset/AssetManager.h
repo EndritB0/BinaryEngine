@@ -7,8 +7,8 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Asset/Asset.h"
+#include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Log/Log.h"
 
 namespace BinaryEngine {

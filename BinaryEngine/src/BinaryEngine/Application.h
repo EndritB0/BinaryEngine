@@ -1,16 +1,17 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <type_traits>
 
-#include "BinaryEngine/Window/Window.h"
-#include "BinaryEngine/Renderer/Renderer.h"
-#include "BinaryEngine/Event/Event.h"
-#include "BinaryEngine/Window/WindowSpecification.h"
-#include "BinaryEngine/State/StateManager.h"
-#include "BinaryEngine/State/State.h"
-#include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Asset/AssetManager.h"
+#include "BinaryEngine/Core/Timestep.h"
+#include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/Renderer/Renderer.h"
+#include "BinaryEngine/State/State.h"
+#include "BinaryEngine/State/StateManager.h"
+#include "BinaryEngine/Window/Window.h"
+#include "BinaryEngine/Window/WindowSpecification.h"
 
 namespace BinaryEngine {
 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "BinaryEngine/Window/Window.h"
 #include "BinaryEngine/Core/Color.h"
+#include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
+#include "BinaryEngine/Window/Window.h"
 
 namespace BinaryEngine {
 

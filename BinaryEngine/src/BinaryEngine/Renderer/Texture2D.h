@@ -2,8 +2,9 @@
 
 #include <filesystem>
 
-#include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Asset/Asset.h"
+#include "BinaryEngine/Asset/AssetTypes.h"
+#include "BinaryEngine/Core/Math.h"
 
 namespace BinaryEngine {
 

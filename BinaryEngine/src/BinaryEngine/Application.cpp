@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "BinaryEngine/Application.h"
 
-#include "BinaryEngine/Event/EventTypes.h"
+#include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/State/Context.h"
+#include "BinaryEngine/Window/WindowSpecification.h"
 
 namespace BinaryEngine {
 

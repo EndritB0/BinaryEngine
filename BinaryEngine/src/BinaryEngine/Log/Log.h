@@ -10,6 +10,7 @@ URL: https://youtu.be/dZr-53LAlOw
 
 #include <memory>
 #include <string>
+
 #include <spdlog/logger.h>
 
 namespace BinaryEngine {
@@ -27,7 +28,6 @@ namespace BinaryEngine {
 		};
 
 		static void Init(const std::string& appName = "Application");
-		static void Shutdown();
 
 		Log(const Log&) = delete;
 		Log& operator=(const Log&) = delete;

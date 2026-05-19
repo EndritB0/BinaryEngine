@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <string>
 
 #include "BinaryEngine/Core/UUID.h"
 

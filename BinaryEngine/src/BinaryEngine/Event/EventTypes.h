@@ -1,12 +1,13 @@
 #pragma once
 
 #include <format>
+#include <string>
 
-#include "BinaryEngine/Event/MouseCodes.h"
-#include "BinaryEngine/Event/KeyCodes.h"
-#include "BinaryEngine/Event/ScanCodes.h"
-#include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Core/Math.h"
+#include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/Event/KeyCodes.h"
+#include "BinaryEngine/Event/MouseCodes.h"
+#include "BinaryEngine/Event/ScanCodes.h"
 
 namespace BinaryEngine {
 
@@ -135,7 +136,7 @@ namespace BinaryEngine {
 
 	protected:
 		MouseButtonEvent(MouseCode button, Vector2f position) :
-			m_Button(button), m_Position(position)
+			m_Position(position), m_Button(button)
 		{
 		}
 

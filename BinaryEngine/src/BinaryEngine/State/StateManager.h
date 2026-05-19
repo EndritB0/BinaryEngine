@@ -4,10 +4,10 @@
 #include <type_traits>
 #include <vector>
 
+#include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/State/Context.h"
 #include "BinaryEngine/State/State.h"
-#include "BinaryEngine/Core/Timestep.h"
 
 namespace BinaryEngine {
 

@@ -1,9 +1,9 @@
 #pragma once 
 
-#include "BinaryEngine/Event/KeyCodes.h"
-#include "BinaryEngine/Event/ScanCodes.h"
-#include "BinaryEngine/Event/MouseCodes.h"
 #include "BinaryEngine/Core/Math.h"
+#include "BinaryEngine/Event/KeyCodes.h"
+#include "BinaryEngine/Event/MouseCodes.h"
+#include "BinaryEngine/Event/ScanCodes.h"
 
 namespace BinaryEngine {
 

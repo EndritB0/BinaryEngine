@@ -1,8 +1,8 @@
 #pragma once
 
-#include "BinaryEngine/State/Context.h"
-#include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Core/Timestep.h"
+#include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/State/Context.h"
 
 namespace BinaryEngine {
 
