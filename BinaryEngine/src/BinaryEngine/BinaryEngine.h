@@ -16,6 +16,11 @@
 #include "BinaryEngine/Window/Window.h"
 
 #include "BinaryEngine/Renderer/Renderer.h"
+#include "BinaryEngine/Renderer/Texture2D.h"
+
+#include "BinaryEngine/Asset/AssetTypes.h"
+#include "BinaryEngine/Asset/Asset.h"
+#include "BinaryEngine/Asset/AssetManager.h"
 
 #include "BinaryEngine/State/Context.h"
 #include "BinaryEngine/State/State.h"

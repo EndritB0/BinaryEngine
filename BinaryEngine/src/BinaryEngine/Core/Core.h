@@ -7,3 +7,4 @@
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Core/Color.h"
 #include "BinaryEngine/Core/Timestep.h"
+#include "BinaryEngine/Core/UUID.h"

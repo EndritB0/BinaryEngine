@@ -10,6 +10,7 @@
 #include "BinaryEngine/State/StateManager.h"
 #include "BinaryEngine/State/State.h"
 #include "BinaryEngine/Core/Timestep.h"
+#include "BinaryEngine/Asset/AssetManager.h"
 
 namespace BinaryEngine {
 
@@ -44,6 +45,7 @@ namespace BinaryEngine {
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;
 		std::optional<StateManager> m_StateManager;
+		AssetManager m_AssetManager;
 		std::uint64_t m_LastFrameTime{};
 		bool m_IsRunning{ false };
 

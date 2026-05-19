@@ -40,7 +40,7 @@ namespace BinaryEngine {
 		return *this;
 	}
 
-	void Texture2D::LoadFromFile(const Renderer& renderer, const std::filesystem::path& filePath)
+	void Texture2D::Load(const std::filesystem::path& filePath, const Renderer& renderer)
 	{
 		int width{};
 		int height{};

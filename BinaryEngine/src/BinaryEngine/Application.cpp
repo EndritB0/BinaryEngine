@@ -16,7 +16,7 @@ namespace BinaryEngine {
 		m_Window.emplace(specification);
 		m_Renderer.emplace(*m_Window);
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
-		m_StateManager.emplace(Context{ *m_Window, *m_Renderer });
+		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager });
 	}
 
 	Application::~Application()

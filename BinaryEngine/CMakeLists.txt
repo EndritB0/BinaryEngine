@@ -10,6 +10,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Core/Math.h"
     "src/BinaryEngine/Core/Color.h"
     "src/BinaryEngine/Core/Timestep.h"
+    "src/BinaryEngine/Core/UUID.cpp"
+    "src/BinaryEngine/Core/UUID.h"
     "src/BinaryEngine/Window/Window.cpp"
     "src/BinaryEngine/Window/Window.h"
     "src/BinaryEngine/Window/WindowSpecification.h"
@@ -32,6 +34,10 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/State/StateManager.h"
     "src/BinaryEngine/Input/Input.cpp"
     "src/BinaryEngine/Input/Input.h"
+    "src/BinaryEngine/Asset/AssetTypes.h"
+    "src/BinaryEngine/Asset/Asset.h"
+    "src/BinaryEngine/Asset/AssetManager.cpp"
+    "src/BinaryEngine/Asset/AssetManager.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")

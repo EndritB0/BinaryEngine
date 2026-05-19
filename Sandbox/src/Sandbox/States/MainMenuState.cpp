@@ -19,7 +19,7 @@ namespace Sandbox {
 	void MainMenuState::OnAttach()
 	{
 		APP_INFO("[MainMenuState] Attached");
-		m_CharacterTexture.LoadFromFile(m_Context.renderer, "./resources/character/herochar_idle_anim_strip_4.png");
+		m_CharacterTexture = m_Context.assetManager.LoadAsset<BinaryEngine::Texture2D>("./resources/character/character_idle.png", m_Context.renderer);
 	}
 
 	void MainMenuState::OnDetach()
@@ -40,7 +40,9 @@ namespace Sandbox {
 	void MainMenuState::OnRender()
 	{
 		m_Context.renderer.SetDrawColor(BinaryEngine::Color::Blue);
-		m_Context.renderer.DrawTexture(m_CharacterTexture, { 100, 100 }, { m_CharacterTexture.GetWidth(), m_CharacterTexture.GetHeight() });
+
+		auto characterAsset = m_Context.assetManager.GetAsset<BinaryEngine::Texture2D>(m_CharacterTexture);
+		m_Context.renderer.DrawTexture(*characterAsset, { 100, 100 }, { characterAsset->GetWidth(), characterAsset->GetHeight() });
 	}
 
 	bool MainMenuState::OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event)

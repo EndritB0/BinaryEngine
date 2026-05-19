@@ -20,7 +20,7 @@ namespace Sandbox {
 		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
 
 	private:
-		BinaryEngine::Texture2D m_CharacterTexture;
+		BinaryEngine::AssetHandle m_CharacterTexture;
 	};
 
 }
