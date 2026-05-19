@@ -55,3 +55,4 @@ target_include_directories(BinaryEngine PUBLIC src)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog stb PRIVATE SDL3::SDL3-static ProjectWarnings)
+set_source_files_properties("src/BinaryEngine/vendor/stb_image.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
