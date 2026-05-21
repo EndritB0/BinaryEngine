@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/fwd.hpp>
+
 #include "BinaryEngine/Core/Math.h"
 
 namespace BinaryEngine {
@@ -10,6 +12,7 @@ namespace BinaryEngine {
 		OrthographicCamera(Vector2i windowSize);
 
 		void SetProjection(float left, float right, float bottom, float top);
+		void OnResize(Vector2i windowSize);
 		const Vector3f& GetPosition() const { return m_Position; }
 		void SetPosition(const Vector3f& position) { m_Position = position; RecalculateViewMatrix(); }
 		float GetRotation() const { return m_Rotation; }

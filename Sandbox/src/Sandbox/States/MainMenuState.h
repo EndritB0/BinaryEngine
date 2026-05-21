@@ -18,6 +18,7 @@ namespace Sandbox {
 
 	private:
 		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
+		bool OnWindowResized(BinaryEngine::WindowResizedEvent& event);
 
 	private:
 	private:

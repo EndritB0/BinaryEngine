@@ -20,6 +20,15 @@ namespace BinaryEngine {
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
+	void OrthographicCamera::OnResize(Vector2i windowSize)
+	{
+		float left{ -windowSize.x / 2.0f };
+		float right{ windowSize.x / 2.0f };
+		float bottom{ windowSize.y / 2.0f };
+		float top{ -windowSize.y / 2.0f };
+		SetProjection(left, right, bottom, top);
+	}
+
 	void OrthographicCamera::RecalculateViewMatrix()
 	{
 		glm::mat4 transform{ glm::translate(glm::mat4(1.0f), m_Position) * glm::rotate(glm::mat4(1.0f), glm::radians(m_Rotation), glm::vec3(0, 0, 1)) };

@@ -1,6 +1,9 @@
 #pragma once
 
-#include "BinaryEngine/Core/Core.h"
+#include <glm/fwd.hpp>
+
+#include "BinaryEngine/Core/Color.h"
+#include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Core/Transform.h"
 #include "BinaryEngine/Renderer/OrthographicCamera.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
@@ -19,6 +22,7 @@ namespace BinaryEngine {
 		Renderer& operator=(Renderer&&) = delete;
 
 		void* GetNativeRenderer() const { return m_Renderer; }
+		void SetViewport(Vector2i position, Vector2i size);
 		void Clear();
 		void Present();
 		void SetDrawColor(Color color);

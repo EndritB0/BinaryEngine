@@ -47,31 +47,15 @@ namespace BinaryEngine {
 
 	void Application::OnEvent(Event& event)
 	{
-		switch (event.GetEventType())
-		{
-			case EventType::WindowClosed:
-			{
-				StopApplication();
-				event.handled = true;
-				return;
-			}
-
-			case EventType::WindowResized:
-			{
-				CORE_INFO("Window resized to {0}x{1}", m_Window->GetWidth(), m_Window->GetHeight());
-				break;
-			}
-
-			default:
-			{
-				break;
-			}
-		}
+		EventDispatcher dispatcher(event);
+		dispatcher.Dispatch<WindowClosedEvent>(BIND_FUNCTION(OnWindowClosed));
+		dispatcher.Dispatch<WindowResizedEvent>(BIND_FUNCTION(OnWindowResized));
 
 		if (!event.handled)
 		{
 			m_StateManager->ProcessEvent(event);
 		}
+
 	}
 
 	void Application::StopApplication()
@@ -104,4 +88,17 @@ namespace BinaryEngine {
 			StopApplication();
 		}
 	}
+
+	bool Application::OnWindowClosed([[maybe_unused]] WindowClosedEvent& event)
+	{
+		StopApplication();
+		return true;
+	}
+
+	bool Application::OnWindowResized(WindowResizedEvent& event)
+	{
+		m_Renderer->SetViewport({ 0, 0 }, { event.GetWidth(), event.GetHeight() });
+		return false;
+	}
+
 }

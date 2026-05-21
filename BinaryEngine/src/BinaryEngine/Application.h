@@ -7,6 +7,7 @@
 #include "BinaryEngine/Asset/AssetManager.h"
 #include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/Event/EventTypes.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/State/State.h"
 #include "BinaryEngine/State/StateManager.h"
@@ -42,6 +43,9 @@ namespace BinaryEngine {
 		void Update(TimeStep dt);
 		void Render();
 		void PostFrame();
+		bool OnWindowClosed(WindowClosedEvent& event);
+		bool OnWindowResized(WindowResizedEvent& event);
+
 	private:
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;

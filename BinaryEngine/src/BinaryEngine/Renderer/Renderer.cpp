@@ -25,6 +25,17 @@ namespace BinaryEngine {
 		}
 	}
 
+	void Renderer::SetViewport(Vector2i position, Vector2i size)
+	{
+		SDL_Rect rect{
+			.x{static_cast<int>(position.x)},
+			.y{static_cast<int>(position.y)},
+			.w{static_cast<int>(size.x)},
+			.h{static_cast<int>(size.y)}
+		};
+		SDL_SetRenderViewport(m_Renderer, &rect);
+	}
+
 	void Renderer::Clear()
 	{
 		SDL_RenderClear(m_Renderer);

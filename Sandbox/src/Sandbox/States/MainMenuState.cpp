@@ -31,12 +31,11 @@ namespace Sandbox {
 	{
 		BinaryEngine::EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<BinaryEngine::MouseButtonPressedEvent>(BIND_FUNCTION(OnMouseButtonPressed));
+		dispatcher.Dispatch<BinaryEngine::WindowResizedEvent>(BIND_FUNCTION(OnWindowResized));
 	}
 
 	void MainMenuState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
 	{
-		m_Camera.SetPosition({ m_CharacterTransform.Position.x, m_CharacterTransform.Position.y, 20 });
-
 		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W))
 		{
 			m_CharacterTransform.Position.y -= 100.f * dt.GetSeconds();
@@ -55,6 +54,7 @@ namespace Sandbox {
 			m_CharacterTransform.Position.x += 100.f * dt.GetSeconds();
 		}
 
+		m_Camera.SetPosition({ m_CharacterTransform.Position.x, m_CharacterTransform.Position.y, 20 });
 	}
 
 	void MainMenuState::OnRender()
@@ -79,6 +79,12 @@ namespace Sandbox {
 				return true;
 			}
 		}
+		return false;
+	}
+
+	bool MainMenuState::OnWindowResized(BinaryEngine::WindowResizedEvent& event)
+	{
+		m_Camera.OnResize(event.GetSize());
 		return false;
 	}
 
