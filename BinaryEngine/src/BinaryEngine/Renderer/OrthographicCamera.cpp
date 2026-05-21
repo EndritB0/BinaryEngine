@@ -10,7 +10,7 @@ namespace BinaryEngine {
 	}
 
 	OrthographicCamera::OrthographicCamera(Vector2i windowSize) :
-		OrthographicCamera(-windowSize.x / 2.0f, windowSize.x / 2.0f, windowSize.y / 2.0f, -windowSize.y / 2.0f)
+		OrthographicCamera(-windowSize.x / 2.0f, windowSize.x / 2.0f, -windowSize.y / 2.0f, windowSize.y / 2.0f)
 	{
 	}
 
@@ -24,8 +24,8 @@ namespace BinaryEngine {
 	{
 		float left{ -windowSize.x / 2.0f };
 		float right{ windowSize.x / 2.0f };
-		float bottom{ windowSize.y / 2.0f };
-		float top{ -windowSize.y / 2.0f };
+		float bottom{ -windowSize.y / 2.0f };
+		float top{ windowSize.y / 2.0f };
 		SetProjection(left, right, bottom, top);
 	}
 

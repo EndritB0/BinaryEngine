@@ -38,11 +38,11 @@ namespace Sandbox {
 	{
 		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W))
 		{
-			m_CharacterTransform.Position.y -= 100.f * dt.GetSeconds();
+			m_CharacterTransform.Position.y += 100.f * dt.GetSeconds();
 		}
 		else if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::S))
 		{
-			m_CharacterTransform.Position.y += 100.f * dt.GetSeconds();
+			m_CharacterTransform.Position.y -= 100.f * dt.GetSeconds();
 		}
 
 		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::A))

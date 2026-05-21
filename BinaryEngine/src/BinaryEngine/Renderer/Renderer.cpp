@@ -76,10 +76,10 @@ namespace BinaryEngine {
 		};
 
 		constexpr glm::vec2 s_TextureCoordinates[4]{
-			{ 0.0f, 0.0f },
-			{ 1.0f, 0.0f },
-			{ 1.0f, 1.0f },
 			{ 0.0f, 1.0f },
+			{ 1.0f, 1.0f },
+			{ 1.0f, 0.0f },
+			{ 0.0f, 0.0f },
 		};
 
 		constexpr int s_QuadIndices[6]{ 0, 1, 2, 2, 3, 0 };
