@@ -41,6 +41,10 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Asset/Asset.h"
     "src/BinaryEngine/Asset/AssetManager.cpp"
     "src/BinaryEngine/Asset/AssetManager.h"
+    "src/BinaryEngine/Scene/Components.h"
+    "src/BinaryEngine/Scene/Entity.h"
+    "src/BinaryEngine/Scene/Scene.h"
+    "src/BinaryEngine/Scene/Scene.cpp"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
