@@ -8,7 +8,6 @@ int main()
 		.resolution {BinaryEngine::Vector2i{ 1280, 720 }},
 		.fpsLimit {120},
 		.fullscreen {false},
-		.vsync {false}
 	};
 
 	BinaryEngine::Log::Init(specification.title);

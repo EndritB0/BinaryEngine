@@ -11,7 +11,6 @@ namespace BinaryEngine {
 		Vector2i resolution{ 1280, 720 };
 		std::uint16_t fpsLimit{ 120 };
 		bool fullscreen{ false };
-		bool vsync{ false };
 	};
 
 }

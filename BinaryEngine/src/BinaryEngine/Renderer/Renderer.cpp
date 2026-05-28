@@ -1,9 +1,27 @@
 #include "pch.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 
+namespace {
+
+	static SDL_BlendMode ConvertBlendMode(BinaryEngine::BlendMode blendMode)
+	{
+		switch (blendMode)
+		{
+			case BinaryEngine::BlendMode::None: return SDL_BLENDMODE_NONE;
+			case BinaryEngine::BlendMode::Blend: return SDL_BLENDMODE_BLEND;
+			case BinaryEngine::BlendMode::Additive: return SDL_BLENDMODE_ADD;
+			case BinaryEngine::BlendMode::Modulate: return SDL_BLENDMODE_MOD;
+			case BinaryEngine::BlendMode::Multiply: return SDL_BLENDMODE_MUL;
+			default: return SDL_BLENDMODE_BLEND;
+		}
+	}
+
+}
+
 namespace BinaryEngine {
 
-	Renderer::Renderer(const Window& window)
+	Renderer::Renderer(const Window& window, const RendererSpecification& specification)
+		: m_Specification(specification)
 	{
 		m_Renderer = SDL_CreateRenderer(static_cast<SDL_Window*>(window.GetNativeWindow()), nullptr);
 
@@ -12,9 +30,8 @@ namespace BinaryEngine {
 			//TODO: Log that Renderer failed to be created
 		}
 
-		int vsync = window.GetSpecification().vsync ? 1 : 0;
-
-		SDL_SetRenderVSync(m_Renderer, vsync);
+		SDL_SetRenderVSync(m_Renderer, m_Specification.vSync ? 1 : 0);
+		ApplyRenderSettings();
 	}
 
 	Renderer::~Renderer()
@@ -34,6 +51,19 @@ namespace BinaryEngine {
 			.h{static_cast<int>(size.y)}
 		};
 		SDL_SetRenderViewport(m_Renderer, &rect);
+	}
+
+	void Renderer::SetBlendMode(BlendMode mode)
+	{
+		m_Specification.blendMode = mode;
+		ApplyRenderSettings();
+	}
+
+	void Renderer::SetRenderingSettings(BlendMode mode, std::uint8_t alpha)
+	{
+		m_Specification.blendMode = mode;
+		m_Specification.defaultAlpha = alpha;
+		ApplyRenderSettings();
 	}
 
 	void Renderer::Clear()
@@ -83,7 +113,8 @@ namespace BinaryEngine {
 		};
 
 		constexpr int s_QuadIndices[6]{ 0, 1, 2, 2, 3, 0 };
-		constexpr SDL_FColor s_WhiteTint{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+		SDL_FColor s_WhiteTint{ 1.0f, 1.0f, 1.0f, static_cast<float>(m_Specification.defaultAlpha) / 255.0f };
 
 		int renderWidth{};
 		int renderHeight{};
@@ -108,6 +139,11 @@ namespace BinaryEngine {
 		}
 
 		SDL_RenderGeometry(m_Renderer, static_cast<SDL_Texture*>(texture.GetNativeTexture()), finalVertices, 4, s_QuadIndices, 6);
+	}
+
+	void Renderer::ApplyRenderSettings()
+	{
+		SDL_SetRenderDrawBlendMode(m_Renderer, ConvertBlendMode(m_Specification.blendMode));
 	}
 
 }
