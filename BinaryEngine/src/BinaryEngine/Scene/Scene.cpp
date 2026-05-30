@@ -8,12 +8,12 @@ namespace BinaryEngine {
 
 	BinaryEngine::Scene::Scene()
 	{
-
+		CORE_INFO("[Scene] Scene Initialised");
 	}
 
 	Scene::~Scene()
 	{
-
+		CORE_INFO("[Scene] Scene Shutdown");
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)

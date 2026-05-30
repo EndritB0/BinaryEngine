@@ -12,9 +12,10 @@ namespace BinaryEngine {
 
 		if (!m_Window)
 		{
-			//TODO: Log that window has not been created
+			CORE_ERROR("[Window] Failed to create window: {}", SDL_GetError());
 		}
 
+		CORE_INFO("[Window] Window Initalised: {} ({}x{})", m_WindowSpecification.title, m_WindowSpecification.resolution.x, m_WindowSpecification.resolution.y);
 	}
 
 	Window::~Window()
@@ -22,8 +23,8 @@ namespace BinaryEngine {
 		if (m_Window)
 		{
 			SDL_DestroyWindow(m_Window);
+			CORE_INFO("[Window] Window Shutdown");
 		}
-
 	}
 
 	int Window::GetWidth() const
@@ -54,26 +55,31 @@ namespace BinaryEngine {
 	{
 		m_WindowSpecification.title = title;
 		SDL_SetWindowTitle(m_Window, m_WindowSpecification.title.c_str());
+		CORE_TRACE("[Window] Window title set to: {}", m_WindowSpecification.title);
 	}
 
 	void Window::SetSize(const Vector2i& size)
 	{
 		SDL_SetWindowSize(m_Window, size.x, size.y);
+		CORE_TRACE("[Window] Window size set to: {}x{}", size.x, size.y);
 	}
 
 	void Window::SetFullscreen(bool fullscreen)
 	{
 		SDL_SetWindowFullscreen(m_Window, fullscreen);
+		CORE_INFO("[Window] Setting fullscreen mode to: {}", fullscreen ? "true" : "false");
 	}
 
 	void Window::StartTextInput()
 	{
 		SDL_StartTextInput(m_Window);
+		CORE_INFO("[Window] Enabled Text Input");
 	}
 
 	void Window::StopTextInput()
 	{
 		SDL_StopTextInput(m_Window);
+		CORE_INFO("[Window] Disabled Text Input");
 	}
 
 	bool Window::IsTextInputActive() const

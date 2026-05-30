@@ -26,9 +26,11 @@ namespace BinaryEngine {
 
 		void* GetNativeRenderer() const { return m_Renderer; }
 		void SetViewport(Vector2i position, Vector2i size);
+		void SetVSync(bool enabled);
+		bool IsVSyncEnabled() const { return m_Specification.vSync; }
 		void SetBlendMode(BlendMode mode);
 		BlendMode GetBlendMode() const { return m_Specification.blendMode; }
-		void SetDefaultAlpha(std::uint8_t alpha) { m_Specification.defaultAlpha = alpha; }
+		void SetDefaultAlpha(std::uint8_t alpha);
 		std::uint8_t GetDefaultAlpha() const { return m_Specification.defaultAlpha; }
 		void SetRenderingSettings(BlendMode, std::uint8_t alpha = 255);
 		void Clear();

@@ -16,6 +16,18 @@ namespace {
 		}
 	}
 
+	static constexpr std::string_view BlendModeToString(BinaryEngine::BlendMode blendMode)
+	{
+		switch (blendMode)
+		{
+			case BinaryEngine::BlendMode::None: return "None";
+			case BinaryEngine::BlendMode::Blend: return "Blend";
+			case BinaryEngine::BlendMode::Additive: return "Additive";
+			case BinaryEngine::BlendMode::Modulate: return "Modulate";
+			case BinaryEngine::BlendMode::Multiply: return "Multiply";
+			default: return "None";
+		}
+	}
 }
 
 namespace BinaryEngine {
@@ -27,11 +39,13 @@ namespace BinaryEngine {
 
 		if (!m_Renderer)
 		{
-			//TODO: Log that Renderer failed to be created
+			CORE_ERROR("[Renderer] Failed to create renderer: {}", SDL_GetError());
+			return;
 		}
 
-		SDL_SetRenderVSync(m_Renderer, m_Specification.vSync ? 1 : 0);
+		SetVSync(m_Specification.vSync);
 		ApplyRenderSettings();
+		CORE_INFO("[Renderer] Renderer Initialised");
 	}
 
 	Renderer::~Renderer()
@@ -39,6 +53,7 @@ namespace BinaryEngine {
 		if (m_Renderer)
 		{
 			SDL_DestroyRenderer(m_Renderer);
+			CORE_INFO("[Renderer] Renderer Shutdown");
 		}
 	}
 
@@ -53,17 +68,29 @@ namespace BinaryEngine {
 		SDL_SetRenderViewport(m_Renderer, &rect);
 	}
 
+	void Renderer::SetVSync(bool enabled)
+	{
+		m_Specification.vSync = enabled;
+		SDL_SetRenderVSync(m_Renderer, m_Specification.vSync ? 1 : 0);
+		CORE_TRACE("[Renderer] VSync set to: {}", m_Specification.vSync ? "enabled" : "disabled");
+	}
+
 	void Renderer::SetBlendMode(BlendMode mode)
 	{
 		m_Specification.blendMode = mode;
 		ApplyRenderSettings();
 	}
 
+	void Renderer::SetDefaultAlpha(std::uint8_t alpha)
+	{
+		m_Specification.defaultAlpha = alpha;
+		CORE_TRACE("[Renderer] Default Alpha set to {}", alpha);
+	}
+
 	void Renderer::SetRenderingSettings(BlendMode mode, std::uint8_t alpha)
 	{
-		m_Specification.blendMode = mode;
-		m_Specification.defaultAlpha = alpha;
-		ApplyRenderSettings();
+		SetDefaultAlpha(alpha);
+		SetBlendMode(mode);
 	}
 
 	void Renderer::Clear()
@@ -144,6 +171,7 @@ namespace BinaryEngine {
 	void Renderer::ApplyRenderSettings()
 	{
 		SDL_SetRenderDrawBlendMode(m_Renderer, ConvertBlendMode(m_Specification.blendMode));
+		CORE_TRACE("[Renderer] Renderer Set with blend mode: {}", BlendModeToString(m_Specification.blendMode));
 	}
 
 }

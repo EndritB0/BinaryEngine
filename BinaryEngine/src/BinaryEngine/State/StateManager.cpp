@@ -8,13 +8,13 @@ namespace BinaryEngine {
 		m_States.reserve(5);
 		m_PendingChanges.reserve(5);
 
-		CORE_INFO("[State Manager] Initialized");
+		CORE_INFO("[StateManager] State Manager Initialised");
 	}
 
 	StateManager::~StateManager()
 	{
 		CleanUp();
-		CORE_INFO("[State Manager] Shutdown");
+		CORE_INFO("[StateManager] State Manager Shutdown");
 	}
 
 	bool StateManager::HasState()
@@ -25,16 +25,19 @@ namespace BinaryEngine {
 	void StateManager::RequestPopState()
 	{
 		m_PendingChanges.emplace_back(Action::Pop, nullptr);
+		CORE_TRACE("[StateManager] Pop State Requested");
 	}
 
 	void StateManager::RequestRemoveState(State& target)
 	{
 		m_PendingChanges.emplace_back(Action::Remove, nullptr, &target);
+		CORE_TRACE("[StateManager] Remove State Requested");
 	}
 
 	void StateManager::RequestClearStates()
 	{
 		m_PendingChanges.emplace_back(Action::Clear, nullptr);
+		CORE_TRACE("[StateManager] Clear All States Requested");
 	}
 
 	void StateManager::ProcessEvent(Event& event)

@@ -11,6 +11,7 @@ namespace BinaryEngine {
 		{
 			SDL_DestroyTexture(m_Texture);
 			m_Texture = nullptr;
+			CORE_INFO("[Texture2D] Texture2D Destroyed");
 		}
 	}
 
@@ -51,7 +52,7 @@ namespace BinaryEngine {
 		unsigned char* textureData = stbi_load(filePath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 		if (!textureData)
 		{
-			CORE_ERROR("[Texture] Failed to load texture: {}", filePath.string());
+			CORE_ERROR("[Texture2D] Failed to load texture image data: {}", filePath.string());
 			return;
 		}
 
@@ -62,14 +63,14 @@ namespace BinaryEngine {
 
 		if (!m_Texture)
 		{
-			CORE_ERROR("[Texture] Failed to create texture: {}", filePath.string());
+			CORE_ERROR("[Texture2D] Failed to create texture: {}, {}", filePath.string(), SDL_GetError());
 		}
 		else
 		{
 			int pitch{ m_Size.x * 4 };
 			SDL_UpdateTexture(m_Texture, nullptr, textureData, pitch);
 			SDL_SetTextureScaleMode(m_Texture, SDL_SCALEMODE_NEAREST);
-			CORE_TRACE("[Texture] Loaded successfully: {} ({}x{})", filePath.string(), m_Size.x, m_Size.y);
+			CORE_TRACE("[Texture2D] Loaded Texture successfully: {} ({}x{})", filePath.string(), m_Size.x, m_Size.y);
 		}
 
 		stbi_image_free(textureData);

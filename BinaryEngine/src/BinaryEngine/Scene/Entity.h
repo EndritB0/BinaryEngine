@@ -17,6 +17,7 @@ namespace BinaryEngine {
 		{
 			if (HasComponent<T>())
 			{
+				CORE_WARN("[Entity] {} already has component: {}", m_Handle, typeid(T).name());
 				return GetComponent<T>();
 			}
 
@@ -40,6 +41,7 @@ namespace BinaryEngine {
 		{
 			if (!HasComponent<T>())
 			{
+				CORE_WARN("[Entity] {} does not have component: {}", m_Handle, typeid(T).name());
 				return;
 			}
 
@@ -65,3 +67,21 @@ namespace BinaryEngine {
 	};
 
 }
+
+template <>
+struct fmt::formatter<entt::entity> {
+	constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin())
+	{
+		return ctx.begin();
+	}
+
+	template <typename FormatContext>
+	auto format(const entt::entity& entity, FormatContext& ctx) const -> decltype(ctx.out())
+	{
+		if (entity == entt::null)
+		{
+			return fmt::format_to(ctx.out(), "Entity[ID: invalid/]");
+		}
+		return fmt::format_to(ctx.out(), "Entity[ID: {}]", entt::to_entity(entity));
+	}
+};

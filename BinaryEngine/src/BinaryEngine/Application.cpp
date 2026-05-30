@@ -11,7 +11,7 @@ namespace BinaryEngine {
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
-			//TODO: Log failed initialization
+			CORE_ERROR("[Application] Failed to initialize Application: {}", SDL_GetError());
 			return;
 		}
 
@@ -19,11 +19,13 @@ namespace BinaryEngine {
 		m_Renderer.emplace(*m_Window);
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
 		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager });
+		CORE_INFO("[Application] Application Initialised");
 	}
 
 	Application::~Application()
 	{
 		SDL_Quit();
+		CORE_INFO("[Application] Application Shutdown");
 	}
 
 	void Application::Run()
@@ -43,6 +45,7 @@ namespace BinaryEngine {
 			PostFrame();
 		}
 
+		CORE_INFO("[Application] Application Loop Ended");
 	}
 
 	void Application::OnEvent(Event& event)
@@ -61,6 +64,7 @@ namespace BinaryEngine {
 	void Application::StopApplication()
 	{
 		m_IsRunning = false;
+		CORE_WARN("[Application] Stopping Application requested");
 	}
 
 	void Application::ProcessEvents()

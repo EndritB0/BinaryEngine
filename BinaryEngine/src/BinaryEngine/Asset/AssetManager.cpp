@@ -5,13 +5,13 @@ namespace BinaryEngine {
 
 	AssetManager::AssetManager()
 	{
-		APP_TRACE("[AssetManager] Created");
+		CORE_INFO("[AssetManager] Asset Manager Initialised");
 	}
 
 	AssetManager::~AssetManager()
 	{
 		ClearAssets();
-		APP_TRACE("[AssetManager] Destroyed");
+		CORE_INFO("[AssetManager] Asset Manager Shutdown");
 	}
 
 	void AssetManager::UnloadAsset(AssetHandle handle)
@@ -29,7 +29,7 @@ namespace BinaryEngine {
 		std::string pathString{ asset->GetFilePath().string() };
 		m_PathRegistry.erase(pathString);
 		m_Assets.erase(assetIt);
-		CORE_INFO("[AssetManager] Unloading Asset with Handle: {}, Path: {}", static_cast<std::uint64_t>(handle), pathString);
+		CORE_INFO("[AssetManager] Unloaded Asset with Handle: {}, Path: {}", handle, pathString);
 	}
 
 	void AssetManager::CleanUnusedAssets()
@@ -38,13 +38,14 @@ namespace BinaryEngine {
 
 		for (auto it{ m_Assets.begin() }; it != m_Assets.end();)
 		{
-			if (it->second.use_count() == 1)
+			auto& [handle, asset] = *it;
+			if (asset.use_count() == 1)
 			{
-				std::string pathString{ it->second->GetFilePath().string() };
+				std::string pathString{ asset->GetFilePath().string() };
 				m_PathRegistry.erase(pathString);
 
-				CORE_INFO("[AssetManager] Unloading Asset with Handle: {}, Path: {}", static_cast<std::uint64_t>(it->first), pathString);
 				it = m_Assets.erase(it);
+				CORE_INFO("[AssetManager] Unloading Asset with Handle: {}, Path: {}", handle, pathString);
 
 				assetRemoved = true;
 			}
@@ -62,11 +63,13 @@ namespace BinaryEngine {
 
 	void AssetManager::ClearAssets()
 	{
+		CORE_TRACE("[AssetManager] Request to clear all Assets");
+
 		if (!m_Assets.empty())
 		{
 			m_PathRegistry.clear();
 			m_Assets.clear();
-			CORE_INFO("[AssetManager] Cleared all assets");
+			CORE_INFO("[AssetManager] All assets cleared successfully");
 		}
 	}
 
