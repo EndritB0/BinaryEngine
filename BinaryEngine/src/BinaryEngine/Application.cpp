@@ -1,13 +1,15 @@
 #include "pch.h"
 #include "BinaryEngine/Application.h"
 
+#include "BinaryEngine/ApplicationSpecification.h"
+#include "BinaryEngine/Core/Core.h"
 #include "BinaryEngine/Event/Event.h"
+#include "BinaryEngine/Event/EventTypes.h"
 #include "BinaryEngine/State/Context.h"
-#include "BinaryEngine/Window/WindowSpecification.h"
 
 namespace BinaryEngine {
 
-	Application::Application(const WindowSpecification specification)
+	Application::Application(const ApplicationSpecification specification)
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
@@ -15,8 +17,8 @@ namespace BinaryEngine {
 			return;
 		}
 
-		m_Window.emplace(specification);
-		m_Renderer.emplace(*m_Window);
+		m_Window.emplace(specification.Window);
+		m_Renderer.emplace(*m_Window, specification.Renderer);
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
 		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager });
 		CORE_INFO("[Application] Application Initialised");
@@ -64,7 +66,7 @@ namespace BinaryEngine {
 	void Application::StopApplication()
 	{
 		m_IsRunning = false;
-		CORE_WARN("[Application] Stopping Application requested");
+		CORE_TRACE("[Application] Stopping Application requested");
 	}
 
 	void Application::ProcessEvents()
