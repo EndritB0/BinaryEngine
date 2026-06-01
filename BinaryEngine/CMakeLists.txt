@@ -11,6 +11,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Core/Math.h"
     "src/BinaryEngine/Core/Color.h"
     "src/BinaryEngine/Core/Timestep.h"
+    "src/BinaryEngine/Core/Timer.h"
+    "src/BinaryEngine/Core/Timer.cpp"
     "src/BinaryEngine/Core/UUID.cpp"
     "src/BinaryEngine/Core/UUID.h"
     "src/BinaryEngine/Core/Transform.h"
