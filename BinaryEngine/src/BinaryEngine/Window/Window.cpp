@@ -13,6 +13,7 @@ namespace BinaryEngine {
 		if (!m_Window)
 		{
 			CORE_ERROR("[Window] Failed to create window: {}", SDL_GetError());
+			return;
 		}
 
 		CORE_INFO("[Window] Window Initalised: {} ({}x{})", m_WindowSpecification.title, m_WindowSpecification.resolution.x, m_WindowSpecification.resolution.y);

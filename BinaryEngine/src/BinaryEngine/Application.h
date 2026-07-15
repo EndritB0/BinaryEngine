@@ -30,6 +30,11 @@ namespace BinaryEngine {
 			requires(std::is_base_of_v<State, T>)
 		void Add(Args&&... args)
 		{
+			if (!IsApplicationInitialised())
+			{
+				return;
+			}
+
 			m_StateManager->RequestPushState<T>(std::forward<Args>(args)...);
 			m_StateManager->ApplyPendingChanges();
 		}
@@ -45,6 +50,7 @@ namespace BinaryEngine {
 		void PostFrame();
 		bool OnWindowClosed(WindowClosedEvent& event);
 		bool OnWindowResized(WindowResizedEvent& event);
+		bool IsApplicationInitialised() const { return m_Window->IsValid() && m_Renderer->IsValid(); }
 
 	private:
 		std::optional<Window> m_Window;

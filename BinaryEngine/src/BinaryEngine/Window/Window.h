@@ -22,6 +22,7 @@ namespace BinaryEngine {
 		Window& operator=(Window&&) = delete;
 
 		void* GetNativeWindow() const { return static_cast<void*>(m_Window); }
+		bool IsValid() const { return m_Window != nullptr; }
 		const WindowSpecification GetSpecification() const { return m_WindowSpecification; }
 		int GetWidth() const;
 		int GetHeight() const;

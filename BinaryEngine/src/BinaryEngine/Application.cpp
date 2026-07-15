@@ -18,7 +18,17 @@ namespace BinaryEngine {
 		}
 
 		m_Window.emplace(specification.Window);
+		if (!m_Window->IsValid())
+		{
+			return;
+		}
+
 		m_Renderer.emplace(*m_Window, specification.Renderer);
+		if (!m_Renderer->IsValid())
+		{
+			return;
+		}
+
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
 		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager });
 		CORE_INFO("[Application] Application Initialised");
@@ -32,6 +42,12 @@ namespace BinaryEngine {
 
 	void Application::Run()
 	{
+		if (!IsApplicationInitialised())
+		{
+			CORE_ERROR("[Application] Application has not been initalised correctly");
+			return;
+		}
+
 		m_IsRunning = true;
 		m_LastFrameTime = SDL_GetTicksNS();
 

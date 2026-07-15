@@ -24,6 +24,7 @@ namespace BinaryEngine {
 		Renderer& operator=(Renderer&&) = delete;
 
 		void* GetNativeDevice() const { return m_Device; }
+		bool IsValid() const { return m_Device != nullptr; }
 		void SetViewport(Vector2i position, Vector2i size);
 		void SetPresentMode(PresentMode mode);
 		PresentMode GetPresentMode() const { return m_Specification.presentMode; };
