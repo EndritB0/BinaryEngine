@@ -29,7 +29,8 @@ namespace BinaryEngine {
 		void* GetNativeTexture() const { return m_Texture; }
 
 	private:
-		struct SDL_Texture* m_Texture{ nullptr };
+		struct SDL_GPUDevice* m_Device{ nullptr };
+		struct SDL_GPUTexture* m_Texture{ nullptr };
 		Vector2i m_Size{ 0, 0 };
 	};
 

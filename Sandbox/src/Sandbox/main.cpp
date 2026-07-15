@@ -12,8 +12,10 @@ int main()
 		},
 
 		.Renderer = {
-			.vSync {false},
-			.blendMode {BinaryEngine::BlendMode::Blend},
+			.renderAPI {BinaryEngine::RenderAPI::Default},
+			.presentMode {BinaryEngine::PresentMode::Immediate},
+			.textureFilter {BinaryEngine::TextureFilter::Nearest},
+			.validationMode {BinaryEngine::ValidationMode::Enabled},
 		}
 	};
 

@@ -6,7 +6,6 @@
 #include "BinaryEngine/Core/Color.h"
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Core/Transform.h"
-#include "BinaryEngine/Renderer/BlendMode.h"
 #include "BinaryEngine/Renderer/OrthographicCamera.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
@@ -24,32 +23,72 @@ namespace BinaryEngine {
 		Renderer(Renderer&&) = delete;
 		Renderer& operator=(Renderer&&) = delete;
 
-		void* GetNativeRenderer() const { return m_Renderer; }
+		void* GetNativeDevice() const { return m_Device; }
 		void SetViewport(Vector2i position, Vector2i size);
-		void SetVSync(bool enabled);
-		bool IsVSyncEnabled() const { return m_Specification.vSync; }
-		void SetBlendMode(BlendMode mode);
-		BlendMode GetBlendMode() const { return m_Specification.blendMode; }
+		void SetPresentMode(PresentMode mode);
+		PresentMode GetPresentMode() const { return m_Specification.presentMode; };
 		void SetDefaultAlpha(std::uint8_t alpha);
-		std::uint8_t GetDefaultAlpha() const { return m_Specification.defaultAlpha; }
-		void SetRenderingSettings(BlendMode, std::uint8_t alpha = 255);
+		std::uint8_t GetDefaultAlpha() const { return m_Specification.defaultAlpha; };
 		void Clear();
 		void Present();
-		void SetDrawColor(Color color);
+		void SetClearColor(const Color& color);
 		void BeginScene(const OrthographicCamera& camera);
 		void EndScene();
 		void DrawTexture(const Texture2D& texture, const Transform& transform);
 
 	private:
-		void ApplyRenderSettings();
+		void InitialiseSpriteRenderer();
 
 	private:
 		struct SceneData {
 			glm::mat4 ViewProjectionMatrix{ 1.0f };
 		};
 
+		struct SpriteVertex {
+			float position[3]{};
+			float textureCoordinates[2]{};
+			float color[4]{};
+		};
+
+		struct RenderBatch {
+			struct SDL_GPUTexture* texture{ nullptr };
+			std::uint32_t firstQuad{ 0 };
+			std::uint32_t quadCount{ 0 };
+		};
+
+		struct SpriteDraw {
+			struct SDL_GPUTexture* texture{ nullptr };
+			float sortZ{ 0.0f };
+			SpriteVertex vertices[4]{};
+		};
+
 		SceneData m_SceneData;
-		struct SDL_Renderer* m_Renderer{ nullptr };
+
+		struct SDL_GPUDevice* m_Device{ nullptr };
+		struct SDL_Window* m_Window{ nullptr };
+
+		struct SDL_GPUGraphicsPipeline* m_Pipeline{ nullptr };
+		struct SDL_GPUSampler* m_Sampler{ nullptr };
+		struct SDL_GPUBuffer* m_VertexBuffer{ nullptr };
+		struct SDL_GPUBuffer* m_IndexBuffer{ nullptr };
+		struct SDL_GPUTransferBuffer* m_VertexTransferBuffer{ nullptr };
+
+		std::vector<SpriteDraw> m_Draws;
+		std::vector<SpriteVertex> m_VertexStaging;
+		std::vector<RenderBatch> m_Batches;
+		std::uint32_t m_QuadCount{ 0 };
+		bool m_SceneActive{ false };
+
+		struct SDL_GPUCommandBuffer* m_CommandBuffer{ nullptr };
+		struct SDL_GPUTexture* m_SwapchainTexture{ nullptr };
+		std::uint32_t m_SwapchainWidth{ 0 };
+		std::uint32_t m_SwapchainHeight{ 0 };
+		bool m_FrameCleared{ false };
+
+		Vector2i m_ViewportPosition{ 0, 0 };
+		Vector2i m_ViewportSize{ 0, 0 };
+
+		Color m_ClearColor{ Color::Black };
 		RendererSpecification m_Specification;
 	};
 

@@ -39,7 +39,7 @@ namespace Sandbox {
 
 	void IntroState::OnRender()
 	{
-		m_Context.renderer.SetDrawColor(BinaryEngine::Color::Red);
+		m_Context.renderer.SetClearColor(BinaryEngine::Color::Red);
 	}
 
 	bool IntroState::OnMouseButtonReleased(BinaryEngine::MouseButtonReleasedEvent& event)
