@@ -10,7 +10,7 @@ if(MSVC)
     add_compile_options(/MP)
     target_compile_options(ProjectWarnings INTERFACE /W4 /WX)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(ProjectWarnings INTERFACE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(ProjectWarnings INTERFACE -Wall -Wextra -Wpedantic -Werror -Wno-missing-field-initializers)
 endif()
 
 add_subdirectory(vendor)

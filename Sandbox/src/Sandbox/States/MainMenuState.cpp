@@ -86,7 +86,7 @@ namespace Sandbox {
 
 			if (textureAsset)
 			{
-				m_Context.renderer.DrawTexture(*textureAsset, transform.transform);
+				m_Context.renderer.DrawSprite(*textureAsset, transform.transform);
 			}
 				  });
 
