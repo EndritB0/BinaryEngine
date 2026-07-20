@@ -23,6 +23,14 @@ namespace BinaryEngine {
 		Renderer(Renderer&&) = delete;
 		Renderer& operator=(Renderer&&) = delete;
 
+		struct Statistics {
+			std::uint32_t quadCount{ 0 };
+			std::uint32_t drawCalls{ 0 };
+			std::uint32_t culledSprites{ 0 };
+			std::uint32_t quadCapacity{ 0 };
+			std::uint32_t maxQuads{ 0 };
+		};
+
 		void* GetNativeDevice() const { return m_Device; }
 		bool IsValid() const { return m_Device != nullptr; }
 		void SetViewport(Vector2i position, Vector2i size);
@@ -30,15 +38,20 @@ namespace BinaryEngine {
 		PresentMode GetPresentMode() const { return m_Specification.presentMode; };
 		void SetDefaultAlpha(std::uint8_t alpha);
 		std::uint8_t GetDefaultAlpha() const { return m_Specification.defaultAlpha; };
+		const Statistics& GetStatistics() const { return m_Statistics; }
 		void Clear();
 		void Present();
 		void SetClearColor(const Color& color);
 		void BeginScene(const OrthographicCamera& camera);
 		void EndScene();
-		void DrawTexture(const Texture2D& texture, const Transform& transform);
+		void DrawSprite(const Texture2D& texture, const Transform& transform);
 
 	private:
 		void InitialiseSpriteRenderer();
+		bool UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity);
+		bool EnsureQuadCapacity(std::uint32_t newCapacity);
+		void CalculateCullBounds();
+		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
 
 	private:
 		struct SceneData {
@@ -63,6 +76,14 @@ namespace BinaryEngine {
 			SpriteVertex vertices[4]{};
 		};
 
+		struct CullBounds {
+			float minX{ 0.0f };
+			float minY{ 0.0f };
+			float maxX{ 0.0f };
+			float maxY{ 0.0f };
+			bool valid{ false };
+		};
+
 		SceneData m_SceneData;
 
 		struct SDL_GPUDevice* m_Device{ nullptr };
@@ -78,7 +99,11 @@ namespace BinaryEngine {
 		std::vector<SpriteVertex> m_VertexStaging;
 		std::vector<RenderBatch> m_Batches;
 		std::uint32_t m_QuadCount{ 0 };
+		std::uint32_t m_QuadCapacity{ 0 };
 		bool m_SceneActive{ false };
+
+		CullBounds m_CullBounds;
+		Statistics m_Statistics;
 
 		struct SDL_GPUCommandBuffer* m_CommandBuffer{ nullptr };
 		struct SDL_GPUTexture* m_SwapchainTexture{ nullptr };

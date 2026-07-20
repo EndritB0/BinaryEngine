@@ -33,6 +33,9 @@ namespace BinaryEngine {
 		TextureFilter textureFilter{ TextureFilter::Nearest };
 		ValidationMode validationMode{ ValidationMode::Disabled };
 		std::uint8_t defaultAlpha{ 255 };
+		std::uint32_t initialQuadCapacity{ 10000 };
+		std::uint32_t maxQuadCapacity{ 1000000 };
+		bool cullSprites{ true };
 	};
 
 }

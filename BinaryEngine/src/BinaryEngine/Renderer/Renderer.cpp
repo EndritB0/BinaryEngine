@@ -5,11 +5,9 @@
 
 namespace {
 
-	constexpr std::uint32_t s_MaxQuads = 10000;
-	constexpr std::uint32_t s_VerticesPerQuad = 4;
-	constexpr std::uint32_t s_IndicesPerQuad = 6;
-	constexpr std::uint32_t s_MaxVertices = s_MaxQuads * s_VerticesPerQuad;
-	constexpr std::uint32_t s_MaxIndices = s_MaxQuads * s_IndicesPerQuad;
+	constexpr std::uint32_t s_VerticesPerQuad{ 4 };
+	constexpr std::uint32_t s_IndicesPerQuad{ 6 };
+	constexpr std::uint32_t s_AbsoluteMaxQuads{ 16000000 };
 
 	static const char* RenderAPIToDriverName(BinaryEngine::RenderAPI api)
 	{
@@ -45,6 +43,34 @@ namespace {
 		}
 	}
 
+	static void NormaliseSpriteCapacitySpecification(BinaryEngine::RendererSpecification& specification)
+	{
+		if (specification.maxQuadCapacity > s_AbsoluteMaxQuads)
+		{
+			CORE_WARN("[Renderer] maxQuadCapacity ({}) exceeds the absolute limit, clamping to {}", specification.maxQuadCapacity, s_AbsoluteMaxQuads);
+			specification.maxQuadCapacity = s_AbsoluteMaxQuads;
+		}
+
+		if (specification.maxQuadCapacity == 0)
+		{
+			CORE_WARN("[Renderer] maxQuadCapacity is 0, clamping to 1");
+			specification.maxQuadCapacity = 1;
+		}
+
+		if (specification.initialQuadCapacity == 0)
+		{
+			CORE_WARN("[Renderer] initialQuadCapacity is 0, clamping to 1");
+			specification.initialQuadCapacity = 1;
+		}
+
+		if (specification.initialQuadCapacity > specification.maxQuadCapacity)
+		{
+			CORE_WARN("[Renderer] initialQuadCapacity ({}) exceeds maxQuadCapacity ({}), clamping", specification.initialQuadCapacity, specification.maxQuadCapacity);
+			specification.initialQuadCapacity = specification.maxQuadCapacity;
+		}
+
+	}
+
 }
 
 namespace BinaryEngine {
@@ -54,9 +80,12 @@ namespace BinaryEngine {
 	{
 		m_Window = static_cast<SDL_Window*>(window.GetNativeWindow());
 
-		constexpr SDL_GPUShaderFormat shaderFormats = SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL;
-		const char* requestedDriver = RenderAPIToDriverName(m_Specification.renderAPI);
-		const bool debugMode = m_Specification.validationMode == ValidationMode::Enabled;
+		NormaliseSpriteCapacitySpecification(m_Specification);
+		m_Statistics.maxQuads = m_Specification.maxQuadCapacity;
+
+		constexpr SDL_GPUShaderFormat shaderFormats{ SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL };
+		const char* requestedDriver{ RenderAPIToDriverName(m_Specification.renderAPI) };
+		const bool debugMode{ m_Specification.validationMode == ValidationMode::Enabled };
 
 		m_Device = SDL_CreateGPUDevice(shaderFormats, debugMode, requestedDriver);
 
@@ -124,7 +153,7 @@ namespace BinaryEngine {
 
 	void Renderer::SetPresentMode(PresentMode mode)
 	{
-		SDL_GPUPresentMode sdlMode = ConvertPresentMode(mode);
+		SDL_GPUPresentMode sdlMode{ ConvertPresentMode(mode) };
 
 		if (mode != PresentMode::VSync && !SDL_WindowSupportsGPUPresentMode(m_Device, m_Window, sdlMode))
 		{
@@ -191,7 +220,7 @@ namespace BinaryEngine {
 				.store_op {SDL_GPU_STOREOP_STORE},
 			};
 
-			SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr);
+			SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr) };
 			if (renderPass)
 			{
 				SDL_EndGPURenderPass(renderPass);
@@ -215,6 +244,12 @@ namespace BinaryEngine {
 		m_Draws.clear();
 		m_QuadCount = 0;
 		m_SceneActive = true;
+
+		m_Statistics.quadCount = 0;
+		m_Statistics.drawCalls = 0;
+		m_Statistics.culledSprites = 0;
+
+		CalculateCullBounds();
 	}
 
 	void Renderer::EndScene()
@@ -226,15 +261,31 @@ namespace BinaryEngine {
 			return;
 		}
 
+		std::uint32_t neededCapacity{ static_cast<std::uint32_t>(m_Draws.size()) };
+		if (neededCapacity > m_Specification.maxQuadCapacity)
+		{
+			CORE_WARN("[Renderer] Scene requested {} quads, ceiling is {}, dropping {}", neededCapacity, m_Specification.maxQuadCapacity, neededCapacity - m_Specification.maxQuadCapacity);
+			neededCapacity = m_Specification.maxQuadCapacity;
+		}
+
+		if (neededCapacity > m_QuadCapacity)
+		{
+			EnsureQuadCapacity(neededCapacity);
+		}
+
+		const std::uint32_t drawable{ std::min(neededCapacity, m_QuadCapacity) };
+
 		std::stable_sort(m_Draws.begin(), m_Draws.end(), [](const SpriteDraw& a, const SpriteDraw& b) { return a.sortZ < b.sortZ; });
 
 		m_VertexStaging.clear();
 		m_Batches.clear();
-		for (const SpriteDraw& draw : m_Draws)
+		for (std::uint32_t drawIndex{}; drawIndex < drawable; drawIndex++)
 		{
+			const SpriteDraw& draw{ m_Draws[drawIndex] };
+
 			if (m_Batches.empty() || m_Batches.back().texture != draw.texture)
 			{
-				m_Batches.push_back(RenderBatch{ draw.texture, m_QuadCount, 0 });
+				m_Batches.emplace_back(draw.texture, m_QuadCount, 0);
 			}
 
 			for (const SpriteVertex& vertex : draw.vertices)
@@ -246,18 +297,21 @@ namespace BinaryEngine {
 			m_QuadCount++;
 		}
 
-		bool drawSprites = m_Pipeline && m_Sampler && m_QuadCount > 0;
+		m_Statistics.quadCount = m_QuadCount;
+		m_Statistics.drawCalls = static_cast<std::uint32_t>(m_Batches.size());
+
+		bool drawSprites{ m_Pipeline && m_Sampler && m_QuadCount > 0 };
 		if (drawSprites)
 		{
-			const std::uint32_t usedBytes = m_QuadCount * s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex));
+			const std::uint32_t usedBytes{ m_QuadCount * s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
 
-			void* mapped = SDL_MapGPUTransferBuffer(m_Device, m_VertexTransferBuffer, true);
+			void* mapped{ SDL_MapGPUTransferBuffer(m_Device, m_VertexTransferBuffer, true) };
 			if (mapped)
 			{
 				SDL_memcpy(mapped, m_VertexStaging.data(), usedBytes);
 				SDL_UnmapGPUTransferBuffer(m_Device, m_VertexTransferBuffer);
 
-				SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(m_CommandBuffer);
+				SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(m_CommandBuffer) };
 
 				SDL_GPUTransferBufferLocation source{
 					.transfer_buffer {m_VertexTransferBuffer},
@@ -294,7 +348,7 @@ namespace BinaryEngine {
 			.store_op {SDL_GPU_STOREOP_STORE},
 		};
 
-		SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr);
+		SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr) };
 		if (renderPass)
 		{
 			if (drawSprites)
@@ -337,28 +391,30 @@ namespace BinaryEngine {
 		}
 
 		m_FrameCleared = true;
+		CORE_TRACE("Number of Draw Calls: {}", m_Statistics.drawCalls);
 	}
 
-	void Renderer::DrawTexture(const Texture2D& texture, const Transform& transform)
+	void Renderer::DrawSprite(const Texture2D& texture, const Transform& transform)
 	{
 		if (!m_SceneActive)
 		{
 			return;
 		}
 
-		SDL_GPUTexture* nativeTexture = static_cast<SDL_GPUTexture*>(texture.GetNativeTexture());
+		SDL_GPUTexture* nativeTexture{ static_cast<SDL_GPUTexture*>(texture.GetNativeTexture()) };
 		if (!nativeTexture)
 		{
 			return;
 		}
 
-		if (m_QuadCount >= s_MaxQuads)
+		Vector2f textureSize{ texture.GetSize() };
+
+		if (m_Specification.cullSprites && m_CullBounds.valid && IsSpriteCulled(transform, textureSize))
 		{
-			CORE_WARN("[Renderer] Sprite batch full ({} quads); dropping draw", s_MaxQuads);
+			m_Statistics.culledSprites++;
 			return;
 		}
 
-		Vector2f textureSize{ texture.GetSize() };
 		glm::mat4 model{ transform.GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(textureSize.x, textureSize.y, 1.0f)) };
 
 		constexpr glm::vec3 localVertices[4]{
@@ -375,17 +431,17 @@ namespace BinaryEngine {
 			{ 0.0f, 0.0f },
 		};
 
-		const float alpha = static_cast<float>(m_Specification.defaultAlpha) / 255.0f;
+		const float alpha{ static_cast<float>(m_Specification.defaultAlpha) / 255.0f };
 
-		SpriteDraw& draw = m_Draws.emplace_back();
+		SpriteDraw& draw{ m_Draws.emplace_back() };
 		draw.texture = nativeTexture;
 		draw.sortZ = transform.Position.z;
 
-		for (int corner = 0; corner < 4; corner++)
+		for (int corner{}; corner < 4; corner++)
 		{
 			glm::vec4 worldPosition{ model * glm::vec4(localVertices[corner], 1.0f) };
 
-			SpriteVertex& vertex = draw.vertices[corner];
+			SpriteVertex& vertex{ draw.vertices[corner] };
 			vertex.position[0] = worldPosition.x;
 			vertex.position[1] = worldPosition.y;
 			vertex.position[2] = worldPosition.z;
@@ -397,7 +453,6 @@ namespace BinaryEngine {
 			vertex.color[3] = alpha;
 		}
 	}
-
 
 	void Renderer::InitialiseSpriteRenderer()
 	{
@@ -413,7 +468,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		const std::uint32_t vertexSize{ static_cast<Uint32>(sizeof(SpriteVertex)) };
+		const std::uint32_t vertexSize{ static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
 
 		SDL_GPUVertexBufferDescription vertexBufferDescription{
 			.slot {0},
@@ -503,32 +558,24 @@ namespace BinaryEngine {
 			return;
 		}
 
-		SDL_GPUBufferCreateInfo vertexBufferInfo{
-			.usage {SDL_GPU_BUFFERUSAGE_VERTEX},
-			.size {s_MaxVertices * vertexSize},
-		};
-		m_VertexBuffer = SDL_CreateGPUBuffer(m_Device, &vertexBufferInfo);
-
-		SDL_GPUBufferCreateInfo indexBufferInfo{
-			.usage{SDL_GPU_BUFFERUSAGE_INDEX},
-			.size{s_MaxIndices * static_cast<std::uint32_t>(sizeof(std::uint32_t))},
-		};
-		m_IndexBuffer = SDL_CreateGPUBuffer(m_Device, &indexBufferInfo);
-
-		SDL_GPUTransferBufferCreateInfo vertexTransferInfo{
-			.usage {SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD},
-			.size {s_MaxVertices * vertexSize},
-		};
-		m_VertexTransferBuffer = SDL_CreateGPUTransferBuffer(m_Device, &vertexTransferInfo);
-
-		if (!m_VertexBuffer || !m_IndexBuffer || !m_VertexTransferBuffer)
+		if (!EnsureQuadCapacity(m_Specification.initialQuadCapacity))
 		{
-			CORE_ERROR("[Renderer] Failed to create Sprite Buffers: {}", SDL_GetError());
 			return;
 		}
 
-		std::vector<std::uint32_t> indices(s_MaxIndices);
-		for (std::uint32_t quad{}; quad < s_MaxQuads; quad++)
+		m_Draws.reserve(m_Specification.maxQuadCapacity);
+		m_VertexStaging.reserve(m_Specification.maxQuadCapacity * s_VerticesPerQuad);
+		m_Batches.reserve(64);
+		CORE_INFO("[Renderer] Sprite Renderer Initialised ({} quad capacity, {} max)", m_QuadCapacity, m_Specification.maxQuadCapacity);
+	}
+
+	bool Renderer::UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity)
+	{
+		const std::uint32_t indexCount{ quadCapacity * s_IndicesPerQuad };
+		const std::uint32_t indexBytes{ indexCount * static_cast<std::uint32_t>(sizeof(std::uint32_t)) };
+
+		std::vector<std::uint32_t> indices(indexCount);
+		for (std::uint32_t quad{}; quad < quadCapacity; quad++)
 		{
 			const std::uint32_t vertex{ quad * s_VerticesPerQuad };
 			const std::uint32_t index{ quad * s_IndicesPerQuad };
@@ -540,51 +587,192 @@ namespace BinaryEngine {
 			indices[index + 5] = vertex + 0;
 		}
 
-		const std::uint32_t indexBytes{ s_MaxIndices * static_cast<uint32_t>(sizeof(std::uint32_t)) };
-
 		SDL_GPUTransferBufferCreateInfo indexTransferInfo{
 			.usage {SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD},
 			.size {indexBytes},
 		};
-		SDL_GPUTransferBuffer* indexTransfer = SDL_CreateGPUTransferBuffer(m_Device, &indexTransferInfo);
+		SDL_GPUTransferBuffer* indexTransfer{ SDL_CreateGPUTransferBuffer(m_Device, &indexTransferInfo) };
 		if (!indexTransfer)
 		{
 			CORE_ERROR("[Renderer] Failed to create index transfer buffer: {}", SDL_GetError());
-			return;
+			return false;
 		}
 
-		void* mapped = SDL_MapGPUTransferBuffer(m_Device, indexTransfer, false);
+		void* mapped{ SDL_MapGPUTransferBuffer(m_Device, indexTransfer, false) };
 		if (!mapped)
 		{
 			CORE_ERROR("[Renderer] Failed to map index transfer buffer: {}", SDL_GetError());
 			SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
-			return;
+			return false;
 		}
 		SDL_memcpy(mapped, indices.data(), indexBytes);
 		SDL_UnmapGPUTransferBuffer(m_Device, indexTransfer);
 
-		SDL_GPUCommandBuffer* uploadCommands = SDL_AcquireGPUCommandBuffer(m_Device);
-		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(uploadCommands);
+		SDL_GPUCommandBuffer* uploadCommands{ SDL_AcquireGPUCommandBuffer(m_Device) };
+		if (!uploadCommands)
+		{
+			CORE_ERROR("[Renderer] Failed to acquire command buffer for index upload: {}", SDL_GetError());
+			SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
+			return false;
+		}
+
+		SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(uploadCommands) };
+		if (!copyPass)
+		{
+			CORE_ERROR("[Renderer] Failed to begin copy pass for index upload: {}", SDL_GetError());
+			SDL_SubmitGPUCommandBuffer(uploadCommands);
+			SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
+			return false;
+		}
 
 		SDL_GPUTransferBufferLocation indexSource{
-			.transfer_buffer = indexTransfer,
-			.offset = 0,
+			.transfer_buffer {indexTransfer},
+			.offset {0},
 		};
 
 		SDL_GPUBufferRegion indexRegion{
-			.buffer = m_IndexBuffer,
-			.offset = 0,
-			.size = indexBytes,
+			.buffer {target},
+			.offset {0},
+			.size {indexBytes},
 		};
 
 		SDL_UploadToGPUBuffer(copyPass, &indexSource, &indexRegion, false);
 		SDL_EndGPUCopyPass(copyPass);
-		SDL_SubmitGPUCommandBuffer(uploadCommands);
-		SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
 
-		m_Draws.reserve(s_MaxQuads);
-		m_VertexStaging.reserve(s_MaxVertices);
-		m_Batches.reserve(64);
-		CORE_INFO("[Renderer] Sprite Renderer Initialised");
-	};
+		const bool submitted{ SDL_SubmitGPUCommandBuffer(uploadCommands) };
+		if (!submitted)
+		{
+			CORE_ERROR("[Renderer] Failed to submit index upload: {}", SDL_GetError());
+		}
+
+		SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
+		return submitted;
+	}
+
+	bool Renderer::EnsureQuadCapacity(std::uint32_t newCapacity)
+	{
+		const std::uint32_t vertexBytes{ newCapacity * s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
+		const std::uint32_t indexBytes{ newCapacity * s_IndicesPerQuad * static_cast<std::uint32_t>(sizeof(std::uint32_t)) };
+
+		SDL_GPUBufferCreateInfo vertexBufferInfo{
+			.usage {SDL_GPU_BUFFERUSAGE_VERTEX},
+			.size {vertexBytes},
+		};
+		SDL_GPUBuffer* vertexBuffer{ SDL_CreateGPUBuffer(m_Device, &vertexBufferInfo) };
+
+		SDL_GPUBufferCreateInfo indexBufferInfo{
+			.usage {SDL_GPU_BUFFERUSAGE_INDEX},
+			.size {indexBytes},
+		};
+		SDL_GPUBuffer* indexBuffer{ SDL_CreateGPUBuffer(m_Device, &indexBufferInfo) };
+
+		SDL_GPUTransferBufferCreateInfo vertexTransferInfo{
+			.usage {SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD},
+			.size {vertexBytes},
+		};
+		SDL_GPUTransferBuffer* vertexTransfer{ SDL_CreateGPUTransferBuffer(m_Device, &vertexTransferInfo) };
+
+		const bool created{ vertexBuffer && indexBuffer && vertexTransfer };
+		if (!created)
+		{
+			CORE_ERROR("[Renderer] Failed to create sprite buffers for {} quads: {}", newCapacity, SDL_GetError());
+		}
+
+		if (!created || !UploadQuadIndices(indexBuffer, newCapacity))
+		{
+			if (vertexTransfer)
+			{
+				SDL_ReleaseGPUTransferBuffer(m_Device, vertexTransfer);
+			}
+
+			if (indexBuffer)
+			{
+				SDL_ReleaseGPUBuffer(m_Device, indexBuffer);
+			}
+
+			if (vertexBuffer)
+			{
+				SDL_ReleaseGPUBuffer(m_Device, vertexBuffer);
+			}
+
+			return false;
+		}
+
+		if (m_VertexTransferBuffer)
+		{
+			SDL_ReleaseGPUTransferBuffer(m_Device, m_VertexTransferBuffer);
+		}
+
+		if (m_IndexBuffer)
+		{
+			SDL_ReleaseGPUBuffer(m_Device, m_IndexBuffer);
+		}
+
+		if (m_VertexBuffer)
+		{
+			SDL_ReleaseGPUBuffer(m_Device, m_VertexBuffer);
+		}
+
+		m_VertexBuffer = vertexBuffer;
+		m_IndexBuffer = indexBuffer;
+		m_VertexTransferBuffer = vertexTransfer;
+		m_QuadCapacity = newCapacity;
+		m_Statistics.quadCapacity = newCapacity;
+		return true;
+	}
+
+	void Renderer::CalculateCullBounds()
+	{
+		const glm::mat4 inverseViewProjection{ glm::inverse(m_SceneData.ViewProjectionMatrix) };
+
+		constexpr glm::vec4 ndcCorners[4]{
+			{ -1.0f, -1.0f, 0.0f, 1.0f },
+			{  1.0f, -1.0f, 0.0f, 1.0f },
+			{  1.0f,  1.0f, 0.0f, 1.0f },
+			{ -1.0f,  1.0f, 0.0f, 1.0f },
+		};
+
+		glm::vec4 firstCorner{ inverseViewProjection * ndcCorners[0] };
+		firstCorner /= firstCorner.w;
+
+		float minX{ firstCorner.x };
+		float minY{ firstCorner.y };
+		float maxX{ firstCorner.x };
+		float maxY{ firstCorner.y };
+
+		for (int corner{ 1 }; corner < 4; corner++)
+		{
+			glm::vec4 worldCorner{ inverseViewProjection * ndcCorners[corner] };
+			worldCorner /= worldCorner.w;
+
+			minX = std::min(minX, worldCorner.x);
+			minY = std::min(minY, worldCorner.y);
+			maxX = std::max(maxX, worldCorner.x);
+			maxY = std::max(maxY, worldCorner.y);
+		}
+
+		m_CullBounds.valid = std::isfinite(minX)
+			&& std::isfinite(maxX)
+			&& std::isfinite(minY)
+			&& std::isfinite(maxY)
+			&& minX <= maxX && minY <= maxY;
+
+		m_CullBounds.minX = minX;
+		m_CullBounds.maxX = maxX;
+		m_CullBounds.minY = minY;
+		m_CullBounds.maxY = maxY;
+	}
+
+	bool Renderer::IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const
+	{
+		const float halfWidth{ textureSize.x * transform.Scale.x * 0.5f };
+		const float halfHeight{ textureSize.y * transform.Scale.y * 0.5f };
+		const float radius{ std::sqrt(halfWidth * halfWidth + halfHeight * halfHeight) };
+
+		return transform.Position.x + radius < m_CullBounds.minX
+			|| transform.Position.x - radius > m_CullBounds.maxX
+			|| transform.Position.y + radius < m_CullBounds.minY
+			|| transform.Position.y - radius > m_CullBounds.maxY;
+	}
+
 }
