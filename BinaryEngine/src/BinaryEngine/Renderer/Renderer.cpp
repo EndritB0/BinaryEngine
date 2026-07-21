@@ -1,5 +1,5 @@
-#include "pch.h"
 #include "BinaryEngine/Renderer/Renderer.h"
+#include "pch.h"
 
 #include "BinaryEngine/Renderer/Shader.h"
 
@@ -13,11 +13,11 @@ namespace {
 	{
 		switch (api)
 		{
-			case BinaryEngine::RenderAPI::Default: return nullptr;
-			case BinaryEngine::RenderAPI::Vulkan: return "vulkan";
-			case BinaryEngine::RenderAPI::Direct3D12: return "direct3d12";
-			case BinaryEngine::RenderAPI::Metal: return "metal";
-			default: return nullptr;
+		case BinaryEngine::RenderAPI::Default: return nullptr;
+		case BinaryEngine::RenderAPI::Vulkan: return "vulkan";
+		case BinaryEngine::RenderAPI::Direct3D12: return "direct3d12";
+		case BinaryEngine::RenderAPI::Metal: return "metal";
+		default: return nullptr;
 		}
 	}
 
@@ -25,10 +25,10 @@ namespace {
 	{
 		switch (mode)
 		{
-			case BinaryEngine::PresentMode::VSync: return SDL_GPU_PRESENTMODE_VSYNC;
-			case BinaryEngine::PresentMode::Immediate: return SDL_GPU_PRESENTMODE_IMMEDIATE;
-			case BinaryEngine::PresentMode::Mailbox: return SDL_GPU_PRESENTMODE_MAILBOX;
-			default: return SDL_GPU_PRESENTMODE_VSYNC;
+		case BinaryEngine::PresentMode::VSync: return SDL_GPU_PRESENTMODE_VSYNC;
+		case BinaryEngine::PresentMode::Immediate: return SDL_GPU_PRESENTMODE_IMMEDIATE;
+		case BinaryEngine::PresentMode::Mailbox: return SDL_GPU_PRESENTMODE_MAILBOX;
+		default: return SDL_GPU_PRESENTMODE_VSYNC;
 		}
 	}
 
@@ -36,10 +36,10 @@ namespace {
 	{
 		switch (mode)
 		{
-			case BinaryEngine::PresentMode::VSync: return "VSync";
-			case BinaryEngine::PresentMode::Immediate: return "Immediate";
-			case BinaryEngine::PresentMode::Mailbox: return "Mailbox";
-			default: return "Unknown";
+		case BinaryEngine::PresentMode::VSync: return "VSync";
+		case BinaryEngine::PresentMode::Immediate: return "Immediate";
+		case BinaryEngine::PresentMode::Mailbox: return "Mailbox";
+		default: return "Unknown";
 		}
 	}
 
@@ -362,7 +362,7 @@ namespace BinaryEngine {
 
 				SDL_BindGPUGraphicsPipeline(renderPass, m_Pipeline);
 				SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ViewProjectionMatrix,
-											 static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
+					static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
 
 				SDL_GPUBufferBinding vertexBinding{
 					.buffer {m_VertexBuffer},
@@ -391,7 +391,6 @@ namespace BinaryEngine {
 		}
 
 		m_FrameCleared = true;
-		CORE_TRACE("Number of Draw Calls: {}", m_Statistics.drawCalls);
 	}
 
 	void Renderer::DrawSprite(const Texture2D& texture, const Transform& transform)
