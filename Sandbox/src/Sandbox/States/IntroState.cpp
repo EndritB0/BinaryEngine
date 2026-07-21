@@ -19,6 +19,7 @@ namespace Sandbox {
 	void IntroState::OnAttach()
 	{
 		APP_INFO("[IntroState] Attached");
+		m_Context.renderer.SetClearColor(BinaryEngine::Color::Red);
 	}
 
 	void IntroState::OnDetach()
@@ -39,19 +40,18 @@ namespace Sandbox {
 
 	void IntroState::OnRender()
 	{
-		m_Context.renderer.SetClearColor(BinaryEngine::Color::Red);
 	}
 
 	bool IntroState::OnMouseButtonReleased(BinaryEngine::MouseButtonReleasedEvent& event)
 	{
 		switch (event.GetButton())
 		{
-			case BinaryEngine::Mouse::Button1:
-			{
-				m_StateManager.RequestClearStates();
-				m_StateManager.RequestPushState<MainMenuState>();
-				return true;
-			}
+		case BinaryEngine::Mouse::Button1:
+		{
+			m_StateManager.RequestClearStates();
+			m_StateManager.RequestPushState<MainMenuState>();
+			return true;
+		}
 		}
 		return false;
 	}
@@ -60,11 +60,11 @@ namespace Sandbox {
 	{
 		switch (event.GetKeyCode())
 		{
-			case BinaryEngine::Key::Q:
-			{
-				m_StateManager.RequestClearStates();
-				return true;
-			}
+		case BinaryEngine::Key::Q:
+		{
+			m_StateManager.RequestClearStates();
+			return true;
+		}
 		}
 
 		return false;
