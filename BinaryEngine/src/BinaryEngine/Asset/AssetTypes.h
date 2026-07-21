@@ -25,6 +25,7 @@ namespace BinaryEngine {
 	enum class AssetType {
 		None = 0,
 		Texture2D,
+		Shader,
 	};
 
 }

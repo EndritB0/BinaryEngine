@@ -22,11 +22,10 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Renderer.cpp"
     "src/BinaryEngine/Renderer/Renderer.h"
     "src/BinaryEngine/Renderer/RendererSpecification.h"
-    "src/BinaryEngine/Renderer/BlendMode.h"
-    "src/BinaryEngine/Renderer/BlendModeScope.h"
-    "src/BinaryEngine/Renderer/BlendModeScope.cpp"
     "src/BinaryEngine/Renderer/Texture2D.cpp"
     "src/BinaryEngine/Renderer/Texture2D.h"
+    "src/BinaryEngine/Renderer/Shader.cpp"
+    "src/BinaryEngine/Renderer/Shader.h"
     "src/BinaryEngine/Renderer/OrthographicCamera.cpp"
     "src/BinaryEngine/Renderer/OrthographicCamera.h"
     "src/BinaryEngine/Log/Log.cpp"
@@ -68,5 +67,6 @@ target_compile_features(BinaryEngine PRIVATE cxx_std_20)
 target_include_directories(BinaryEngine PUBLIC src)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
+target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog stb EnTT::EnTT PRIVATE SDL3::SDL3-static ProjectWarnings)
 set_source_files_properties("src/BinaryEngine/vendor/stb_image.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)

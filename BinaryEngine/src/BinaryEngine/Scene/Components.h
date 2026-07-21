@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "BinaryEngine/Core/Transform.h"
 #include "BinaryEngine/Asset/AssetTypes.h"
+#include "BinaryEngine/Core/Transform.h"
 
 namespace BinaryEngine {
 

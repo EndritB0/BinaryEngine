@@ -1,7 +1,7 @@
 #pragma once
 
-#include "BinaryEngine/Window/WindowSpecification.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
+#include "BinaryEngine/Window/WindowSpecification.h"
 
 namespace BinaryEngine {
 

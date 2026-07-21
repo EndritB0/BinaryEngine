@@ -13,6 +13,7 @@ namespace BinaryEngine {
 		if (!m_Window)
 		{
 			CORE_ERROR("[Window] Failed to create window: {}", SDL_GetError());
+			return;
 		}
 
 		CORE_INFO("[Window] Window Initalised: {} ({}x{})", m_WindowSpecification.title, m_WindowSpecification.resolution.x, m_WindowSpecification.resolution.y);
@@ -99,131 +100,131 @@ namespace BinaryEngine {
 
 			switch (sdlEvent.type)
 			{
-				case SDL_EVENT_QUIT:
-				{
-					WindowClosedEvent event;
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_QUIT:
+			{
+				WindowClosedEvent event;
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_WINDOW_RESIZED:
-				{
-					WindowResizedEvent event{
-						{ sdlEvent.window.data1, sdlEvent.window.data2 }
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_WINDOW_RESIZED:
+			{
+				WindowResizedEvent event{
+					{ sdlEvent.window.data1, sdlEvent.window.data2 }
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_WINDOW_FOCUS_GAINED:
-				{
-					WindowFocusedGainedEvent event;
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_WINDOW_FOCUS_GAINED:
+			{
+				WindowFocusedGainedEvent event;
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_WINDOW_FOCUS_LOST:
-				{
-					WindowFocusedGainedEvent event;
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_WINDOW_FOCUS_LOST:
+			{
+				WindowFocusedLostEvent event;
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_WINDOW_MINIMIZED:
-				{
-					m_IsMinimized = true;
-					m_IsMaximized = false;
-					WindowMinimizedEvent event;
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_WINDOW_MINIMIZED:
+			{
+				m_IsMinimized = true;
+				m_IsMaximized = false;
+				WindowMinimizedEvent event;
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_WINDOW_MAXIMIZED:
-				{
-					m_IsMinimized = false;
-					m_IsMaximized = true;
-					WindowMaximizedEvent event;
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_WINDOW_MAXIMIZED:
+			{
+				m_IsMinimized = false;
+				m_IsMaximized = true;
+				WindowMaximizedEvent event;
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_WINDOW_RESTORED:
-				{
-					m_IsMinimized = false;
-					m_IsMaximized = false;
-					WindowRestoredEvent event;
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_WINDOW_RESTORED:
+			{
+				m_IsMinimized = false;
+				m_IsMaximized = false;
+				WindowRestoredEvent event;
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_KEY_DOWN:
-				{
-					KeyPressedEvent event{
-						static_cast<KeyCode>(sdlEvent.key.key),
-						static_cast<ScanCode>(sdlEvent.key.scancode),
-						static_cast<KeyModifier>(sdlEvent.key.mod),
-						sdlEvent.key.repeat != 0
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_KEY_DOWN:
+			{
+				KeyPressedEvent event{
+					static_cast<KeyCode>(sdlEvent.key.key),
+					static_cast<ScanCode>(sdlEvent.key.scancode),
+					static_cast<KeyModifier>(sdlEvent.key.mod),
+					sdlEvent.key.repeat != 0
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_KEY_UP:
-				{
-					KeyReleasedEvent event{
-						static_cast<KeyCode>(sdlEvent.key.key),
-						static_cast<ScanCode>(sdlEvent.key.scancode),
-						static_cast<KeyModifier>(sdlEvent.key.mod),
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_KEY_UP:
+			{
+				KeyReleasedEvent event{
+					static_cast<KeyCode>(sdlEvent.key.key),
+					static_cast<ScanCode>(sdlEvent.key.scancode),
+					static_cast<KeyModifier>(sdlEvent.key.mod),
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_MOUSE_BUTTON_DOWN:
-				{
-					MouseButtonPressedEvent event{
-						static_cast<MouseCode>(sdlEvent.button.button),
-						{ sdlEvent.button.x, sdlEvent.button.y }
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			{
+				MouseButtonPressedEvent event{
+					static_cast<MouseCode>(sdlEvent.button.button),
+					{ sdlEvent.button.x, sdlEvent.button.y }
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_MOUSE_BUTTON_UP:
-				{
-					MouseButtonReleasedEvent event{
-						static_cast<MouseCode>(sdlEvent.button.button),
-						{ sdlEvent.button.x, sdlEvent.button.y }
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_MOUSE_BUTTON_UP:
+			{
+				MouseButtonReleasedEvent event{
+					static_cast<MouseCode>(sdlEvent.button.button),
+					{ sdlEvent.button.x, sdlEvent.button.y }
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_MOUSE_MOTION:
-				{
-					MouseMovedEvent event{
-						{ sdlEvent.motion.x, sdlEvent.motion.y },
-						{ sdlEvent.motion.xrel, sdlEvent.motion.yrel }
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_MOUSE_MOTION:
+			{
+				MouseMovedEvent event{
+					{ sdlEvent.motion.x, sdlEvent.motion.y },
+					{ sdlEvent.motion.xrel, sdlEvent.motion.yrel }
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_MOUSE_WHEEL:
-				{
-					MouseScrolledEvent event{
-						{ sdlEvent.wheel.x, sdlEvent.wheel.y }
-					};
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_MOUSE_WHEEL:
+			{
+				MouseScrolledEvent event{
+					{ sdlEvent.wheel.x, sdlEvent.wheel.y }
+				};
+				m_EventCallback(event);
+				break;
+			}
 
-				case SDL_EVENT_TEXT_INPUT:
-				{
-					TextInputEvent event{ sdlEvent.text.text };
-					m_EventCallback(event);
-					break;
-				}
+			case SDL_EVENT_TEXT_INPUT:
+			{
+				TextInputEvent event{ sdlEvent.text.text };
+				m_EventCallback(event);
+				break;
+			}
 
 			}
 

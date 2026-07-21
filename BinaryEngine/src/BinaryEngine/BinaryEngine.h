@@ -20,9 +20,9 @@
 #include "BinaryEngine/Window/Window.h"
 
 #include "BinaryEngine/Renderer/RendererSpecification.h"
-#include "BinaryEngine/Renderer/BlendMode.h"
 #include "BinaryEngine/Renderer/Renderer.h"
-#include "BinaryEngine/Renderer/Texture2D.h"
+#include "BinaryEngine/Renderer/Texture2D.h" 
+#include "BinaryEngine/Renderer/Shader.h" 
 #include "BinaryEngine/Renderer/OrthographicCamera.h"
 
 #include "BinaryEngine/Asset/AssetTypes.h"

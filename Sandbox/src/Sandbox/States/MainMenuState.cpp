@@ -76,7 +76,7 @@ namespace Sandbox {
 
 	void MainMenuState::OnRender()
 	{
-		m_Context.renderer.SetDrawColor(BinaryEngine::Color::Blue);
+		m_Context.renderer.SetClearColor(BinaryEngine::Color::Blue);
 		m_Context.renderer.BeginScene(m_Camera);
 
 		auto view = m_ActiveScene.GetAllEntitiesWith<BinaryEngine::TransformComponent, BinaryEngine::SpriteComponent>();
@@ -86,7 +86,7 @@ namespace Sandbox {
 
 			if (textureAsset)
 			{
-				m_Context.renderer.DrawTexture(*textureAsset, transform.transform);
+				m_Context.renderer.DrawSprite(*textureAsset, transform.transform);
 			}
 				  });
 
