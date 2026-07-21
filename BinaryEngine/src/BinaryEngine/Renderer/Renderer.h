@@ -34,6 +34,10 @@ namespace BinaryEngine {
 		void* GetNativeDevice() const { return m_Device; }
 		bool IsValid() const { return m_Device != nullptr; }
 		void SetViewport(Vector2i position, Vector2i size);
+		void ResetViewport();
+		Vector2i GetViewportPosition() const { return m_ViewportPosition; }
+		Vector2i GetViewportSize() const { return m_ViewportSize; }
+		bool HasCustomViewport() const { return m_HasCustomViewport; }
 		void SetPresentMode(PresentMode mode);
 		PresentMode GetPresentMode() const { return m_Specification.presentMode; };
 		void SetDefaultAlpha(std::uint8_t alpha);
@@ -113,6 +117,7 @@ namespace BinaryEngine {
 
 		Vector2i m_ViewportPosition{ 0, 0 };
 		Vector2i m_ViewportSize{ 0, 0 };
+		bool m_HasCustomViewport{ false };
 
 		Color m_ClearColor{ Color::Black };
 		RendererSpecification m_Specification;

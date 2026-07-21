@@ -1,5 +1,5 @@
-#include "BinaryEngine/Renderer/Renderer.h"
 #include "pch.h"
+#include "BinaryEngine/Renderer/Renderer.h"
 
 #include "BinaryEngine/Renderer/Shader.h"
 
@@ -149,6 +149,14 @@ namespace BinaryEngine {
 	{
 		m_ViewportPosition = position;
 		m_ViewportSize = size;
+		m_HasCustomViewport = true;
+	}
+
+	void Renderer::ResetViewport()
+	{
+		m_ViewportPosition = { 0, 0 };
+		m_ViewportSize = { 0, 0 };
+		m_HasCustomViewport = false;
 	}
 
 	void Renderer::SetPresentMode(PresentMode mode)
@@ -353,9 +361,13 @@ namespace BinaryEngine {
 		{
 			if (drawSprites)
 			{
+				const bool useCustomViewport{ m_HasCustomViewport && m_ViewportSize.x > 0 && m_ViewportSize.y > 0 };
+
 				SDL_GPUViewport viewport{
-					0.0f, 0.0f,
-					static_cast<float>(m_SwapchainWidth), static_cast<float>(m_SwapchainHeight),
+					useCustomViewport ? static_cast<float>(m_ViewportPosition.x) : 0.0f,
+					useCustomViewport ? static_cast<float>(m_ViewportPosition.y) : 0.0f,
+					useCustomViewport ? static_cast<float>(m_ViewportSize.x) : static_cast<float>(m_SwapchainWidth),
+					useCustomViewport ? static_cast<float>(m_ViewportSize.y) : static_cast<float>(m_SwapchainHeight),
 					0.0f, 1.0f
 				};
 				SDL_SetGPUViewport(renderPass, &viewport);

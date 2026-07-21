@@ -70,7 +70,6 @@ namespace BinaryEngine {
 	{
 		EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<WindowClosedEvent>(BIND_FUNCTION(OnWindowClosed));
-		dispatcher.Dispatch<WindowResizedEvent>(BIND_FUNCTION(OnWindowResized));
 
 		if (!event.handled)
 		{
@@ -115,12 +114,6 @@ namespace BinaryEngine {
 	{
 		StopApplication();
 		return true;
-	}
-
-	bool Application::OnWindowResized(WindowResizedEvent& event)
-	{
-		m_Renderer->SetViewport({ 0, 0 }, { event.GetWidth(), event.GetHeight() });
-		return false;
 	}
 
 }

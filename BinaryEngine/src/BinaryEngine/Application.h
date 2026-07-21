@@ -9,6 +9,7 @@
 #include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Event/EventTypes.h"
+#include "BinaryEngine/Log/Log.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/State/State.h"
 #include "BinaryEngine/State/StateManager.h"
@@ -32,6 +33,7 @@ namespace BinaryEngine {
 		{
 			if (!IsApplicationInitialised())
 			{
+				CORE_ERROR("[Application] Application has not been initialised correctly, unable to add State");
 				return;
 			}
 
@@ -49,8 +51,7 @@ namespace BinaryEngine {
 		void Render();
 		void PostFrame();
 		bool OnWindowClosed(WindowClosedEvent& event);
-		bool OnWindowResized(WindowResizedEvent& event);
-		bool IsApplicationInitialised() const { return m_Window->IsValid() && m_Renderer->IsValid(); }
+		bool IsApplicationInitialised() const { return (m_Window.has_value() && m_Window->IsValid()) && (m_Renderer.has_value() && m_Renderer->IsValid()); }
 
 	private:
 		std::optional<Window> m_Window;
