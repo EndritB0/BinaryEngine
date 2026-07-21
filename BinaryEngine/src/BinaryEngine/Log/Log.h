@@ -10,7 +10,6 @@ URL: https://youtu.be/dZr-53LAlOw
 
 #include <memory>
 #include <string>
-
 #include <spdlog/logger.h>
 
 namespace BinaryEngine {
