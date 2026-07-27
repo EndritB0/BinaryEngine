@@ -25,6 +25,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Texture2D.cpp"
     "src/BinaryEngine/Renderer/Texture2D.h"
     "src/BinaryEngine/Renderer/TextureRegion.h"
+    "src/BinaryEngine/Renderer/AnimationClip.h"
     "src/BinaryEngine/Renderer/Shader.cpp"
     "src/BinaryEngine/Renderer/Shader.h"
     "src/BinaryEngine/Renderer/OrthographicCamera.cpp"

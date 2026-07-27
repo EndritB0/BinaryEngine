@@ -21,16 +21,25 @@ namespace Sandbox {
 	void MainMenuState::OnAttach()
 	{
 		APP_INFO("[MainMenuState] Attached");
+
+		m_Context.renderer.SetClearColor(BinaryEngine::Color::Blue);
+
 		m_CharacterTexture = m_Context.assetManager.LoadAsset<BinaryEngine::Texture2D>("./resources/character/character_idle.png", m_Context.renderer);
+
+		m_IdleClip = BinaryEngine::MakeStripClip({ 0, 0 }, { 16, 16 }, 4, 4, 0.15f, true);
+		m_MovingClip = BinaryEngine::MakeStripClip({ 0, 0 }, { 16, 16 }, 4, 4, 0.06f, true);
+		m_WaveClip = BinaryEngine::MakeStripClip({ 0, 0 }, { 16, 16 }, 4, 4, 0.10f, false);
 
 		m_PlayerEntity = m_ActiveScene.CreateEntity("Player");
 		auto& playerTransform = m_PlayerEntity.GetComponent<BinaryEngine::TransformComponent>();
 		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
+		m_PlayerEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
 		playerTransform.transform.Position = { 200.0f, 200.0f, 1.f };
 
 		BinaryEngine::Entity allyEntity = m_ActiveScene.CreateEntity("Ally");
 		auto& allyTransform = allyEntity.GetComponent<BinaryEngine::TransformComponent>();
-		allyEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture);
+		allyEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
+		allyEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
 		allyTransform.transform.Position = { 100.f, 100.f, 0.f };
 		allyTransform.transform.Scale = { 2.f, 1.f, 1.f };
 	}
@@ -45,6 +54,7 @@ namespace Sandbox {
 		BinaryEngine::EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<BinaryEngine::MouseButtonPressedEvent>(BIND_FUNCTION(OnMouseButtonPressed));
 		dispatcher.Dispatch<BinaryEngine::WindowResizedEvent>(BIND_FUNCTION(OnWindowResized));
+		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
 	void MainMenuState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
@@ -71,13 +81,16 @@ namespace Sandbox {
 
 		m_Camera.SetPosition({ playerTransform.Position.x, playerTransform.Position.y, 1 });
 
-		auto& sprite = m_PlayerEntity.GetComponent<BinaryEngine::SpriteComponent>();
-		m_AnimationTimer += dt.GetSeconds();
-		while (m_AnimationTimer >= m_FrameDuration)
+		auto& playerAnimation = m_PlayerEntity.GetComponent<BinaryEngine::AnimationComponent>();
+		const bool inOneShot{ playerAnimation.CurrentClip == &m_WaveClip && !playerAnimation.Finished };
+		if (!inOneShot)
 		{
-			m_AnimationTimer -= m_FrameDuration;
-			m_CurrentFrame = (m_CurrentFrame + 1) % s_IdleFrameCount;
-			sprite.Region.Position.x = m_CurrentFrame * sprite.Region.Size.x;
+			const bool moving{ BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W)
+				|| BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::A)
+				|| BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::S)
+				|| BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::D) };
+
+			playerAnimation.Play(moving ? &m_MovingClip : &m_IdleClip);
 		}
 
 		m_ActiveScene.OnUpdate(dt);
@@ -85,7 +98,6 @@ namespace Sandbox {
 
 	void MainMenuState::OnRender()
 	{
-		m_Context.renderer.SetClearColor(BinaryEngine::Color::Blue);
 		m_Context.renderer.BeginScene(m_Camera);
 
 		auto view = m_ActiveScene.GetAllEntitiesWith<BinaryEngine::TransformComponent, BinaryEngine::SpriteComponent>();
@@ -130,6 +142,20 @@ namespace Sandbox {
 	{
 		m_Camera.OnResize(event.GetSize());
 		return false;
+	}
+
+	bool MainMenuState::OnKeyPressed(BinaryEngine::KeyPressedEvent& event)
+	{
+		switch (event.GetKeyCode())
+		{
+			case BinaryEngine::Key::Space:
+			{
+				m_PlayerEntity.GetComponent<BinaryEngine::AnimationComponent>().Play(&m_WaveClip);
+				return true;
+			}
+
+			default:return false;
+		}
 	}
 
 }

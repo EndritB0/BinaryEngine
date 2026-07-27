@@ -4,6 +4,7 @@
 
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Transform.h"
+#include "BinaryEngine/Renderer/AnimationClip.h"
 #include "BinaryEngine/Renderer/TextureRegion.h"
 
 namespace BinaryEngine {
@@ -32,6 +33,32 @@ namespace BinaryEngine {
 		SpriteComponent(const SpriteComponent&) = default;
 		SpriteComponent(AssetHandle handle) : TextureHandle(handle) {}
 		SpriteComponent(AssetHandle handle, const TextureRegion& region) : TextureHandle(handle), Region(region), UseRegion(true) {}
+	};
+
+	struct AnimationComponent {
+		const AnimationClip* CurrentClip{ nullptr };
+		float ElapsedTime{ 0.0f };
+		std::size_t CurrentFrame{ 0 };
+		bool Playing{ true };
+		bool Finished{ false };
+
+		AnimationComponent() = default;
+		AnimationComponent(const AnimationComponent&) = default;
+		AnimationComponent(const AnimationClip* clip) : CurrentClip(clip) {}
+
+		void Play(const AnimationClip* clip)
+		{
+			if (CurrentClip == clip)
+			{
+				return;
+			}
+
+			CurrentClip = clip;
+			ElapsedTime = 0.0f;
+			CurrentFrame = 0;
+			Playing = true;
+			Finished = false;
+		}
 	};
 
 }

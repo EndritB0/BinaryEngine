@@ -2,6 +2,7 @@
 
 #include "BinaryEngine/State/State.h"
 #include <BinaryEngine/Event/EventTypes.h>
+#include <BinaryEngine/Renderer/AnimationClip.h>
 #include <BinaryEngine/Scene/Entity.h>
 #include <BinaryEngine/Scene/Scene.h>
 
@@ -21,18 +22,17 @@ namespace Sandbox {
 	private:
 		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
 		bool OnWindowResized(BinaryEngine::WindowResizedEvent& event);
+		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 
-	private:
 	private:
 		BinaryEngine::OrthographicCamera m_Camera{ m_Context.window.GetResolution() };
 		BinaryEngine::AssetHandle m_CharacterTexture;
 		BinaryEngine::Scene m_ActiveScene;
 		BinaryEngine::Entity m_PlayerEntity;
 
-		static constexpr int s_IdleFrameCount{ 4 };
-		float m_AnimationTimer{ 0.0f };
-		float m_FrameDuration{ 0.15f };
-		int m_CurrentFrame{ 0 };
+		BinaryEngine::AnimationClip m_IdleClip;
+		BinaryEngine::AnimationClip m_MovingClip;
+		BinaryEngine::AnimationClip m_WaveClip;
 	};
 
 }
