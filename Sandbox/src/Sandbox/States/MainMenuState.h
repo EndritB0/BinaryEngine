@@ -28,6 +28,11 @@ namespace Sandbox {
 		BinaryEngine::AssetHandle m_CharacterTexture;
 		BinaryEngine::Scene m_ActiveScene;
 		BinaryEngine::Entity m_PlayerEntity;
+
+		static constexpr int s_IdleFrameCount{ 4 };
+		float m_AnimationTimer{ 0.0f };
+		float m_FrameDuration{ 0.15f };
+		int m_CurrentFrame{ 0 };
 	};
 
 }

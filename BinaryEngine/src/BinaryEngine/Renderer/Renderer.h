@@ -9,6 +9,7 @@
 #include "BinaryEngine/Renderer/OrthographicCamera.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
+#include "BinaryEngine/Renderer/TextureRegion.h"
 #include "BinaryEngine/Window/Window.h"
 
 namespace BinaryEngine {
@@ -49,8 +50,10 @@ namespace BinaryEngine {
 		void BeginScene(const OrthographicCamera& camera);
 		void EndScene();
 		void DrawSprite(const Texture2D& texture, const Transform& transform);
+		void DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region);
 
 	private:
+		void SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax);
 		void InitialiseSpriteRenderer();
 		bool UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity);
 		bool EnsureQuadCapacity(std::uint32_t newCapacity);

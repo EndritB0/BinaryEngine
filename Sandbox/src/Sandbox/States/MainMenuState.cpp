@@ -25,7 +25,7 @@ namespace Sandbox {
 
 		m_PlayerEntity = m_ActiveScene.CreateEntity("Player");
 		auto& playerTransform = m_PlayerEntity.GetComponent<BinaryEngine::TransformComponent>();
-		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture);
+		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
 		playerTransform.transform.Position = { 200.0f, 200.0f, 1.f };
 
 		BinaryEngine::Entity allyEntity = m_ActiveScene.CreateEntity("Ally");
@@ -71,6 +71,15 @@ namespace Sandbox {
 
 		m_Camera.SetPosition({ playerTransform.Position.x, playerTransform.Position.y, 1 });
 
+		auto& sprite = m_PlayerEntity.GetComponent<BinaryEngine::SpriteComponent>();
+		m_AnimationTimer += dt.GetSeconds();
+		while (m_AnimationTimer >= m_FrameDuration)
+		{
+			m_AnimationTimer -= m_FrameDuration;
+			m_CurrentFrame = (m_CurrentFrame + 1) % s_IdleFrameCount;
+			sprite.Region.Position.x = m_CurrentFrame * sprite.Region.Size.x;
+		}
+
 		m_ActiveScene.OnUpdate(dt);
 	}
 
@@ -84,7 +93,16 @@ namespace Sandbox {
 		view.each([&](auto& transform, auto& sprite) {
 			auto textureAsset = m_Context.assetManager.GetAsset<BinaryEngine::Texture2D>(sprite.TextureHandle);
 
-			if (textureAsset)
+			if (!textureAsset)
+			{
+				return;
+			}
+
+			if (sprite.UseRegion)
+			{
+				m_Context.renderer.DrawSprite(*textureAsset, transform.transform, sprite.Region);
+			}
+			else
 			{
 				m_Context.renderer.DrawSprite(*textureAsset, transform.transform);
 			}

@@ -13,11 +13,11 @@ namespace {
 	{
 		switch (api)
 		{
-		case BinaryEngine::RenderAPI::Default: return nullptr;
-		case BinaryEngine::RenderAPI::Vulkan: return "vulkan";
-		case BinaryEngine::RenderAPI::Direct3D12: return "direct3d12";
-		case BinaryEngine::RenderAPI::Metal: return "metal";
-		default: return nullptr;
+			case BinaryEngine::RenderAPI::Default: return nullptr;
+			case BinaryEngine::RenderAPI::Vulkan: return "vulkan";
+			case BinaryEngine::RenderAPI::Direct3D12: return "direct3d12";
+			case BinaryEngine::RenderAPI::Metal: return "metal";
+			default: return nullptr;
 		}
 	}
 
@@ -25,10 +25,10 @@ namespace {
 	{
 		switch (mode)
 		{
-		case BinaryEngine::PresentMode::VSync: return SDL_GPU_PRESENTMODE_VSYNC;
-		case BinaryEngine::PresentMode::Immediate: return SDL_GPU_PRESENTMODE_IMMEDIATE;
-		case BinaryEngine::PresentMode::Mailbox: return SDL_GPU_PRESENTMODE_MAILBOX;
-		default: return SDL_GPU_PRESENTMODE_VSYNC;
+			case BinaryEngine::PresentMode::VSync: return SDL_GPU_PRESENTMODE_VSYNC;
+			case BinaryEngine::PresentMode::Immediate: return SDL_GPU_PRESENTMODE_IMMEDIATE;
+			case BinaryEngine::PresentMode::Mailbox: return SDL_GPU_PRESENTMODE_MAILBOX;
+			default: return SDL_GPU_PRESENTMODE_VSYNC;
 		}
 	}
 
@@ -36,10 +36,10 @@ namespace {
 	{
 		switch (mode)
 		{
-		case BinaryEngine::PresentMode::VSync: return "VSync";
-		case BinaryEngine::PresentMode::Immediate: return "Immediate";
-		case BinaryEngine::PresentMode::Mailbox: return "Mailbox";
-		default: return "Unknown";
+			case BinaryEngine::PresentMode::VSync: return "VSync";
+			case BinaryEngine::PresentMode::Immediate: return "Immediate";
+			case BinaryEngine::PresentMode::Mailbox: return "Mailbox";
+			default: return "Unknown";
 		}
 	}
 
@@ -374,7 +374,7 @@ namespace BinaryEngine {
 
 				SDL_BindGPUGraphicsPipeline(renderPass, m_Pipeline);
 				SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ViewProjectionMatrix,
-					static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
+											 static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
 
 				SDL_GPUBufferBinding vertexBinding{
 					.buffer {m_VertexBuffer},
@@ -407,6 +407,34 @@ namespace BinaryEngine {
 
 	void Renderer::DrawSprite(const Texture2D& texture, const Transform& transform)
 	{
+		Vector2f textureSize{ texture.GetSize() };
+		SubmitSprite(texture, transform, textureSize, { 0.0f, 0.0f }, { 1.0f, 1.0f });
+	}
+
+	void Renderer::DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region)
+	{
+		if (region.Size.x <= 0 || region.Size.y <= 0)
+		{
+			return;
+		}
+
+		Vector2f textureSize{ texture.GetSize() };
+		if (textureSize.x <= 0.0f || textureSize.y <= 0.0f)
+		{
+			return;
+		}
+
+		Vector2f regionPosition{ region.Position };
+		Vector2f regionSize{ region.Size };
+
+		Vector2f uvMin{ regionPosition.x / textureSize.x, regionPosition.y / textureSize.y };
+		Vector2f uvMax{ (regionPosition.x + regionSize.x) / textureSize.x, (regionPosition.y + regionSize.y) / textureSize.y };
+
+		SubmitSprite(texture, transform, regionSize, uvMin, uvMax);
+	}
+
+	void Renderer::SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax)
+	{
 		if (!m_SceneActive)
 		{
 			return;
@@ -418,15 +446,13 @@ namespace BinaryEngine {
 			return;
 		}
 
-		Vector2f textureSize{ texture.GetSize() };
-
-		if (m_Specification.cullSprites && m_CullBounds.valid && IsSpriteCulled(transform, textureSize))
+		if (m_Specification.cullSprites && m_CullBounds.valid && IsSpriteCulled(transform, quadSize))
 		{
 			m_Statistics.culledSprites++;
 			return;
 		}
 
-		glm::mat4 model{ transform.GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(textureSize.x, textureSize.y, 1.0f)) };
+		glm::mat4 model{ transform.GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(quadSize.x, quadSize.y, 1.0f)) };
 
 		constexpr glm::vec3 localVertices[4]{
 			{ -0.5f, -0.5f, 0.0f },
@@ -435,11 +461,11 @@ namespace BinaryEngine {
 			{ -0.5f,  0.5f, 0.0f },
 		};
 
-		constexpr glm::vec2 texCoords[4]{
-			{ 0.0f, 1.0f },
-			{ 1.0f, 1.0f },
-			{ 1.0f, 0.0f },
-			{ 0.0f, 0.0f },
+		const glm::vec2 texCoords[4]{
+			{ uvMin.x, uvMax.y },
+			{ uvMax.x, uvMax.y },
+			{ uvMax.x, uvMin.y },
+			{ uvMin.x, uvMin.y },
 		};
 
 		const float alpha{ static_cast<float>(m_Specification.defaultAlpha) / 255.0f };

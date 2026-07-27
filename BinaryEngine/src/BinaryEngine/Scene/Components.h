@@ -4,6 +4,7 @@
 
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Transform.h"
+#include "BinaryEngine/Renderer/TextureRegion.h"
 
 namespace BinaryEngine {
 
@@ -24,10 +25,13 @@ namespace BinaryEngine {
 
 	struct SpriteComponent {
 		AssetHandle TextureHandle{};
+		TextureRegion Region{};
+		bool UseRegion{ false };
 
 		SpriteComponent() = default;
 		SpriteComponent(const SpriteComponent&) = default;
 		SpriteComponent(AssetHandle handle) : TextureHandle(handle) {}
+		SpriteComponent(AssetHandle handle, const TextureRegion& region) : TextureHandle(handle), Region(region), UseRegion(true) {}
 	};
 
 }
