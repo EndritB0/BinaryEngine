@@ -12,26 +12,26 @@ namespace BinaryEngine {
 	{
 		switch (level)
 		{
-		case Log::Level::Trace:
-			return spdlog::level::trace;
+			case Log::Level::Trace:
+				return spdlog::level::trace;
 
-		case Log::Level::Info:
-			return spdlog::level::info;
+			case Log::Level::Info:
+				return spdlog::level::info;
 
-		case Log::Level::Warn:
-			return spdlog::level::warn;
+			case Log::Level::Warn:
+				return spdlog::level::warn;
 
-		case Log::Level::Error:
-			return spdlog::level::err;
+			case Log::Level::Error:
+				return spdlog::level::err;
 
-		case Log::Level::Critical:
-			return spdlog::level::critical;
+			case Log::Level::Critical:
+				return spdlog::level::critical;
 
-		case Log::Level::Off:
-			return spdlog::level::off;
+			case Log::Level::Off:
+				return spdlog::level::off;
 
-		default:
-			return spdlog::level::trace;
+			default:
+				return spdlog::level::trace;
 		}
 	}
 
