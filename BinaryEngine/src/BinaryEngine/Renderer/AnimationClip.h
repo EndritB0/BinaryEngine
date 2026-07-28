@@ -13,7 +13,7 @@ namespace BinaryEngine {
 		bool Looping{ true };
 	};
 
-	AnimationClip MakeStripClip(Vector2i origin, Vector2i frameSize, int count, int columns, float frameDuration, bool looping = true)
+	inline AnimationClip MakeStripClip(Vector2i origin, Vector2i frameSize, int count, int columns, float frameDuration, bool looping = true)
 	{
 		AnimationClip clip;
 		clip.FrameDuration = frameDuration;
