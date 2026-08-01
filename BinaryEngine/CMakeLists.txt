@@ -30,6 +30,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Shader.h"
     "src/BinaryEngine/Renderer/OrthographicCamera.cpp"
     "src/BinaryEngine/Renderer/OrthographicCamera.h"
+    "src/BinaryEngine/Renderer/CameraSpecification.h"
     "src/BinaryEngine/Log/Log.cpp"
     "src/BinaryEngine/Log/Log.h"
     "src/BinaryEngine/Event/MouseCodes.h"

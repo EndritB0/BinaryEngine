@@ -21,11 +21,11 @@ namespace Sandbox {
 
 	private:
 		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
-		bool OnWindowResized(BinaryEngine::WindowResizedEvent& event);
+		bool OnMouseScrolled(BinaryEngine::MouseScrolledEvent& event);
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 
 	private:
-		BinaryEngine::OrthographicCamera m_Camera{ m_Context.window.GetResolution() };
+		BinaryEngine::OrthographicCamera m_Camera{ m_Context.window.GetResolution(), m_Context.camera };
 		BinaryEngine::AssetHandle m_CharacterTexture;
 		BinaryEngine::Scene m_ActiveScene;
 		BinaryEngine::Entity m_PlayerEntity;
