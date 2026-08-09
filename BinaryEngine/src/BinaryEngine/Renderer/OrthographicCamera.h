@@ -3,23 +3,9 @@
 #include <glm/fwd.hpp>
 
 #include "BinaryEngine/Core/Math.h"
+#include "BinaryEngine/Renderer/CameraSpecification.h"
 
 namespace BinaryEngine {
-
-	struct CameraSpecification;
-
-	enum class CameraViewportMode {
-		Expand,
-		FixedHeight,
-		FixedWidth,
-		Letterbox,
-		Stretch
-	};
-
-	struct CameraViewport {
-		Vector2i Position{ 0, 0 };
-		Vector2i Size{ 0, 0 };
-	};
 
 	class OrthographicCamera {
 	public:
@@ -33,12 +19,16 @@ namespace BinaryEngine {
 		const Vector3f& GetPosition() const { return m_Position; }
 		void SetPosition(const Vector3f& position) { m_Position = position; RecalculateViewMatrix(); }
 		float GetRotation() const { return m_Rotation; }
-		void SetRotation(float rotation) { m_Rotation = rotation; RecalculateViewMatrix(); }
+		void SetRotation(float rotation);
 
 		float GetZoom() const { return m_Zoom; }
 		void SetZoom(float zoom);
 		CameraViewportMode GetViewportMode() const { return m_ViewportMode; }
 		void SetViewportMode(CameraViewportMode mode);
+		CameraSnapMode GetSnapMode() const { return m_SnapMode; }
+		void SetSnapMode(CameraSnapMode mode);
+		float GetPixelsPerWorldUnit() const { return m_PixelsPerWorldUnit; }
+		Vector2f SnapToPixelGrid(Vector2f worldPosition) const;
 		Vector2f GetDesignSize() const { return m_DesignSize; }
 		void SetDesignSize(Vector2f designSize);
 		Vector2f GetWorldViewSize() const { return m_WorldViewSize; }
@@ -58,6 +48,8 @@ namespace BinaryEngine {
 		void RecalculateViewMatrix();
 		void RecalculateProjection();
 		void RecalculateViewProjection();
+		bool IsSnappingActive() const;
+		void CheckSnappingUnsupported() const;
 
 	private:
 		glm::mat4 m_ProjectionMatrix{ 1.0f };
@@ -73,6 +65,10 @@ namespace BinaryEngine {
 		Vector2i m_WindowSize{ 1280, 720 };
 		CameraViewportMode m_ViewportMode{ CameraViewportMode::FixedHeight };
 		float m_Zoom{ 1.0f };
+
+		CameraSnapMode m_SnapMode{ CameraSnapMode::None };
+		float m_PixelsPerWorldUnit{ 1.0f };
+		bool m_SnapRotationWarned{ false };
 
 	};
 

@@ -25,8 +25,8 @@
 #include "BinaryEngine/Renderer/TextureRegion.h"
 #include "BinaryEngine/Renderer/AnimationClip.h"
 #include "BinaryEngine/Renderer/Shader.h"
-#include "BinaryEngine/Renderer/OrthographicCamera.h"
 #include "BinaryEngine/Renderer/CameraSpecification.h"
+#include "BinaryEngine/Renderer/OrthographicCamera.h"
 
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Asset/Asset.h"

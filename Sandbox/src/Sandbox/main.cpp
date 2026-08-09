@@ -6,7 +6,7 @@ int main()
 	BinaryEngine::ApplicationSpecification specification{
 		.Window = {
 			.title {"SandBox"},
-			.resolution {BinaryEngine::Vector2i{ 1280, 720 }},
+			.resolution {BinaryEngine::Vector2i{ 1230, 845 }},
 			.fpsLimit {120},
 			.fullscreen {false},
 		},
@@ -21,6 +21,7 @@ int main()
 		.Camera = {
 			.DesignSize {BinaryEngine::Vector2f{ 640.0f, 360.0f }},
 			.ViewportMode {BinaryEngine::CameraViewportMode::FixedHeight},
+			.SnapMode {BinaryEngine::CameraSnapMode::PixelPerfect},
 		}
 	};
 
