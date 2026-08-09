@@ -19,7 +19,7 @@ namespace BinaryEngine {
 
 	class Application {
 	public:
-		Application(const ApplicationSpecification specification);
+		Application(const ApplicationSpecification& specification);
 		~Application();
 
 		Application(const Application&) = delete;
@@ -54,10 +54,11 @@ namespace BinaryEngine {
 		bool IsApplicationInitialised() const { return (m_Window.has_value() && m_Window->IsValid()) && (m_Renderer.has_value() && m_Renderer->IsValid()); }
 
 	private:
+		CameraSpecification m_CameraSpecification;
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;
-		std::optional<StateManager> m_StateManager;
 		AssetManager m_AssetManager;
+		std::optional<StateManager> m_StateManager;
 		std::uint64_t m_LastFrameTime{};
 		bool m_IsRunning{ false };
 

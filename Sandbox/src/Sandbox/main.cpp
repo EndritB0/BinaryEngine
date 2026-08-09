@@ -16,6 +16,12 @@ int main()
 			.presentMode {BinaryEngine::PresentMode::Immediate},
 			.textureFilter {BinaryEngine::TextureFilter::Nearest},
 			.validationMode {BinaryEngine::ValidationMode::Enabled},
+		},
+
+		.Camera = {
+			.DesignSize {BinaryEngine::Vector2f{ 640.0f, 360.0f }},
+			.ViewportMode {BinaryEngine::CameraViewportMode::FixedHeight},
+			.SnapMode {BinaryEngine::CameraSnapMode::PixelPerfect},
 		}
 	};
 

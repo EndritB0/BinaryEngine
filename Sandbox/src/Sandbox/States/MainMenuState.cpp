@@ -53,7 +53,7 @@ namespace Sandbox {
 	{
 		BinaryEngine::EventDispatcher dispatcher(event);
 		dispatcher.Dispatch<BinaryEngine::MouseButtonPressedEvent>(BIND_FUNCTION(OnMouseButtonPressed));
-		dispatcher.Dispatch<BinaryEngine::WindowResizedEvent>(BIND_FUNCTION(OnWindowResized));
+		dispatcher.Dispatch<BinaryEngine::MouseScrolledEvent>(BIND_FUNCTION(OnMouseScrolled));
 		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
@@ -138,10 +138,11 @@ namespace Sandbox {
 		return false;
 	}
 
-	bool MainMenuState::OnWindowResized(BinaryEngine::WindowResizedEvent& event)
+	bool MainMenuState::OnMouseScrolled(BinaryEngine::MouseScrolledEvent& event)
 	{
-		m_Camera.OnResize(event.GetSize());
-		return false;
+		const float zoomStep{ event.GetOffsetY() > 0.0f ? 1.1f : (1.0f / 1.1f) };
+		m_Camera.SetZoom(m_Camera.GetZoom() * zoomStep);
+		return true;
 	}
 
 	bool MainMenuState::OnKeyPressed(BinaryEngine::KeyPressedEvent& event)

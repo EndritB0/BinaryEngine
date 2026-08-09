@@ -47,7 +47,7 @@ namespace BinaryEngine {
 		void Clear();
 		void Present();
 		void SetClearColor(const Color& color);
-		void BeginScene(const OrthographicCamera& camera);
+		void BeginScene(OrthographicCamera& camera);
 		void EndScene();
 		void DrawSprite(const Texture2D& texture, const Transform& transform);
 		void DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region);
@@ -57,7 +57,7 @@ namespace BinaryEngine {
 		void InitialiseSpriteRenderer();
 		bool UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity);
 		bool EnsureQuadCapacity(std::uint32_t newCapacity);
-		void CalculateCullBounds();
+		void CalculateCullBounds(const glm::mat4& inverseViewProjection);
 		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
 
 	private:
@@ -121,6 +121,8 @@ namespace BinaryEngine {
 		Vector2i m_ViewportPosition{ 0, 0 };
 		Vector2i m_ViewportSize{ 0, 0 };
 		bool m_HasCustomViewport{ false };
+
+		CameraViewport m_SceneViewport;
 
 		Color m_ClearColor{ Color::Black };
 		RendererSpecification m_Specification;

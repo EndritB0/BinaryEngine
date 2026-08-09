@@ -9,7 +9,7 @@
 
 namespace BinaryEngine {
 
-	Application::Application(const ApplicationSpecification specification)
+	Application::Application(const ApplicationSpecification& specification)
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
@@ -29,8 +29,17 @@ namespace BinaryEngine {
 			return;
 		}
 
+		m_CameraSpecification = specification.Camera;
+		if (!m_CameraSpecification.DesignSize.has_value())
+		{
+			m_CameraSpecification.DesignSize = Vector2f{
+				static_cast<float>(specification.Window.resolution.x),
+				static_cast<float>(specification.Window.resolution.y)
+			};
+		}
+
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
-		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager });
+		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager, m_CameraSpecification });
 		CORE_INFO("[Application] Application Initialised");
 	}
 

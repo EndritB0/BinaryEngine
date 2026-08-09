@@ -246,8 +246,14 @@ namespace BinaryEngine {
 		m_ClearColor = color;
 	}
 
-	void Renderer::BeginScene(const OrthographicCamera& camera)
+	void Renderer::BeginScene(OrthographicCamera& camera)
 	{
+		const Vector2i swapchainSize{ static_cast<int>(m_SwapchainWidth), static_cast<int>(m_SwapchainHeight) };
+		if (swapchainSize.x > 0 && swapchainSize.y > 0 && camera.GetWindowSize() != swapchainSize)
+		{
+			camera.OnResize(swapchainSize);
+		}
+
 		m_SceneData.ViewProjectionMatrix = camera.GetViewProjectionMatrix();
 		m_Draws.clear();
 		m_QuadCount = 0;
@@ -257,7 +263,17 @@ namespace BinaryEngine {
 		m_Statistics.drawCalls = 0;
 		m_Statistics.culledSprites = 0;
 
-		CalculateCullBounds();
+
+		if (m_HasCustomViewport)
+		{
+			m_SceneViewport = { m_ViewportPosition, m_ViewportSize };
+		}
+		else
+		{
+			m_SceneViewport = camera.CalculateViewport({ static_cast<int>(m_SwapchainWidth), static_cast<int>(m_SwapchainHeight) });
+		}
+
+		CalculateCullBounds(camera.GetInverseViewProjectionMatrix());
 	}
 
 	void Renderer::EndScene()
@@ -359,19 +375,19 @@ namespace BinaryEngine {
 		SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr) };
 		if (renderPass)
 		{
+			const bool useSceneViewport{ m_SceneViewport.Size.x > 0 && m_SceneViewport.Size.y > 0 };
+
+			SDL_GPUViewport viewport{
+				useSceneViewport ? static_cast<float>(m_SceneViewport.Position.x) : 0.0f,
+				useSceneViewport ? static_cast<float>(m_SceneViewport.Position.y) : 0.0f,
+				useSceneViewport ? static_cast<float>(m_SceneViewport.Size.x) : static_cast<float>(m_SwapchainWidth),
+				useSceneViewport ? static_cast<float>(m_SceneViewport.Size.y) : static_cast<float>(m_SwapchainHeight),
+				0.0f, 1.0f
+			};
+			SDL_SetGPUViewport(renderPass, &viewport);
+
 			if (drawSprites)
 			{
-				const bool useCustomViewport{ m_HasCustomViewport && m_ViewportSize.x > 0 && m_ViewportSize.y > 0 };
-
-				SDL_GPUViewport viewport{
-					useCustomViewport ? static_cast<float>(m_ViewportPosition.x) : 0.0f,
-					useCustomViewport ? static_cast<float>(m_ViewportPosition.y) : 0.0f,
-					useCustomViewport ? static_cast<float>(m_ViewportSize.x) : static_cast<float>(m_SwapchainWidth),
-					useCustomViewport ? static_cast<float>(m_ViewportSize.y) : static_cast<float>(m_SwapchainHeight),
-					0.0f, 1.0f
-				};
-				SDL_SetGPUViewport(renderPass, &viewport);
-
 				SDL_BindGPUGraphicsPipeline(renderPass, m_Pipeline);
 				SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ViewProjectionMatrix,
 											 static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
@@ -758,10 +774,8 @@ namespace BinaryEngine {
 		return true;
 	}
 
-	void Renderer::CalculateCullBounds()
+	void Renderer::CalculateCullBounds(const glm::mat4& inverseViewProjection)
 	{
-		const glm::mat4 inverseViewProjection{ glm::inverse(m_SceneData.ViewProjectionMatrix) };
-
 		constexpr glm::vec4 ndcCorners[4]{
 			{ -1.0f, -1.0f, 0.0f, 1.0f },
 			{  1.0f, -1.0f, 0.0f, 1.0f },
