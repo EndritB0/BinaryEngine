@@ -6,7 +6,7 @@ int main()
 	BinaryEngine::ApplicationSpecification specification{
 		.Window = {
 			.title {"SandBox"},
-			.resolution {BinaryEngine::Vector2i{ 1230, 845 }},
+			.resolution {BinaryEngine::Vector2i{ 1280, 720 }},
 			.fpsLimit {120},
 			.fullscreen {false},
 		},
