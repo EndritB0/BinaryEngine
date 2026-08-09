@@ -9,12 +9,9 @@ namespace BinaryEngine {
 
 	class OrthographicCamera {
 	public:
-		OrthographicCamera(float left, float right, float bottom, float top);
-		OrthographicCamera(Vector2i windowSize);
 		OrthographicCamera(Vector2i windowSize, Vector2f designSize, CameraViewportMode mode = CameraViewportMode::FixedHeight);
 		OrthographicCamera(Vector2i windowSize, const CameraSpecification& specification);
 
-		void SetOrthographicSize(Vector2f worldSize);
 		void OnResize(Vector2i windowSize);
 		const Vector3f& GetPosition() const { return m_Position; }
 		void SetPosition(const Vector3f& position) { m_Position = position; RecalculateViewMatrix(); }
@@ -34,7 +31,9 @@ namespace BinaryEngine {
 		Vector2f GetWorldViewSize() const { return m_WorldViewSize; }
 		Vector2i GetWindowSize() const { return m_WindowSize; }
 		CameraViewport CalculateViewport(Vector2i targetSize) const;
+		Vector2f ScreenToWorld(Vector2f screenPosition) const;
 		Vector2f ScreenToWorld(Vector2f screenPosition, Vector2i windowSize) const;
+		Vector2f WorldToScreen(Vector2f worldPosition) const;
 		Vector2f WorldToScreen(Vector2f worldPosition, Vector2i windowSize) const;
 
 		const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }

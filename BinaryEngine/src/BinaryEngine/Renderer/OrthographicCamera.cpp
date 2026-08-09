@@ -5,7 +5,8 @@
 
 namespace {
 
-	constexpr float s_MinimumZoom{ 0.0001f };
+	constexpr float s_MinimumZoom{ 1.0f / 64.0f };
+	constexpr float s_MaximumZoom{ 64.0f };
 
 	bool IsPositiveSize(BinaryEngine::Vector2f size)
 	{
@@ -57,19 +58,6 @@ namespace {
 
 namespace BinaryEngine {
 
-	OrthographicCamera::OrthographicCamera(float left, float right, float bottom, float top)
-	{
-		BuildViewMatrix();
-		SetOrthographicSize(Vector2f{ right - left, top - bottom });
-	}
-
-	OrthographicCamera::OrthographicCamera(Vector2i windowSize) :
-		OrthographicCamera(windowSize,
-						   Vector2f{ static_cast<float>(windowSize.x), static_cast<float>(windowSize.y) },
-						   CameraViewportMode::FixedHeight)
-	{
-	}
-
 	OrthographicCamera::OrthographicCamera(Vector2i windowSize, const CameraSpecification& specification) :
 		OrthographicCamera(windowSize,
 						   specification.DesignSize.value_or(Vector2f{ static_cast<float>(windowSize.x), static_cast<float>(windowSize.y) }),
@@ -100,24 +88,6 @@ namespace BinaryEngine {
 		RecalculateViewProjection();
 	}
 
-	void OrthographicCamera::SetOrthographicSize(Vector2f worldSize)
-	{
-		if (IsPositiveSize(worldSize))
-		{
-			m_DesignSize = worldSize;
-		}
-		else
-		{
-			CORE_WARN("[OrthographicCamera] Orthographic size must be positive on both axes, received {}x{}, falling back to {}x{}",
-					  worldSize.x, worldSize.y, m_DesignSize.x, m_DesignSize.y);
-		}
-
-		m_ViewportMode = CameraViewportMode::Stretch;
-		m_Zoom = 1.0f;
-		CheckSnappingUnsupported();
-		RecalculateProjection();
-	}
-
 	void OrthographicCamera::OnResize(Vector2i windowSize)
 	{
 		m_WindowSize = windowSize;
@@ -132,7 +102,7 @@ namespace BinaryEngine {
 			zoom = s_MinimumZoom;
 		}
 
-		m_Zoom = zoom;
+		m_Zoom = std::clamp(zoom, s_MinimumZoom, s_MaximumZoom);
 		RecalculateProjection();
 	}
 
@@ -237,6 +207,16 @@ namespace BinaryEngine {
 		viewport.Position.y = (targetSize.y - viewport.Size.y) / 2;
 
 		return viewport;
+	}
+
+	Vector2f OrthographicCamera::ScreenToWorld(Vector2f screenPosition) const
+	{
+		return ScreenToWorld(screenPosition, m_WindowSize);
+	}
+
+	Vector2f OrthographicCamera::WorldToScreen(Vector2f worldPosition) const
+	{
+		return WorldToScreen(worldPosition, m_WindowSize);
 	}
 
 	Vector2f OrthographicCamera::ScreenToWorld(Vector2f screenPosition, Vector2i windowSize) const
