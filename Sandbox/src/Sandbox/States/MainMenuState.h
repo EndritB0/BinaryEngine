@@ -26,9 +26,11 @@ namespace Sandbox {
 
 	private:
 		BinaryEngine::OrthographicCamera m_Camera{ m_Context.window.GetResolution(), m_Context.camera };
-		BinaryEngine::AssetHandle m_CharacterTexture;
+		BinaryEngine::AssetHandle m_CharacterTextureHandle;
+		BinaryEngine::AssetHandle m_FontHandle;
 		BinaryEngine::Scene m_ActiveScene;
 		BinaryEngine::Entity m_PlayerEntity;
+		BinaryEngine::Entity m_NameTagEntity;
 
 		BinaryEngine::AnimationClip m_IdleClip;
 		BinaryEngine::AnimationClip m_MovingClip;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 
+#include "BinaryEngine/Renderer/Font.h"
 #include "BinaryEngine/Renderer/Shader.h"
 
 namespace {
@@ -8,6 +9,7 @@ namespace {
 	constexpr std::uint32_t s_VerticesPerQuad{ 4 };
 	constexpr std::uint32_t s_IndicesPerQuad{ 6 };
 	constexpr std::uint32_t s_AbsoluteMaxQuads{ 16000000 };
+	constexpr std::uint32_t s_InitialScreenDrawCapacity{ 1024 };
 
 	static const char* RenderAPIToDriverName(BinaryEngine::RenderAPI api)
 	{
@@ -255,13 +257,19 @@ namespace BinaryEngine {
 		}
 
 		m_SceneData.ViewProjectionMatrix = camera.GetViewProjectionMatrix();
+
+		const Vector2f screenViewSize{ camera.GetScreenViewSize() };
+		m_SceneData.ScreenViewProjectionMatrix = glm::ortho(0.0f, screenViewSize.x, screenViewSize.y, 0.0f, -1.0f, 1.0f);
+
 		m_Draws.clear();
+		m_ScreenDraws.clear();
 		m_QuadCount = 0;
 		m_SceneActive = true;
 
 		m_Statistics.quadCount = 0;
 		m_Statistics.drawCalls = 0;
 		m_Statistics.culledSprites = 0;
+		m_Statistics.glyphCount = 0;
 
 
 		if (m_HasCustomViewport)
@@ -282,10 +290,12 @@ namespace BinaryEngine {
 
 		if (!m_CommandBuffer || !m_SwapchainTexture)
 		{
+			m_Draws.clear();
+			m_ScreenDraws.clear();
 			return;
 		}
 
-		std::uint32_t neededCapacity{ static_cast<std::uint32_t>(m_Draws.size()) };
+		std::uint32_t neededCapacity{ static_cast<std::uint32_t>(m_Draws.size() + m_ScreenDraws.size()) };
 		if (neededCapacity > m_Specification.maxQuadCapacity)
 		{
 			CORE_WARN("[Renderer] Scene requested {} quads, ceiling is {}, dropping {}", neededCapacity, m_Specification.maxQuadCapacity, neededCapacity - m_Specification.maxQuadCapacity);
@@ -297,29 +307,21 @@ namespace BinaryEngine {
 			EnsureQuadCapacity(neededCapacity);
 		}
 
-		const std::uint32_t drawable{ std::min(neededCapacity, m_QuadCapacity) };
+		const std::uint32_t drawableQuadCount{ std::min(neededCapacity, m_QuadCapacity) };
 
-		std::stable_sort(m_Draws.begin(), m_Draws.end(), [](const SpriteDraw& a, const SpriteDraw& b) { return a.sortZ < b.sortZ; });
+		const std::uint32_t worldDrawableQuadCount{ std::min(static_cast<std::uint32_t>(m_Draws.size()), drawableQuadCount) };
+		const std::uint32_t screenDrawableQuadCount{ std::min(static_cast<std::uint32_t>(m_ScreenDraws.size()), drawableQuadCount - worldDrawableQuadCount) };
+
+		const auto sortByDepth = [](const SpriteDraw& left, const SpriteDraw& right) { return left.sortZ < right.sortZ; };
+		std::stable_sort(m_Draws.begin(), m_Draws.end(), sortByDepth);
+		std::stable_sort(m_ScreenDraws.begin(), m_ScreenDraws.end(), sortByDepth);
 
 		m_VertexStaging.clear();
 		m_Batches.clear();
-		for (std::uint32_t drawIndex{}; drawIndex < drawable; drawIndex++)
-		{
-			const SpriteDraw& draw{ m_Draws[drawIndex] };
 
-			if (m_Batches.empty() || m_Batches.back().texture != draw.texture)
-			{
-				m_Batches.emplace_back(draw.texture, m_QuadCount, 0);
-			}
-
-			for (const SpriteVertex& vertex : draw.vertices)
-			{
-				m_VertexStaging.push_back(vertex);
-			}
-
-			m_Batches.back().quadCount++;
-			m_QuadCount++;
-		}
+		AppendBatches(m_Draws, worldDrawableQuadCount, false);
+		const std::size_t worldBatchCount{ m_Batches.size() };
+		AppendBatches(m_ScreenDraws, screenDrawableQuadCount, true);
 
 		m_Statistics.quadCount = m_QuadCount;
 		m_Statistics.drawCalls = static_cast<std::uint32_t>(m_Batches.size());
@@ -327,28 +329,28 @@ namespace BinaryEngine {
 		bool drawSprites{ m_Pipeline && m_Sampler && m_QuadCount > 0 };
 		if (drawSprites)
 		{
-			const std::uint32_t usedBytes{ m_QuadCount * s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
+			const std::uint32_t vertexBytes{ m_QuadCount * s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
 
-			void* mapped{ SDL_MapGPUTransferBuffer(m_Device, m_VertexTransferBuffer, true) };
-			if (mapped)
+			void* mappedVertices{ SDL_MapGPUTransferBuffer(m_Device, m_VertexTransferBuffer, true) };
+			if (mappedVertices)
 			{
-				SDL_memcpy(mapped, m_VertexStaging.data(), usedBytes);
+				SDL_memcpy(mappedVertices, m_VertexStaging.data(), vertexBytes);
 				SDL_UnmapGPUTransferBuffer(m_Device, m_VertexTransferBuffer);
 
 				SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(m_CommandBuffer) };
 
-				SDL_GPUTransferBufferLocation source{
+				SDL_GPUTransferBufferLocation vertexSource{
 					.transfer_buffer {m_VertexTransferBuffer},
 					.offset {0},
 				};
 
-				SDL_GPUBufferRegion region{
+				SDL_GPUBufferRegion vertexRegion{
 					.buffer {m_VertexBuffer},
 					.offset {0},
-					.size {usedBytes},
+					.size {vertexBytes},
 				};
 
-				SDL_UploadToGPUBuffer(copyPass, &source, &region, true);
+				SDL_UploadToGPUBuffer(copyPass, &vertexSource, &vertexRegion, true);
 				SDL_EndGPUCopyPass(copyPass);
 			}
 			else
@@ -389,8 +391,6 @@ namespace BinaryEngine {
 			if (drawSprites)
 			{
 				SDL_BindGPUGraphicsPipeline(renderPass, m_Pipeline);
-				SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ViewProjectionMatrix,
-											 static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
 
 				SDL_GPUBufferBinding vertexBinding{
 					.buffer {m_VertexBuffer},
@@ -404,14 +404,29 @@ namespace BinaryEngine {
 				};
 				SDL_BindGPUIndexBuffer(renderPass, &indexBinding, SDL_GPU_INDEXELEMENTSIZE_32BIT);
 
-				for (const RenderBatch& batch : m_Batches)
-				{
-					SDL_GPUTextureSamplerBinding textureBinding{
-						.texture {batch.texture},
-						.sampler {m_Sampler},
+				const auto drawBatchRange = [&](std::size_t firstBatchIndex, std::size_t endBatchIndex) {
+					for (std::size_t batchIndex{ firstBatchIndex }; batchIndex < endBatchIndex; batchIndex++)
+					{
+						const RenderBatch& batch{ m_Batches[batchIndex] };
+
+						SDL_GPUTextureSamplerBinding textureBinding{
+							.texture {batch.texture},
+							.sampler {m_Sampler},
+						};
+						SDL_BindGPUFragmentSamplers(renderPass, 0, &textureBinding, 1);
+						SDL_DrawGPUIndexedPrimitives(renderPass, batch.quadCount * s_IndicesPerQuad, 1, batch.firstQuad * s_IndicesPerQuad, 0, 0);
+					}
 					};
-					SDL_BindGPUFragmentSamplers(renderPass, 0, &textureBinding, 1);
-					SDL_DrawGPUIndexedPrimitives(renderPass, batch.quadCount * s_IndicesPerQuad, 1, batch.firstQuad * s_IndicesPerQuad, 0, 0);
+
+				SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ViewProjectionMatrix,
+											 static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
+				drawBatchRange(0, worldBatchCount);
+
+				if (worldBatchCount < m_Batches.size())
+				{
+					SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ScreenViewProjectionMatrix,
+												 static_cast<std::uint32_t>(sizeof(m_SceneData.ScreenViewProjectionMatrix)));
+					drawBatchRange(worldBatchCount, m_Batches.size());
 				}
 			}
 
@@ -468,7 +483,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		glm::mat4 model{ transform.GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(quadSize.x, quadSize.y, 1.0f)) };
+		glm::mat4 modelMatrix{ transform.GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(quadSize.x, quadSize.y, 1.0f)) };
 
 		constexpr glm::vec3 localVertices[4]{
 			{ -0.5f, -0.5f, 0.0f },
@@ -477,7 +492,7 @@ namespace BinaryEngine {
 			{ -0.5f,  0.5f, 0.0f },
 		};
 
-		const glm::vec2 texCoords[4]{
+		const glm::vec2 quadTextureCoordinates[4]{
 			{ uvMin.x, uvMax.y },
 			{ uvMax.x, uvMax.y },
 			{ uvMax.x, uvMin.y },
@@ -490,21 +505,134 @@ namespace BinaryEngine {
 		draw.texture = nativeTexture;
 		draw.sortZ = transform.Position.z;
 
-		for (int corner{}; corner < 4; corner++)
+		for (int cornerIndex{}; cornerIndex < 4; cornerIndex++)
 		{
-			glm::vec4 worldPosition{ model * glm::vec4(localVertices[corner], 1.0f) };
+			glm::vec4 worldPosition{ modelMatrix * glm::vec4(localVertices[cornerIndex], 1.0f) };
 
-			SpriteVertex& vertex{ draw.vertices[corner] };
+			SpriteVertex& vertex{ draw.vertices[cornerIndex] };
 			vertex.position[0] = worldPosition.x;
 			vertex.position[1] = worldPosition.y;
 			vertex.position[2] = worldPosition.z;
-			vertex.textureCoordinates[0] = texCoords[corner].x;
-			vertex.textureCoordinates[1] = texCoords[corner].y;
+			vertex.textureCoordinates[0] = quadTextureCoordinates[cornerIndex].x;
+			vertex.textureCoordinates[1] = quadTextureCoordinates[cornerIndex].y;
 			vertex.color[0] = 1.0f;
 			vertex.color[1] = 1.0f;
 			vertex.color[2] = 1.0f;
 			vertex.color[3] = alpha;
 		}
+	}
+
+	void Renderer::AppendBatches(const std::vector<SpriteDraw>& draws, std::uint32_t drawableQuadCount, bool forceNewBatch)
+	{
+		for (std::uint32_t drawIndex{}; drawIndex < drawableQuadCount; drawIndex++)
+		{
+			const SpriteDraw& draw{ draws[drawIndex] };
+
+			const bool startNewBatch{ m_Batches.empty() || m_Batches.back().texture != draw.texture || (forceNewBatch && drawIndex == 0) };
+
+			if (startNewBatch)
+			{
+				m_Batches.emplace_back(draw.texture, m_QuadCount, 0);
+			}
+
+			for (const SpriteVertex& vertex : draw.vertices)
+			{
+				m_VertexStaging.push_back(vertex);
+			}
+
+			m_Batches.back().quadCount++;
+			m_QuadCount++;
+		}
+	}
+
+	void Renderer::DrawText(const Font& font, std::string_view text, const Transform& transform, const TextSpecification& specification)
+	{
+		if (!m_SceneActive || !font.IsValid())
+		{
+			return;
+		}
+
+		SDL_GPUTexture* nativeTexture{ static_cast<SDL_GPUTexture*>(font.GetTexture().GetNativeTexture()) };
+		if (!nativeTexture)
+		{
+			return;
+		}
+
+		LayoutText(font, text, specification, m_TextLayout);
+		if (m_TextLayout.Glyphs.empty())
+		{
+			return;
+		}
+
+		const float glyphScale{ specification.Size / font.GetPixelSize() };
+
+		const bool isWorldSpace{ specification.Space == TextSpace::World };
+		const float verticalSign{ isWorldSpace ? -1.0f : 1.0f };
+
+		const glm::mat4 modelMatrix{ transform.GetModelMatrix() };
+
+		const float red{ static_cast<float>(specification.FillColor.red) / 255.0f };
+		const float green{ static_cast<float>(specification.FillColor.green) / 255.0f };
+		const float blue{ static_cast<float>(specification.FillColor.blue) / 255.0f };
+		const float alpha{ static_cast<float>(specification.FillColor.alpha) / 255.0f };
+
+		std::vector<SpriteDraw>& targetDrawList{ isWorldSpace ? m_Draws : m_ScreenDraws };
+
+		for (const LaidOutGlyph& glyph : m_TextLayout.Glyphs)
+		{
+			const float left{ glyph.Position.x * glyphScale };
+			const float right{ (glyph.Position.x + glyph.Size.x) * glyphScale };
+			const float top{ glyph.Position.y * glyphScale * verticalSign };
+			const float bottom{ (glyph.Position.y + glyph.Size.y) * glyphScale * verticalSign };
+
+			const glm::vec2 glyphCorners[4]{
+				{ left, top },
+				{ right, top },
+				{ right, bottom },
+				{ left, bottom },
+			};
+
+			const glm::vec2 glyphTextureCoordinates[4]{
+				{ glyph.UVMin.x, glyph.UVMin.y },
+				{ glyph.UVMax.x, glyph.UVMin.y },
+				{ glyph.UVMax.x, glyph.UVMax.y },
+				{ glyph.UVMin.x, glyph.UVMax.y },
+			};
+
+			SpriteDraw& draw{ targetDrawList.emplace_back() };
+			draw.texture = nativeTexture;
+			draw.sortZ = transform.Position.z;
+
+			for (int cornerIndex{}; cornerIndex < 4; cornerIndex++)
+			{
+				const glm::vec4 transformedPosition{ modelMatrix * glm::vec4(glyphCorners[cornerIndex], 0.0f, 1.0f) };
+
+				SpriteVertex& vertex{ draw.vertices[cornerIndex] };
+				vertex.position[0] = transformedPosition.x;
+				vertex.position[1] = transformedPosition.y;
+				vertex.position[2] = transformedPosition.z;
+				vertex.textureCoordinates[0] = glyphTextureCoordinates[cornerIndex].x;
+				vertex.textureCoordinates[1] = glyphTextureCoordinates[cornerIndex].y;
+				vertex.color[0] = red;
+				vertex.color[1] = green;
+				vertex.color[2] = blue;
+				vertex.color[3] = alpha;
+			}
+
+			m_Statistics.glyphCount++;
+		}
+	}
+
+	Vector2f Renderer::MeasureText(const Font& font, std::string_view text, const TextSpecification& specification)
+	{
+		if (!font.IsValid())
+		{
+			return { 0.0f, 0.0f };
+		}
+
+		LayoutText(font, text, specification, m_TextLayout);
+
+		return m_TextLayout.Bounds * (specification.Size / font.GetPixelSize());
 	}
 
 	void Renderer::InitialiseSpriteRenderer()
@@ -617,6 +745,7 @@ namespace BinaryEngine {
 		}
 
 		m_Draws.reserve(m_Specification.maxQuadCapacity);
+		m_ScreenDraws.reserve(s_InitialScreenDrawCapacity);
 		m_VertexStaging.reserve(m_Specification.maxQuadCapacity * s_VerticesPerQuad);
 		m_Batches.reserve(64);
 		CORE_INFO("[Renderer] Sprite Renderer Initialised ({} quad capacity, {} max)", m_QuadCapacity, m_Specification.maxQuadCapacity);
@@ -628,16 +757,16 @@ namespace BinaryEngine {
 		const std::uint32_t indexBytes{ indexCount * static_cast<std::uint32_t>(sizeof(std::uint32_t)) };
 
 		std::vector<std::uint32_t> indices(indexCount);
-		for (std::uint32_t quad{}; quad < quadCapacity; quad++)
+		for (std::uint32_t quadIndex{}; quadIndex < quadCapacity; quadIndex++)
 		{
-			const std::uint32_t vertex{ quad * s_VerticesPerQuad };
-			const std::uint32_t index{ quad * s_IndicesPerQuad };
-			indices[index + 0] = vertex + 0;
-			indices[index + 1] = vertex + 1;
-			indices[index + 2] = vertex + 2;
-			indices[index + 3] = vertex + 2;
-			indices[index + 4] = vertex + 3;
-			indices[index + 5] = vertex + 0;
+			const std::uint32_t firstVertex{ quadIndex * s_VerticesPerQuad };
+			const std::uint32_t firstIndex{ quadIndex * s_IndicesPerQuad };
+			indices[firstIndex + 0] = firstVertex + 0;
+			indices[firstIndex + 1] = firstVertex + 1;
+			indices[firstIndex + 2] = firstVertex + 2;
+			indices[firstIndex + 3] = firstVertex + 2;
+			indices[firstIndex + 4] = firstVertex + 3;
+			indices[firstIndex + 5] = firstVertex + 0;
 		}
 
 		SDL_GPUTransferBufferCreateInfo indexTransferInfo{
@@ -651,14 +780,14 @@ namespace BinaryEngine {
 			return false;
 		}
 
-		void* mapped{ SDL_MapGPUTransferBuffer(m_Device, indexTransfer, false) };
-		if (!mapped)
+		void* mappedIndices{ SDL_MapGPUTransferBuffer(m_Device, indexTransfer, false) };
+		if (!mappedIndices)
 		{
 			CORE_ERROR("[Renderer] Failed to map index transfer buffer: {}", SDL_GetError());
 			SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
 			return false;
 		}
-		SDL_memcpy(mapped, indices.data(), indexBytes);
+		SDL_memcpy(mappedIndices, indices.data(), indexBytes);
 		SDL_UnmapGPUTransferBuffer(m_Device, indexTransfer);
 
 		SDL_GPUCommandBuffer* uploadCommands{ SDL_AcquireGPUCommandBuffer(m_Device) };
@@ -692,14 +821,14 @@ namespace BinaryEngine {
 		SDL_UploadToGPUBuffer(copyPass, &indexSource, &indexRegion, false);
 		SDL_EndGPUCopyPass(copyPass);
 
-		const bool submitted{ SDL_SubmitGPUCommandBuffer(uploadCommands) };
-		if (!submitted)
+		const bool uploadSubmitted{ SDL_SubmitGPUCommandBuffer(uploadCommands) };
+		if (!uploadSubmitted)
 		{
 			CORE_ERROR("[Renderer] Failed to submit index upload: {}", SDL_GetError());
 		}
 
 		SDL_ReleaseGPUTransferBuffer(m_Device, indexTransfer);
-		return submitted;
+		return uploadSubmitted;
 	}
 
 	bool Renderer::EnsureQuadCapacity(std::uint32_t newCapacity)
@@ -725,13 +854,13 @@ namespace BinaryEngine {
 		};
 		SDL_GPUTransferBuffer* vertexTransfer{ SDL_CreateGPUTransferBuffer(m_Device, &vertexTransferInfo) };
 
-		const bool created{ vertexBuffer && indexBuffer && vertexTransfer };
-		if (!created)
+		const bool buffersCreated{ vertexBuffer && indexBuffer && vertexTransfer };
+		if (!buffersCreated)
 		{
 			CORE_ERROR("[Renderer] Failed to create sprite buffers for {} quads: {}", newCapacity, SDL_GetError());
 		}
 
-		if (!created || !UploadQuadIndices(indexBuffer, newCapacity))
+		if (!buffersCreated || !UploadQuadIndices(indexBuffer, newCapacity))
 		{
 			if (vertexTransfer)
 			{
@@ -791,9 +920,9 @@ namespace BinaryEngine {
 		float maxX{ firstCorner.x };
 		float maxY{ firstCorner.y };
 
-		for (int corner{ 1 }; corner < 4; corner++)
+		for (int cornerIndex{ 1 }; cornerIndex < 4; cornerIndex++)
 		{
-			glm::vec4 worldCorner{ inverseViewProjection * ndcCorners[corner] };
+			glm::vec4 worldCorner{ inverseViewProjection * ndcCorners[cornerIndex] };
 			worldCorner /= worldCorner.w;
 
 			minX = std::min(minX, worldCorner.x);

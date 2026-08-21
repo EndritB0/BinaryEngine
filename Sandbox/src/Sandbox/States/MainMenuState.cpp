@@ -24,7 +24,8 @@ namespace Sandbox {
 
 		m_Context.renderer.SetClearColor(BinaryEngine::Color::Blue);
 
-		m_CharacterTexture = m_Context.assetManager.LoadAsset<BinaryEngine::Texture2D>("./resources/character/character_idle.png", m_Context.renderer);
+		m_CharacterTextureHandle = m_Context.assetManager.LoadAsset<BinaryEngine::Texture2D>("./resources/character/character_idle.png", m_Context.renderer);
+		m_FontHandle = m_Context.assetManager.LoadAsset<BinaryEngine::Font>("./resources/fonts/OpenSans-Regular.ttf", m_Context.renderer);
 
 		m_IdleClip = BinaryEngine::MakeStripClip({ 0, 0 }, { 16, 16 }, 4, 4, 0.15f, true);
 		m_MovingClip = BinaryEngine::MakeStripClip({ 0, 0 }, { 16, 16 }, 4, 4, 0.06f, true);
@@ -32,16 +33,36 @@ namespace Sandbox {
 
 		m_PlayerEntity = m_ActiveScene.CreateEntity("Player");
 		auto& playerTransform = m_PlayerEntity.GetComponent<BinaryEngine::TransformComponent>();
-		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
+		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTextureHandle, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
 		m_PlayerEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
 		playerTransform.transform.Position = { 200.0f, 200.0f, 1.f };
 
 		BinaryEngine::Entity allyEntity = m_ActiveScene.CreateEntity("Ally");
 		auto& allyTransform = allyEntity.GetComponent<BinaryEngine::TransformComponent>();
-		allyEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTexture, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
+		allyEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterTextureHandle, BinaryEngine::TextureRegion{ { 0, 0 }, { 16, 16 } });
 		allyEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
 		allyTransform.transform.Position = { 100.f, 100.f, 0.f };
 		allyTransform.transform.Scale = { 2.f, 1.f, 1.f };
+
+		BinaryEngine::TextSpecification nameTagSpec{
+			.Size { 16.0f },
+			.FillColor {BinaryEngine::Color::White},
+			.Space {BinaryEngine::TextSpace::World},
+			.Alignment {BinaryEngine::TextAlignment::Center},
+		};
+		m_NameTagEntity = m_ActiveScene.CreateEntity("PlayerNameTag");
+		m_NameTagEntity.AddComponent<BinaryEngine::TextComponent>(m_FontHandle, "Player", nameTagSpec);
+
+		BinaryEngine::TextSpecification hudSpec{
+			.Size { 16.0f },
+			.FillColor {BinaryEngine::Color::White},
+			.Space {BinaryEngine::TextSpace::Screen},
+			.Alignment {BinaryEngine::TextAlignment::Left},
+		};
+		BinaryEngine::Entity hudEntity = m_ActiveScene.CreateEntity("Hud");
+		auto& hudTransform = hudEntity.GetComponent<BinaryEngine::TransformComponent>();
+		hudEntity.AddComponent<BinaryEngine::TextComponent>(m_FontHandle, "Binary Engine\nWASD to move", hudSpec);
+		hudTransform.transform.Position = { 8.0f, 20.0f, 10.0f };
 	}
 
 	void MainMenuState::OnDetach()
@@ -81,16 +102,19 @@ namespace Sandbox {
 
 		m_Camera.SetPosition({ playerTransform.Position.x, playerTransform.Position.y, 1 });
 
+		auto& nameTagTransform = m_NameTagEntity.GetComponent<BinaryEngine::TransformComponent>().transform;
+		nameTagTransform.Position = { playerTransform.Position.x, playerTransform.Position.y + 14.0f, 5.0f };
+
 		auto& playerAnimation = m_PlayerEntity.GetComponent<BinaryEngine::AnimationComponent>();
-		const bool inOneShot{ playerAnimation.CurrentClip == &m_WaveClip && !playerAnimation.Finished };
-		if (!inOneShot)
+		const bool isPlayingOneShot{ playerAnimation.CurrentClip == &m_WaveClip && !playerAnimation.Finished };
+		if (!isPlayingOneShot)
 		{
-			const bool moving{ BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W)
+			const bool isMoving{ BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W)
 				|| BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::A)
 				|| BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::S)
 				|| BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::D) };
 
-			playerAnimation.Play(moving ? &m_MovingClip : &m_IdleClip);
+			playerAnimation.Play(isMoving ? &m_MovingClip : &m_IdleClip);
 		}
 
 		m_ActiveScene.OnUpdate(dt);
@@ -99,27 +123,7 @@ namespace Sandbox {
 	void MainMenuState::OnRender()
 	{
 		m_Context.renderer.BeginScene(m_Camera);
-
-		auto view = m_ActiveScene.GetAllEntitiesWith<BinaryEngine::TransformComponent, BinaryEngine::SpriteComponent>();
-
-		view.each([&](auto& transform, auto& sprite) {
-			auto textureAsset = m_Context.assetManager.GetAsset<BinaryEngine::Texture2D>(sprite.TextureHandle);
-
-			if (!textureAsset)
-			{
-				return;
-			}
-
-			if (sprite.UseRegion)
-			{
-				m_Context.renderer.DrawSprite(*textureAsset, transform.transform, sprite.Region);
-			}
-			else
-			{
-				m_Context.renderer.DrawSprite(*textureAsset, transform.transform);
-			}
-				  });
-
+		m_ActiveScene.OnRender(m_Context.renderer, m_Context.assetManager);
 		m_Context.renderer.EndScene();
 	}
 

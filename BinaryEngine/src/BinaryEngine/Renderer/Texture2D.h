@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string_view>
 
 #include "BinaryEngine/Asset/Asset.h"
 #include "BinaryEngine/Asset/AssetTypes.h"
@@ -23,6 +24,8 @@ namespace BinaryEngine {
 		static AssetType GetStaticAssetType() { return AssetType::Texture2D; }
 		virtual AssetType GetAssetType() const override { return GetStaticAssetType(); }
 		void Load(const std::filesystem::path& filePath, const Renderer& renderer);
+		bool Create(const Renderer& renderer, const void* pixels, Vector2i size, std::string_view debugName);
+		bool IsValid() const { return m_Texture != nullptr; }
 		int GetWidth() const { return m_Size.x; }
 		int GetHeight() const { return m_Size.y; }
 		Vector2i GetSize() const { return m_Size; }
