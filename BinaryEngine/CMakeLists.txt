@@ -3,6 +3,7 @@ add_library(BinaryEngine STATIC)
 set(BINARYENGINE_SOURCES
     "src/pch.h"
     "src/BinaryEngine/vendor/stb_image.cpp"
+    "src/BinaryEngine/vendor/stb_truetype.cpp"
     "src/BinaryEngine/BinaryEngine.h"
     "src/BinaryEngine/Application.cpp"
     "src/BinaryEngine/Application.h"
@@ -25,6 +26,11 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Texture2D.cpp"
     "src/BinaryEngine/Renderer/Texture2D.h"
     "src/BinaryEngine/Renderer/TextureRegion.h"
+    "src/BinaryEngine/Renderer/Font.cpp"
+    "src/BinaryEngine/Renderer/Font.h"
+    "src/BinaryEngine/Renderer/TextSpecification.h"
+    "src/BinaryEngine/Renderer/TextLayout.cpp"
+    "src/BinaryEngine/Renderer/TextLayout.h"
     "src/BinaryEngine/Renderer/AnimationClip.h"
     "src/BinaryEngine/Renderer/Shader.cpp"
     "src/BinaryEngine/Renderer/Shader.h"
@@ -72,4 +78,4 @@ target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog stb EnTT::EnTT PRIVATE SDL3::SDL3-static ProjectWarnings)
-set_source_files_properties("src/BinaryEngine/vendor/stb_image.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+set_source_files_properties("src/BinaryEngine/vendor/stb_image.cpp" "src/BinaryEngine/vendor/stb_truetype.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)

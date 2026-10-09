@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "BinaryEngine/Scene/Scene.h"
 
+#include "BinaryEngine/Asset/AssetManager.h"
+#include "BinaryEngine/Renderer/Font.h"
+#include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/Scene/Components.h"
 #include "BinaryEngine/Scene/Entity.h"
 
@@ -33,10 +36,10 @@ namespace BinaryEngine {
 	{
 		const float seconds{ dt.GetSeconds() };
 
-		auto view = m_Registry.view<SpriteComponent, AnimationComponent>();
-		view.each([seconds](SpriteComponent& sprite, AnimationComponent& anim) {
-			const AnimationClip* clip{ anim.CurrentClip };
-			if (!clip || clip->Frames.empty() || !anim.Playing || anim.Finished)
+		auto animatedSpriteView = m_Registry.view<SpriteComponent, AnimationComponent>();
+		animatedSpriteView.each([seconds](SpriteComponent& sprite, AnimationComponent& animation) {
+			const AnimationClip* clip{ animation.CurrentClip };
+			if (!clip || clip->Frames.empty() || !animation.Playing || animation.Finished)
 			{
 				return;
 			}
@@ -45,37 +48,68 @@ namespace BinaryEngine {
 
 			if (clip->FrameDuration > 0.0f)
 			{
-				anim.ElapsedTime += seconds;
-				while (anim.ElapsedTime >= clip->FrameDuration)
+				animation.ElapsedTime += seconds;
+				while (animation.ElapsedTime >= clip->FrameDuration)
 				{
-					anim.ElapsedTime -= clip->FrameDuration;
+					animation.ElapsedTime -= clip->FrameDuration;
 
-					if (anim.CurrentFrame + 1 < frameCount)
+					if (animation.CurrentFrame + 1 < frameCount)
 					{
-						anim.CurrentFrame++;
+						animation.CurrentFrame++;
 					}
 					else if (clip->Looping)
 					{
-						anim.CurrentFrame = 0;
+						animation.CurrentFrame = 0;
 					}
 					else
 					{
-						anim.CurrentFrame = frameCount - 1;
-						anim.Finished = true;
+						animation.CurrentFrame = frameCount - 1;
+						animation.Finished = true;
 						break;
 					}
 				}
 			}
 
-			const std::size_t safeFrame{ std::clamp(anim.CurrentFrame, std::size_t{ 0 }, frameCount - 1) };
+			const std::size_t safeFrame{ std::clamp(animation.CurrentFrame, std::size_t{ 0 }, frameCount - 1) };
 			sprite.Region = clip->Frames[safeFrame];
 			sprite.UseRegion = true;
-				  });
+								});
 	}
 
-	void Scene::OnRender()
+	void Scene::OnRender(Renderer& renderer, AssetManager& assetManager)
 	{
+		auto spriteView = GetAllEntitiesWith<TransformComponent, SpriteComponent>();
 
+		spriteView.each([&](auto& transform, auto& sprite) {
+			auto textureAsset = assetManager.GetAsset<Texture2D>(sprite.TextureHandle);
+
+			if (!textureAsset)
+			{
+				return;
+			}
+
+			if (sprite.UseRegion)
+			{
+				renderer.DrawSprite(*textureAsset, transform.transform, sprite.Region);
+			}
+			else
+			{
+				renderer.DrawSprite(*textureAsset, transform.transform);
+			}
+						});
+
+		auto textView = GetAllEntitiesWith<TransformComponent, TextComponent>();
+
+		textView.each([&](auto& transform, auto& text) {
+			auto fontAsset = assetManager.GetAsset<Font>(text.FontHandle);
+
+			if (!fontAsset)
+			{
+				return;
+			}
+
+			renderer.DrawText(*fontAsset, text.Text, transform.transform, text.Specification);
+					  });
 	}
 
 }

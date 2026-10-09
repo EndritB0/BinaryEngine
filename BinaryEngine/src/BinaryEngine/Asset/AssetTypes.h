@@ -26,6 +26,7 @@ namespace BinaryEngine {
 		None = 0,
 		Texture2D,
 		Shader,
+		Font,
 	};
 
 }

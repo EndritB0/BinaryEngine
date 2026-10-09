@@ -5,6 +5,7 @@
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Transform.h"
 #include "BinaryEngine/Renderer/AnimationClip.h"
+#include "BinaryEngine/Renderer/TextSpecification.h"
 #include "BinaryEngine/Renderer/TextureRegion.h"
 
 namespace BinaryEngine {
@@ -21,7 +22,7 @@ namespace BinaryEngine {
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
-		TransformComponent(const Transform& _transform) : transform(_transform) {}
+		TransformComponent(const Transform& initialTransform) : transform(initialTransform) {}
 	};
 
 	struct SpriteComponent {
@@ -33,6 +34,17 @@ namespace BinaryEngine {
 		SpriteComponent(const SpriteComponent&) = default;
 		SpriteComponent(AssetHandle handle) : TextureHandle(handle) {}
 		SpriteComponent(AssetHandle handle, const TextureRegion& region) : TextureHandle(handle), Region(region), UseRegion(true) {}
+	};
+
+	struct TextComponent {
+		AssetHandle FontHandle{};
+		std::string Text;
+		TextSpecification Specification{};
+
+		TextComponent() = default;
+		TextComponent(const TextComponent&) = default;
+		TextComponent(AssetHandle handle, const std::string& text) : FontHandle(handle), Text(text) {}
+		TextComponent(AssetHandle handle, const std::string& text, const TextSpecification& specification) : FontHandle(handle), Text(text), Specification(specification) {}
 	};
 
 	struct AnimationComponent {

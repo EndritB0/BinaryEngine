@@ -302,46 +302,52 @@ namespace BinaryEngine {
 		RecalculateViewProjection();
 	}
 
-	void OrthographicCamera::BuildProjectionMatrix()
+	Vector2f OrthographicCamera::CalculateViewSize(Vector2i windowSize) const
 	{
-		const float windowWidth{ static_cast<float>(m_WindowSize.x) };
-		const float windowHeight{ static_cast<float>(m_WindowSize.y) };
+		const float windowWidth{ static_cast<float>(windowSize.x) };
+		const float windowHeight{ static_cast<float>(windowSize.y) };
 
 		if (windowWidth <= 0.0f || windowHeight <= 0.0f)
 		{
-			return;
+			return m_DesignSize;
 		}
 
 		const float aspectRatio{ windowWidth / windowHeight };
 
-		Vector2f viewSize{ m_DesignSize };
 		switch (m_ViewportMode)
 		{
 			case CameraViewportMode::Expand:
 			{
-				viewSize = { windowWidth, windowHeight };
-				break;
+				return { windowWidth, windowHeight };
 			}
 
 			case CameraViewportMode::FixedHeight:
 			{
-				viewSize = { m_DesignSize.y * aspectRatio, m_DesignSize.y };
-				break;
+				return { m_DesignSize.y * aspectRatio, m_DesignSize.y };
 			}
 
 			case CameraViewportMode::FixedWidth:
 			{
-				viewSize = { m_DesignSize.x, m_DesignSize.x / aspectRatio };
-				break;
+				return { m_DesignSize.x, m_DesignSize.x / aspectRatio };
 			}
 
 			case CameraViewportMode::Letterbox:
 			case CameraViewportMode::Stretch:
+			default:
 			{
-				viewSize = m_DesignSize;
-				break;
+				return m_DesignSize;
 			}
 		}
+	}
+
+	void OrthographicCamera::BuildProjectionMatrix()
+	{
+		if (m_WindowSize.x <= 0 || m_WindowSize.y <= 0)
+		{
+			return;
+		}
+
+		Vector2f viewSize{ CalculateViewSize(m_WindowSize) };
 
 		viewSize /= m_Zoom;
 

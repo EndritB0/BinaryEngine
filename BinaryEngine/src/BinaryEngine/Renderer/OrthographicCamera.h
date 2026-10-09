@@ -17,7 +17,6 @@ namespace BinaryEngine {
 		void SetPosition(const Vector3f& position) { m_Position = position; RecalculateViewMatrix(); }
 		float GetRotation() const { return m_Rotation; }
 		void SetRotation(float rotation);
-
 		float GetZoom() const { return m_Zoom; }
 		void SetZoom(float zoom);
 		CameraViewportMode GetViewportMode() const { return m_ViewportMode; }
@@ -29,6 +28,7 @@ namespace BinaryEngine {
 		Vector2f GetDesignSize() const { return m_DesignSize; }
 		void SetDesignSize(Vector2f designSize);
 		Vector2f GetWorldViewSize() const { return m_WorldViewSize; }
+		Vector2f GetScreenViewSize() const { return CalculateViewSize(m_WindowSize); }
 		Vector2i GetWindowSize() const { return m_WindowSize; }
 		CameraViewport CalculateViewport(Vector2i targetSize) const;
 		Vector2f ScreenToWorld(Vector2f screenPosition) const;
@@ -42,6 +42,7 @@ namespace BinaryEngine {
 		const glm::mat4& GetInverseViewProjectionMatrix() const { return m_InverseViewProjectionMatrix; }
 
 	private:
+		Vector2f CalculateViewSize(Vector2i windowSize) const;
 		void BuildViewMatrix();
 		void BuildProjectionMatrix();
 		void RecalculateViewMatrix();

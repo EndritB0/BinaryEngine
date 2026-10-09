@@ -6,7 +6,9 @@
 
 namespace BinaryEngine {
 
+	class AssetManager;
 	class Entity;
+	class Renderer;
 
 	class Scene {
 	public:
@@ -17,7 +19,7 @@ namespace BinaryEngine {
 		void DestroyEntity(Entity entity);
 
 		void OnUpdate(TimeStep dt);
-		void OnRender();
+		void OnRender(Renderer& renderer, AssetManager& assetManager);
 
 		template<typename... Components>
 		auto GetAllEntitiesWith()

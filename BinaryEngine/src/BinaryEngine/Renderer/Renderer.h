@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
+#include <vector>
 #include <glm/fwd.hpp>
 
 #include "BinaryEngine/Core/Color.h"
@@ -8,11 +10,15 @@
 #include "BinaryEngine/Core/Transform.h"
 #include "BinaryEngine/Renderer/OrthographicCamera.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
+#include "BinaryEngine/Renderer/TextLayout.h"
+#include "BinaryEngine/Renderer/TextSpecification.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
 #include "BinaryEngine/Renderer/TextureRegion.h"
 #include "BinaryEngine/Window/Window.h"
 
 namespace BinaryEngine {
+
+	class Font;
 
 	class Renderer {
 	public:
@@ -28,6 +34,7 @@ namespace BinaryEngine {
 			std::uint32_t quadCount{ 0 };
 			std::uint32_t drawCalls{ 0 };
 			std::uint32_t culledSprites{ 0 };
+			std::uint32_t glyphCount{ 0 };
 			std::uint32_t quadCapacity{ 0 };
 			std::uint32_t maxQuads{ 0 };
 		};
@@ -51,18 +58,13 @@ namespace BinaryEngine {
 		void EndScene();
 		void DrawSprite(const Texture2D& texture, const Transform& transform);
 		void DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region);
-
-	private:
-		void SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax);
-		void InitialiseSpriteRenderer();
-		bool UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity);
-		bool EnsureQuadCapacity(std::uint32_t newCapacity);
-		void CalculateCullBounds(const glm::mat4& inverseViewProjection);
-		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
+		void DrawText(const Font& font, std::string_view text, const Transform& transform, const TextSpecification& specification = TextSpecification());
+		Vector2f MeasureText(const Font& font, std::string_view text, const TextSpecification& specification);
 
 	private:
 		struct SceneData {
 			glm::mat4 ViewProjectionMatrix{ 1.0f };
+			glm::mat4 ScreenViewProjectionMatrix{ 1.0f };
 		};
 
 		struct SpriteVertex {
@@ -103,8 +105,10 @@ namespace BinaryEngine {
 		struct SDL_GPUTransferBuffer* m_VertexTransferBuffer{ nullptr };
 
 		std::vector<SpriteDraw> m_Draws;
+		std::vector<SpriteDraw> m_ScreenDraws;
 		std::vector<SpriteVertex> m_VertexStaging;
 		std::vector<RenderBatch> m_Batches;
+		TextLayoutResult m_TextLayout;
 		std::uint32_t m_QuadCount{ 0 };
 		std::uint32_t m_QuadCapacity{ 0 };
 		bool m_SceneActive{ false };
@@ -126,6 +130,16 @@ namespace BinaryEngine {
 
 		Color m_ClearColor{ Color::Black };
 		RendererSpecification m_Specification;
+
+	private:
+		void SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax);
+		void InitialiseSpriteRenderer();
+		bool UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity);
+		bool EnsureQuadCapacity(std::uint32_t newCapacity);
+		void CalculateCullBounds(const glm::mat4& inverseViewProjection);
+		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
+		void AppendBatches(const std::vector<SpriteDraw>& draws, std::uint32_t drawableQuadCount, bool forceNewBatch);
+
 	};
 
 }
