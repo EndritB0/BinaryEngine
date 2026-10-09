@@ -46,12 +46,12 @@ namespace Sandbox {
 	{
 		switch (event.GetButton())
 		{
-		case BinaryEngine::Mouse::Button1:
-		{
-			m_StateManager.RequestClearStates();
-			m_StateManager.RequestPushState<MainMenuState>();
-			return true;
-		}
+			case BinaryEngine::Mouse::Button1:
+			{
+				m_StateManager.RequestClearStates();
+				m_StateManager.RequestPushState<MainMenuState>();
+				return true;
+			}
 		}
 		return false;
 	}
@@ -60,11 +60,11 @@ namespace Sandbox {
 	{
 		switch (event.GetKeyCode())
 		{
-		case BinaryEngine::Key::Q:
-		{
-			m_StateManager.RequestClearStates();
-			return true;
-		}
+			case BinaryEngine::Key::Q:
+			{
+				m_StateManager.RequestClearStates();
+				return true;
+			}
 		}
 
 		return false;

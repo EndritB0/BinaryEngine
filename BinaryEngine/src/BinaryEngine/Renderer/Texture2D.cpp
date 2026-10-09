@@ -15,8 +15,8 @@ namespace BinaryEngine {
 		}
 	}
 
-	Texture2D::Texture2D(Texture2D&& other)
-		: m_Device(other.m_Device), m_Texture(other.m_Texture), m_Size(other.m_Size)
+	Texture2D::Texture2D(Texture2D&& other) :
+		m_Device(other.m_Device), m_Texture(other.m_Texture), m_Size(other.m_Size)
 	{
 		other.m_Device = nullptr;
 		other.m_Texture = nullptr;
@@ -90,14 +90,14 @@ namespace BinaryEngine {
 		const std::uint32_t textureByteCount{ textureWidth * textureHeight * 4 };
 
 		SDL_GPUTextureCreateInfo textureInfo{
-			.type {SDL_GPU_TEXTURETYPE_2D},
-			.format {SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM},
-			.usage {SDL_GPU_TEXTUREUSAGE_SAMPLER},
-			.width {textureWidth},
-			.height {textureHeight},
-			.layer_count_or_depth {1},
-			.num_levels {1},
-			.sample_count {SDL_GPU_SAMPLECOUNT_1},
+			.type{ SDL_GPU_TEXTURETYPE_2D },
+			.format{ SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM },
+			.usage{ SDL_GPU_TEXTUREUSAGE_SAMPLER },
+			.width{ textureWidth },
+			.height{ textureHeight },
+			.layer_count_or_depth{ 1 },
+			.num_levels{ 1 },
+			.sample_count{ SDL_GPU_SAMPLECOUNT_1 },
 		};
 
 		SDL_GPUTexture* texture = SDL_CreateGPUTexture(device, &textureInfo);
@@ -108,8 +108,8 @@ namespace BinaryEngine {
 		}
 
 		SDL_GPUTransferBufferCreateInfo transferInfo{
-			.usage {SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD},
-			.size {textureByteCount},
+			.usage{ SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD },
+			.size{ textureByteCount },
 		};
 
 		SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
@@ -144,17 +144,17 @@ namespace BinaryEngine {
 		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
 
 		SDL_GPUTextureTransferInfo source{
-			.transfer_buffer {transferBuffer},
-			.offset {0},
-			.pixels_per_row {textureWidth},
-			.rows_per_layer {textureHeight},
+			.transfer_buffer{ transferBuffer },
+			.offset{ 0 },
+			.pixels_per_row{ textureWidth },
+			.rows_per_layer{ textureHeight },
 		};
 
 		SDL_GPUTextureRegion destination{
-			.texture {texture},
-			.w {textureWidth},
-			.h {textureHeight},
-			.d {1},
+			.texture{ texture },
+			.w{ textureWidth },
+			.h{ textureHeight },
+			.d{ 1 },
 		};
 
 		SDL_UploadToGPUTexture(copyPass, &source, &destination, false);

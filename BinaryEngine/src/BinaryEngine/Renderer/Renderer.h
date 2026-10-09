@@ -139,7 +139,6 @@ namespace BinaryEngine {
 		void CalculateCullBounds(const glm::mat4& inverseViewProjection);
 		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
 		void AppendBatches(const std::vector<SpriteDraw>& draws, std::uint32_t drawableQuadCount, bool forceNewBatch);
-
 	};
 
 }

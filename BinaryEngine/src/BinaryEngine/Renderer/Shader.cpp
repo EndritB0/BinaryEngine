@@ -29,8 +29,8 @@ namespace BinaryEngine {
 		}
 	}
 
-	Shader::Shader(Shader&& other)
-		: m_Device(other.m_Device), m_Shader(other.m_Shader)
+	Shader::Shader(Shader&& other) :
+		m_Device(other.m_Device), m_Shader(other.m_Shader)
 	{
 		other.m_Device = nullptr;
 		other.m_Shader = nullptr;
@@ -66,7 +66,10 @@ namespace BinaryEngine {
 
 		SDL_GPUShaderFormat supportedFormat = SDL_GetGPUShaderFormats(device);
 
-		struct FormatOption { SDL_GPUShaderFormat format; const char* extension; };
+		struct FormatOption {
+			SDL_GPUShaderFormat format;
+			const char* extension;
+		};
 		constexpr FormatOption s_SupportedShaderFormats[]{
 			{ SDL_GPU_SHADERFORMAT_SPIRV, ".spv" },
 			{ SDL_GPU_SHADERFORMAT_DXIL, ".dxil" },
@@ -112,15 +115,15 @@ namespace BinaryEngine {
 		}
 
 		SDL_GPUShaderCreateInfo info{
-			.code_size {code.size()},
-			.code {code.data()},
-			.entrypoint {"main"},
-			.format {format},
-			.stage {ConvertShaderStage(shaderSpecification.stage)},
-			.num_samplers {shaderSpecification.samplerCount},
-			.num_storage_textures {0},
-			.num_storage_buffers {0},
-			.num_uniform_buffers {shaderSpecification.uniformBufferCount},
+			.code_size{ code.size() },
+			.code{ code.data() },
+			.entrypoint{ "main" },
+			.format{ format },
+			.stage{ ConvertShaderStage(shaderSpecification.stage) },
+			.num_samplers{ shaderSpecification.samplerCount },
+			.num_storage_textures{ 0 },
+			.num_storage_buffers{ 0 },
+			.num_uniform_buffers{ shaderSpecification.uniformBufferCount },
 		};
 
 		SDL_GPUShader* shader = SDL_CreateGPUShader(device, &info);

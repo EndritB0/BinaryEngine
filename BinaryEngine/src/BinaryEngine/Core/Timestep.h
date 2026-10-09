@@ -6,7 +6,8 @@ namespace BinaryEngine {
 
 	class TimeStep {
 	public:
-		TimeStep(std::uint64_t time = 0) : m_Time(time) {}
+		TimeStep(std::uint64_t time = 0) :
+			m_Time(time) {}
 
 		float GetSeconds() const { return m_Time / 1000000000.f; }
 		float GetMilliseconds() const { return m_Time / 1000000.f; }

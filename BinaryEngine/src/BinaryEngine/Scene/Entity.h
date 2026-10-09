@@ -9,7 +9,8 @@ namespace BinaryEngine {
 	class Entity {
 	public:
 		Entity() = default;
-		Entity(entt::entity handle, Scene* scene) : m_Handle(handle), m_Scene(scene) {}
+		Entity(entt::entity handle, Scene* scene) :
+			m_Handle(handle), m_Scene(scene) {}
 		Entity(const Entity& other) = default;
 
 		template<typename T, typename... Args>
@@ -68,14 +69,14 @@ namespace BinaryEngine {
 
 }
 
-template <>
+template<>
 struct fmt::formatter<entt::entity> {
 	constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin())
 	{
 		return ctx.begin();
 	}
 
-	template <typename FormatContext>
+	template<typename FormatContext>
 	auto format(const entt::entity& entity, FormatContext& ctx) const -> decltype(ctx.out())
 	{
 		if (entity == entt::null)

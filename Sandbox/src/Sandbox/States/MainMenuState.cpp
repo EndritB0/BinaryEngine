@@ -45,19 +45,19 @@ namespace Sandbox {
 		allyTransform.transform.Scale = { 2.f, 1.f, 1.f };
 
 		BinaryEngine::TextSpecification nameTagSpec{
-			.Size { 16.0f },
-			.FillColor {BinaryEngine::Color::White},
-			.Space {BinaryEngine::TextSpace::World},
-			.Alignment {BinaryEngine::TextAlignment::Center},
+			.Size{ 16.0f },
+			.FillColor{ BinaryEngine::Color::White },
+			.Space{ BinaryEngine::TextSpace::World },
+			.Alignment{ BinaryEngine::TextAlignment::Center },
 		};
 		m_NameTagEntity = m_ActiveScene.CreateEntity("PlayerNameTag");
 		m_NameTagEntity.AddComponent<BinaryEngine::TextComponent>(m_FontHandle, "Player", nameTagSpec);
 
 		BinaryEngine::TextSpecification hudSpec{
-			.Size { 16.0f },
-			.FillColor {BinaryEngine::Color::White},
-			.Space {BinaryEngine::TextSpace::Screen},
-			.Alignment {BinaryEngine::TextAlignment::Left},
+			.Size{ 16.0f },
+			.FillColor{ BinaryEngine::Color::White },
+			.Space{ BinaryEngine::TextSpace::Screen },
+			.Alignment{ BinaryEngine::TextAlignment::Left },
 		};
 		BinaryEngine::Entity hudEntity = m_ActiveScene.CreateEntity("Hud");
 		auto& hudTransform = hudEntity.GetComponent<BinaryEngine::TransformComponent>();
@@ -159,7 +159,7 @@ namespace Sandbox {
 				return true;
 			}
 
-			default:return false;
+			default: return false;
 		}
 	}
 

@@ -3,7 +3,6 @@
 
 namespace BinaryEngine {
 
-
 	BinaryEngine::Timer::~Timer()
 	{
 		auto end = std::chrono::high_resolution_clock::now();

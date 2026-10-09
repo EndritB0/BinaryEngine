@@ -60,8 +60,8 @@ namespace BinaryEngine {
 
 	OrthographicCamera::OrthographicCamera(Vector2i windowSize, const CameraSpecification& specification) :
 		OrthographicCamera(windowSize,
-						   specification.DesignSize.value_or(Vector2f{ static_cast<float>(windowSize.x), static_cast<float>(windowSize.y) }),
-						   specification.ViewportMode)
+			specification.DesignSize.value_or(Vector2f{ static_cast<float>(windowSize.x), static_cast<float>(windowSize.y) }),
+			specification.ViewportMode)
 	{
 		m_SnapMode = specification.SnapMode;
 		CheckSnappingUnsupported();
@@ -80,7 +80,7 @@ namespace BinaryEngine {
 		else
 		{
 			CORE_WARN("[OrthographicCamera] Design size must be positive on both axes, received {}x{}, falling back to {}x{}",
-					  designSize.x, designSize.y, m_DesignSize.x, m_DesignSize.y);
+				designSize.x, designSize.y, m_DesignSize.x, m_DesignSize.y);
 		}
 
 		BuildProjectionMatrix();
@@ -153,7 +153,7 @@ namespace BinaryEngine {
 		if (!IsPositiveSize(designSize))
 		{
 			CORE_WARN("[OrthographicCamera] Design size must be positive on both axes, received {}x{}, keeping {}x{}",
-					  designSize.x, designSize.y, m_DesignSize.x, m_DesignSize.y);
+				designSize.x, designSize.y, m_DesignSize.x, m_DesignSize.y);
 			return;
 		}
 

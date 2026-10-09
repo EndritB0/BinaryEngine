@@ -14,7 +14,11 @@ namespace BinaryEngine {
 
 		void OnResize(Vector2i windowSize);
 		const Vector3f& GetPosition() const { return m_Position; }
-		void SetPosition(const Vector3f& position) { m_Position = position; RecalculateViewMatrix(); }
+		void SetPosition(const Vector3f& position)
+		{
+			m_Position = position;
+			RecalculateViewMatrix();
+		}
 		float GetRotation() const { return m_Rotation; }
 		void SetRotation(float rotation);
 		float GetZoom() const { return m_Zoom; }
@@ -69,7 +73,6 @@ namespace BinaryEngine {
 		CameraSnapMode m_SnapMode{ CameraSnapMode::None };
 		float m_PixelsPerWorldUnit{ 1.0f };
 		bool m_SnapRotationWarned{ false };
-
 	};
 
 }

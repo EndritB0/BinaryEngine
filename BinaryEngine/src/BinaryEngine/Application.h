@@ -61,7 +61,6 @@ namespace BinaryEngine {
 		std::optional<StateManager> m_StateManager;
 		std::uint64_t m_LastFrameTime{};
 		bool m_IsRunning{ false };
-
 	};
 
 }

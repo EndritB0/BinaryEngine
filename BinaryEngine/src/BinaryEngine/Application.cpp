@@ -84,7 +84,6 @@ namespace BinaryEngine {
 		{
 			m_StateManager->ProcessEvent(event);
 		}
-
 	}
 
 	void Application::StopApplication()

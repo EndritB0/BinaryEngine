@@ -21,6 +21,7 @@ namespace BinaryEngine {
 		virtual void OnEvent(Event& event) = 0;
 		virtual void OnUpdate(TimeStep dt) = 0;
 		virtual void OnRender() = 0;
+
 	protected:
 		StateManager& m_StateManager;
 		Context m_Context;

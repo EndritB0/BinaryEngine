@@ -73,7 +73,7 @@ namespace BinaryEngine {
 			const std::size_t safeFrame{ std::clamp(animation.CurrentFrame, std::size_t{ 0 }, frameCount - 1) };
 			sprite.Region = clip->Frames[safeFrame];
 			sprite.UseRegion = true;
-								});
+		});
 	}
 
 	void Scene::OnRender(Renderer& renderer, AssetManager& assetManager)
@@ -96,7 +96,7 @@ namespace BinaryEngine {
 			{
 				renderer.DrawSprite(*textureAsset, transform.transform);
 			}
-						});
+		});
 
 		auto textView = GetAllEntitiesWith<TransformComponent, TextComponent>();
 
@@ -109,7 +109,7 @@ namespace BinaryEngine {
 			}
 
 			renderer.DrawText(*fontAsset, text.Text, transform.transform, text.Specification);
-					  });
+		});
 	}
 
 }

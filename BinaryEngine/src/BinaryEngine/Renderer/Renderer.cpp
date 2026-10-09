@@ -70,15 +70,14 @@ namespace {
 			CORE_WARN("[Renderer] initialQuadCapacity ({}) exceeds maxQuadCapacity ({}), clamping", specification.initialQuadCapacity, specification.maxQuadCapacity);
 			specification.initialQuadCapacity = specification.maxQuadCapacity;
 		}
-
 	}
 
 }
 
 namespace BinaryEngine {
 
-	Renderer::Renderer(const Window& window, const RendererSpecification& specification)
-		: m_Specification(specification)
+	Renderer::Renderer(const Window& window, const RendererSpecification& specification) :
+		m_Specification(specification)
 	{
 		m_Window = static_cast<SDL_Window*>(window.GetNativeWindow());
 
@@ -224,10 +223,10 @@ namespace BinaryEngine {
 			};
 
 			SDL_GPUColorTargetInfo colorTarget{
-				.texture {m_SwapchainTexture},
-				.clear_color {clearColor},
-				.load_op {SDL_GPU_LOADOP_CLEAR},
-				.store_op {SDL_GPU_STOREOP_STORE},
+				.texture{ m_SwapchainTexture },
+				.clear_color{ clearColor },
+				.load_op{ SDL_GPU_LOADOP_CLEAR },
+				.store_op{ SDL_GPU_STOREOP_STORE },
 			};
 
 			SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr) };
@@ -270,7 +269,6 @@ namespace BinaryEngine {
 		m_Statistics.drawCalls = 0;
 		m_Statistics.culledSprites = 0;
 		m_Statistics.glyphCount = 0;
-
 
 		if (m_HasCustomViewport)
 		{
@@ -340,14 +338,14 @@ namespace BinaryEngine {
 				SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(m_CommandBuffer) };
 
 				SDL_GPUTransferBufferLocation vertexSource{
-					.transfer_buffer {m_VertexTransferBuffer},
-					.offset {0},
+					.transfer_buffer{ m_VertexTransferBuffer },
+					.offset{ 0 },
 				};
 
 				SDL_GPUBufferRegion vertexRegion{
-					.buffer {m_VertexBuffer},
-					.offset {0},
-					.size {vertexBytes},
+					.buffer{ m_VertexBuffer },
+					.offset{ 0 },
+					.size{ vertexBytes },
 				};
 
 				SDL_UploadToGPUBuffer(copyPass, &vertexSource, &vertexRegion, true);
@@ -370,8 +368,8 @@ namespace BinaryEngine {
 		SDL_GPUColorTargetInfo colorTarget{
 			.texture = m_SwapchainTexture,
 			.clear_color = clearColor,
-			.load_op {m_FrameCleared ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR},
-			.store_op {SDL_GPU_STOREOP_STORE},
+			.load_op{ m_FrameCleared ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR },
+			.store_op{ SDL_GPU_STOREOP_STORE },
 		};
 
 		SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr) };
@@ -393,14 +391,14 @@ namespace BinaryEngine {
 				SDL_BindGPUGraphicsPipeline(renderPass, m_Pipeline);
 
 				SDL_GPUBufferBinding vertexBinding{
-					.buffer {m_VertexBuffer},
-					.offset {0},
+					.buffer{ m_VertexBuffer },
+					.offset{ 0 },
 				};
 				SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
 
 				SDL_GPUBufferBinding indexBinding{
-					.buffer {m_IndexBuffer},
-					.offset {0},
+					.buffer{ m_IndexBuffer },
+					.offset{ 0 },
 				};
 				SDL_BindGPUIndexBuffer(renderPass, &indexBinding, SDL_GPU_INDEXELEMENTSIZE_32BIT);
 
@@ -410,22 +408,22 @@ namespace BinaryEngine {
 						const RenderBatch& batch{ m_Batches[batchIndex] };
 
 						SDL_GPUTextureSamplerBinding textureBinding{
-							.texture {batch.texture},
-							.sampler {m_Sampler},
+							.texture{ batch.texture },
+							.sampler{ m_Sampler },
 						};
 						SDL_BindGPUFragmentSamplers(renderPass, 0, &textureBinding, 1);
 						SDL_DrawGPUIndexedPrimitives(renderPass, batch.quadCount * s_IndicesPerQuad, 1, batch.firstQuad * s_IndicesPerQuad, 0, 0);
 					}
-					};
+				};
 
 				SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ViewProjectionMatrix,
-											 static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
+					static_cast<std::uint32_t>(sizeof(m_SceneData.ViewProjectionMatrix)));
 				drawBatchRange(0, worldBatchCount);
 
 				if (worldBatchCount < m_Batches.size())
 				{
 					SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &m_SceneData.ScreenViewProjectionMatrix,
-												 static_cast<std::uint32_t>(sizeof(m_SceneData.ScreenViewProjectionMatrix)));
+						static_cast<std::uint32_t>(sizeof(m_SceneData.ScreenViewProjectionMatrix)));
 					drawBatchRange(worldBatchCount, m_Batches.size());
 				}
 			}
@@ -487,9 +485,9 @@ namespace BinaryEngine {
 
 		constexpr glm::vec3 localVertices[4]{
 			{ -0.5f, -0.5f, 0.0f },
-			{  0.5f, -0.5f, 0.0f },
-			{  0.5f,  0.5f, 0.0f },
-			{ -0.5f,  0.5f, 0.0f },
+			{ 0.5f, -0.5f, 0.0f },
+			{ 0.5f, 0.5f, 0.0f },
+			{ -0.5f, 0.5f, 0.0f },
 		};
 
 		const glm::vec2 quadTextureCoordinates[4]{
@@ -652,63 +650,63 @@ namespace BinaryEngine {
 		const std::uint32_t vertexSize{ static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
 
 		SDL_GPUVertexBufferDescription vertexBufferDescription{
-			.slot {0},
-			.pitch {vertexSize},
-			.input_rate {SDL_GPU_VERTEXINPUTRATE_VERTEX},
-			.instance_step_rate {0},
+			.slot{ 0 },
+			.pitch{ vertexSize },
+			.input_rate{ SDL_GPU_VERTEXINPUTRATE_VERTEX },
+			.instance_step_rate{ 0 },
 		};
 
 		SDL_GPUVertexAttribute vertexAttributes[3]{
 			{
-				.location {0},
-				.buffer_slot {0},
-				.format {SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3},
-				.offset {0},
+				.location{ 0 },
+				.buffer_slot{ 0 },
+				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3 },
+				.offset{ 0 },
 			},
 
 			{
-				.location {1},
-				.buffer_slot {0},
-				.format {SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2},
-				.offset {static_cast<std::uint32_t>(sizeof(float) * 3)},
+				.location{ 1 },
+				.buffer_slot{ 0 },
+				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2 },
+				.offset{ static_cast<std::uint32_t>(sizeof(float) * 3) },
 			},
 
 			{
-				.location {2},
-				.buffer_slot {0},
-				.format {SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4},
-				.offset {static_cast<std::uint32_t>(sizeof(float) * 5)},
+				.location{ 2 },
+				.buffer_slot{ 0 },
+				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4 },
+				.offset{ static_cast<std::uint32_t>(sizeof(float) * 5) },
 			},
 		};
 
 		SDL_GPUColorTargetBlendState blendState{
-			.src_color_blendfactor {SDL_GPU_BLENDFACTOR_SRC_ALPHA},
-			.dst_color_blendfactor {SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA},
-			.color_blend_op {SDL_GPU_BLENDOP_ADD},
-			.src_alpha_blendfactor {SDL_GPU_BLENDFACTOR_ONE},
-			.dst_alpha_blendfactor {SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA},
-			.alpha_blend_op {SDL_GPU_BLENDOP_ADD},
-			.enable_blend {true},
+			.src_color_blendfactor{ SDL_GPU_BLENDFACTOR_SRC_ALPHA },
+			.dst_color_blendfactor{ SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA },
+			.color_blend_op{ SDL_GPU_BLENDOP_ADD },
+			.src_alpha_blendfactor{ SDL_GPU_BLENDFACTOR_ONE },
+			.dst_alpha_blendfactor{ SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA },
+			.alpha_blend_op{ SDL_GPU_BLENDOP_ADD },
+			.enable_blend{ true },
 		};
 
 		SDL_GPUColorTargetDescription colorTargetDescription{
-			.format {SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window)},
-			.blend_state {blendState},
+			.format{ SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window) },
+			.blend_state{ blendState },
 		};
 
 		SDL_GPUGraphicsPipelineCreateInfo pipelineInfo{
-			.vertex_shader {static_cast<SDL_GPUShader*>(vertexShader.GetNativeShader())},
-			.fragment_shader {static_cast<SDL_GPUShader*>(fragmentShader.GetNativeShader())},
-			.vertex_input_state {
-				.vertex_buffer_descriptions {&vertexBufferDescription},
-				.num_vertex_buffers {1},
-				.vertex_attributes {vertexAttributes},
-				.num_vertex_attributes {3},
+			.vertex_shader{ static_cast<SDL_GPUShader*>(vertexShader.GetNativeShader()) },
+			.fragment_shader{ static_cast<SDL_GPUShader*>(fragmentShader.GetNativeShader()) },
+			.vertex_input_state{
+				.vertex_buffer_descriptions{ &vertexBufferDescription },
+				.num_vertex_buffers{ 1 },
+				.vertex_attributes{ vertexAttributes },
+				.num_vertex_attributes{ 3 },
 			},
-			.primitive_type {SDL_GPU_PRIMITIVETYPE_TRIANGLELIST},
-			.target_info {
-				.color_target_descriptions {&colorTargetDescription},
-				.num_color_targets {1},
+			.primitive_type{ SDL_GPU_PRIMITIVETYPE_TRIANGLELIST },
+			.target_info{
+				.color_target_descriptions{ &colorTargetDescription },
+				.num_color_targets{ 1 },
 			},
 		};
 
@@ -724,12 +722,12 @@ namespace BinaryEngine {
 		const SDL_GPUSamplerMipmapMode mipmapMode{ useLinearFiltering ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST };
 
 		SDL_GPUSamplerCreateInfo samplerInfo{
-			.min_filter {filter},
-			.mag_filter {filter},
-			.mipmap_mode {mipmapMode},
-			.address_mode_u {SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE},
-			.address_mode_v {SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE},
-			.address_mode_w {SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE},
+			.min_filter{ filter },
+			.mag_filter{ filter },
+			.mipmap_mode{ mipmapMode },
+			.address_mode_u{ SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE },
+			.address_mode_v{ SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE },
+			.address_mode_w{ SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE },
 		};
 
 		m_Sampler = SDL_CreateGPUSampler(m_Device, &samplerInfo);
@@ -770,8 +768,8 @@ namespace BinaryEngine {
 		}
 
 		SDL_GPUTransferBufferCreateInfo indexTransferInfo{
-			.usage {SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD},
-			.size {indexBytes},
+			.usage{ SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD },
+			.size{ indexBytes },
 		};
 		SDL_GPUTransferBuffer* indexTransfer{ SDL_CreateGPUTransferBuffer(m_Device, &indexTransferInfo) };
 		if (!indexTransfer)
@@ -808,14 +806,14 @@ namespace BinaryEngine {
 		}
 
 		SDL_GPUTransferBufferLocation indexSource{
-			.transfer_buffer {indexTransfer},
-			.offset {0},
+			.transfer_buffer{ indexTransfer },
+			.offset{ 0 },
 		};
 
 		SDL_GPUBufferRegion indexRegion{
-			.buffer {target},
-			.offset {0},
-			.size {indexBytes},
+			.buffer{ target },
+			.offset{ 0 },
+			.size{ indexBytes },
 		};
 
 		SDL_UploadToGPUBuffer(copyPass, &indexSource, &indexRegion, false);
@@ -837,20 +835,20 @@ namespace BinaryEngine {
 		const std::uint32_t indexBytes{ newCapacity * s_IndicesPerQuad * static_cast<std::uint32_t>(sizeof(std::uint32_t)) };
 
 		SDL_GPUBufferCreateInfo vertexBufferInfo{
-			.usage {SDL_GPU_BUFFERUSAGE_VERTEX},
-			.size {vertexBytes},
+			.usage{ SDL_GPU_BUFFERUSAGE_VERTEX },
+			.size{ vertexBytes },
 		};
 		SDL_GPUBuffer* vertexBuffer{ SDL_CreateGPUBuffer(m_Device, &vertexBufferInfo) };
 
 		SDL_GPUBufferCreateInfo indexBufferInfo{
-			.usage {SDL_GPU_BUFFERUSAGE_INDEX},
-			.size {indexBytes},
+			.usage{ SDL_GPU_BUFFERUSAGE_INDEX },
+			.size{ indexBytes },
 		};
 		SDL_GPUBuffer* indexBuffer{ SDL_CreateGPUBuffer(m_Device, &indexBufferInfo) };
 
 		SDL_GPUTransferBufferCreateInfo vertexTransferInfo{
-			.usage {SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD},
-			.size {vertexBytes},
+			.usage{ SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD },
+			.size{ vertexBytes },
 		};
 		SDL_GPUTransferBuffer* vertexTransfer{ SDL_CreateGPUTransferBuffer(m_Device, &vertexTransferInfo) };
 
@@ -907,9 +905,9 @@ namespace BinaryEngine {
 	{
 		constexpr glm::vec4 ndcCorners[4]{
 			{ -1.0f, -1.0f, 0.0f, 1.0f },
-			{  1.0f, -1.0f, 0.0f, 1.0f },
-			{  1.0f,  1.0f, 0.0f, 1.0f },
-			{ -1.0f,  1.0f, 0.0f, 1.0f },
+			{ 1.0f, -1.0f, 0.0f, 1.0f },
+			{ 1.0f, 1.0f, 0.0f, 1.0f },
+			{ -1.0f, 1.0f, 0.0f, 1.0f },
 		};
 
 		glm::vec4 firstCorner{ inverseViewProjection * ndcCorners[0] };

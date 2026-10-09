@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BinaryEngine/State/State.h"
+#include <BinaryEngine/State/State.h>
 #include <BinaryEngine/Event/EventTypes.h>
 #include <BinaryEngine/Renderer/AnimationClip.h>
 #include <BinaryEngine/Scene/Entity.h>

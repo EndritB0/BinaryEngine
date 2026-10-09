@@ -21,7 +21,8 @@ namespace BinaryEngine {
 
 	class WindowResizedEvent : public Event {
 	public:
-		WindowResizedEvent(Vector2i size) : m_Size(size) {}
+		WindowResizedEvent(Vector2i size) :
+			m_Size(size) {}
 
 		const Vector2i& GetSize() const { return m_Size; }
 		int GetWidth() const { return m_Size.x; }
@@ -33,6 +34,7 @@ namespace BinaryEngine {
 		{
 			return std::format("{}: {}x{}", GetName(), m_Size.x, m_Size.y);
 		}
+
 	private:
 		Vector2i m_Size{};
 	};
@@ -89,7 +91,8 @@ namespace BinaryEngine {
 		KeyModifier GetModifiers() const { return m_Modifiers; }
 
 	protected:
-		KeyEvent(KeyCode key, ScanCode scan, KeyModifier modifiers) : m_KeyCode(key), m_ScanCode(scan), m_Modifiers(modifiers) {}
+		KeyEvent(KeyCode key, ScanCode scan, KeyModifier modifiers) :
+			m_KeyCode(key), m_ScanCode(scan), m_Modifiers(modifiers) {}
 
 	protected:
 		KeyCode m_KeyCode;
@@ -99,7 +102,8 @@ namespace BinaryEngine {
 
 	class KeyPressedEvent : public KeyEvent {
 	public:
-		KeyPressedEvent(KeyCode key, ScanCode scan, KeyModifier modifiers, bool repeat) :KeyEvent(key, scan, modifiers), m_Repeat(repeat) {}
+		KeyPressedEvent(KeyCode key, ScanCode scan, KeyModifier modifiers, bool repeat) :
+			KeyEvent(key, scan, modifiers), m_Repeat(repeat) {}
 
 		bool IsRepeat() const { return m_Repeat; }
 		static EventType GetStaticType() { return EventType::KeyPressed; }
@@ -116,7 +120,8 @@ namespace BinaryEngine {
 
 	class KeyReleasedEvent : public KeyEvent {
 	public:
-		KeyReleasedEvent(KeyCode key, ScanCode scan, KeyModifier modifiers) : KeyEvent(key, scan, modifiers) {}
+		KeyReleasedEvent(KeyCode key, ScanCode scan, KeyModifier modifiers) :
+			KeyEvent(key, scan, modifiers) {}
 
 		static EventType GetStaticType() { return EventType::KeyReleased; }
 		virtual EventType GetEventType() const override { return GetStaticType(); }
@@ -179,7 +184,8 @@ namespace BinaryEngine {
 
 	class MouseMovedEvent : public Event {
 	public:
-		MouseMovedEvent(Vector2f position, Vector2f delta) : m_Position(position), m_Delta(delta) {}
+		MouseMovedEvent(Vector2f position, Vector2f delta) :
+			m_Position(position), m_Delta(delta) {}
 
 		Vector2f GetPosition() const { return m_Position; }
 		float GetX() const { return m_Position.x; }
@@ -202,7 +208,8 @@ namespace BinaryEngine {
 
 	class MouseScrolledEvent : public Event {
 	public:
-		MouseScrolledEvent(Vector2f offset) : m_Offset(offset) {}
+		MouseScrolledEvent(Vector2f offset) :
+			m_Offset(offset) {}
 
 		Vector2f GetOffset() const { return m_Offset; }
 		float GetOffsetX() const { return m_Offset.x; }
@@ -221,7 +228,8 @@ namespace BinaryEngine {
 
 	class TextInputEvent : public Event {
 	public:
-		TextInputEvent(const std::string& text) : m_Text(text) {}
+		TextInputEvent(const std::string& text) :
+			m_Text(text) {}
 
 		const std::string& GetText() const { return m_Text; }
 		static EventType GetStaticType() { return EventType::TextInput; }

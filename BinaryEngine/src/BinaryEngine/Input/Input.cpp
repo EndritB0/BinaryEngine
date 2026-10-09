@@ -31,9 +31,7 @@ namespace BinaryEngine {
 	{
 		SDL_Keymod modState{ SDL_GetModState() };
 
-		KeyModifier ignoredMods = BinaryEngine::Modifier::NumLock |
-			BinaryEngine::Modifier::CapsLock |
-			BinaryEngine::Modifier::ScrollLock;
+		KeyModifier ignoredMods = BinaryEngine::Modifier::NumLock | BinaryEngine::Modifier::CapsLock | BinaryEngine::Modifier::ScrollLock;
 
 		KeyModifier cleanedModState{ static_cast<KeyModifier>(modState & ~ignoredMods) };
 		return cleanedModState == modifier;

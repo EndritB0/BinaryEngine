@@ -11,8 +11,8 @@ namespace BinaryEngine {
 		std::uint8_t alpha{ 0xFF };
 
 		constexpr Color() = default;
-		constexpr Color(std::uint8_t _red, std::uint8_t _green, std::uint8_t _blue, std::uint8_t _alpha = 0xFF)
-			: red(_red), green(_green), blue(_blue), alpha(_alpha)
+		constexpr Color(std::uint8_t _red, std::uint8_t _green, std::uint8_t _blue, std::uint8_t _alpha = 0xFF) :
+			red(_red), green(_green), blue(_blue), alpha(_alpha)
 		{
 		}
 

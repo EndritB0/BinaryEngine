@@ -1,0 +1,86 @@
+---
+# Layout rules for BinaryEngine. Naming, ownership and other conventions that a
+# formatter cannot check are not covered here.
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++20
+
+# Line breaking: respect the author's own breaks rather than reflowing to a width.
+ColumnLimit: 0
+
+# Indentation: tabs, everything inside a namespace is indented, access
+# specifiers sit at the class keyword's level.
+UseTab: ForContinuationAndIndentation
+TabWidth: 4
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: All
+IndentCaseLabels: true
+IndentCaseBlocks: false
+IndentPPDirectives: None
+LambdaBodyIndentation: Signature
+
+# Braces: Allman for functions and control statements, attached for
+# namespaces, classes, structs and enums. Every control statement body is braced.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: false
+  AfterControlStatement: Always
+  AfterEnum: false
+  AfterExternBlock: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+InsertBraces: true
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortLambdasOnASingleLine: All
+AllowShortEnumsOnASingleLine: false
+
+# Spacing and alignment.
+PointerAlignment: Left
+DerivePointerAlignment: false
+ReferenceAlignment: Pointer
+Cpp11BracedListStyle: false
+SpaceBeforeCpp11BracedList: false
+SpaceAfterTemplateKeyword: false
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+AlignAfterOpenBracket: DontAlign
+AlignOperands: DontAlign
+AlignTrailingComments:
+  Kind: Leave
+BreakBeforeBinaryOperators: NonAssignment
+BreakConstructorInitializers: AfterColon
+PackConstructorInitializers: BinPack
+BreakTemplateDeclarations: Yes
+RequiresClausePosition: OwnLine
+IndentRequiresClause: true
+FixNamespaceComments: false
+MaxEmptyLinesToKeep: 1
+EmptyLineBeforeAccessModifier: LogicalBlock
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: true
+  AtStartOfFile: true
+InsertNewlineAtEOF: false
+
+# Includes are never reordered: their order is written by hand, following the
+# project's include rules (pch.h first, the file's own header, then the rest).
+SortIncludes: Never

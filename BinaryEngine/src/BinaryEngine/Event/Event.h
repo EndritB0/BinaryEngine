@@ -8,9 +8,19 @@ namespace BinaryEngine {
 
 	enum class EventType {
 		None = 0,
-		WindowClosed, WindowResized, WindowFocusedGained, WindowFocusedLost, WindowMinimized, WindowMaximized, WindowRestored,
-		KeyPressed, KeyReleased,
-		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled,
+		WindowClosed,
+		WindowResized,
+		WindowFocusedGained,
+		WindowFocusedLost,
+		WindowMinimized,
+		WindowMaximized,
+		WindowRestored,
+		KeyPressed,
+		KeyReleased,
+		MouseButtonPressed,
+		MouseButtonReleased,
+		MouseMoved,
+		MouseScrolled,
 		TextInput,
 	};
 
@@ -27,17 +37,18 @@ namespace BinaryEngine {
 		virtual EventType GetEventType() const = 0;
 		virtual const char* GetName() const = 0;
 		virtual std::string ToString() const { return GetName(); }
+
 	public:
 		bool handled{ false };
 	};
-
 
 	class EventDispatcher {
 		template<typename T>
 		using EventFunction = std::function<bool(T&)>;
 
 	public:
-		EventDispatcher(Event& event) : m_Event(event) {}
+		EventDispatcher(Event& event) :
+			m_Event(event) {}
 
 		template<typename T>
 			requires(std::is_base_of_v<Event, T>)

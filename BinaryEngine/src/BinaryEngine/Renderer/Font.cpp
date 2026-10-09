@@ -82,7 +82,7 @@ namespace BinaryEngine {
 
 		std::vector<stbtt_packedchar> packedCharacters(specification.CodepointCount);
 
-		const int packSucceeded{ stbtt_PackFontRange(&packContext, fontData.data(), 0, specification.PixelSize,static_cast<int>(specification.FirstCodepoint), static_cast<int>(specification.CodepointCount), packedCharacters.data()) };
+		const int packSucceeded{ stbtt_PackFontRange(&packContext, fontData.data(), 0, specification.PixelSize, static_cast<int>(specification.FirstCodepoint), static_cast<int>(specification.CodepointCount), packedCharacters.data()) };
 
 		stbtt_PackEnd(&packContext);
 

@@ -13,16 +13,19 @@ namespace BinaryEngine {
 	struct TagComponent {
 		std::string Tag;
 
-		TagComponent() : Tag(std::string()) {}
-		TagComponent(const std::string& tag) : Tag(tag) {}
+		TagComponent() :
+			Tag(std::string()) {}
+		TagComponent(const std::string& tag) :
+			Tag(tag) {}
 	};
 
 	struct TransformComponent {
-		Transform transform{ {0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, {1.f, 1.f, 1.f} };
+		Transform transform{ { 0.f, 0.f, 0.f }, { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f } };
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
-		TransformComponent(const Transform& initialTransform) : transform(initialTransform) {}
+		TransformComponent(const Transform& initialTransform) :
+			transform(initialTransform) {}
 	};
 
 	struct SpriteComponent {
@@ -32,8 +35,10 @@ namespace BinaryEngine {
 
 		SpriteComponent() = default;
 		SpriteComponent(const SpriteComponent&) = default;
-		SpriteComponent(AssetHandle handle) : TextureHandle(handle) {}
-		SpriteComponent(AssetHandle handle, const TextureRegion& region) : TextureHandle(handle), Region(region), UseRegion(true) {}
+		SpriteComponent(AssetHandle handle) :
+			TextureHandle(handle) {}
+		SpriteComponent(AssetHandle handle, const TextureRegion& region) :
+			TextureHandle(handle), Region(region), UseRegion(true) {}
 	};
 
 	struct TextComponent {
@@ -43,8 +48,10 @@ namespace BinaryEngine {
 
 		TextComponent() = default;
 		TextComponent(const TextComponent&) = default;
-		TextComponent(AssetHandle handle, const std::string& text) : FontHandle(handle), Text(text) {}
-		TextComponent(AssetHandle handle, const std::string& text, const TextSpecification& specification) : FontHandle(handle), Text(text), Specification(specification) {}
+		TextComponent(AssetHandle handle, const std::string& text) :
+			FontHandle(handle), Text(text) {}
+		TextComponent(AssetHandle handle, const std::string& text, const TextSpecification& specification) :
+			FontHandle(handle), Text(text), Specification(specification) {}
 	};
 
 	struct AnimationComponent {
@@ -56,7 +63,8 @@ namespace BinaryEngine {
 
 		AnimationComponent() = default;
 		AnimationComponent(const AnimationComponent&) = default;
-		AnimationComponent(const AnimationClip* clip) : CurrentClip(clip) {}
+		AnimationComponent(const AnimationClip* clip) :
+			CurrentClip(clip) {}
 
 		void Play(const AnimationClip* clip)
 		{

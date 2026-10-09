@@ -73,7 +73,6 @@ namespace BinaryEngine {
 
 			CORE_ERROR("[AssetManager] Asset ID : {} Asset Type Mismatch", static_cast<std::uint64_t>(handle));
 			return nullptr;
-
 		}
 
 		void UnloadAsset(AssetHandle handle);
@@ -81,8 +80,8 @@ namespace BinaryEngine {
 		void ClearAssets();
 
 	private:
-		std::unordered_map < std::string, AssetHandle> m_PathRegistry;
-		std::unordered_map < AssetHandle, std::shared_ptr<Asset>> m_Assets;
+		std::unordered_map<std::string, AssetHandle> m_PathRegistry;
+		std::unordered_map<AssetHandle, std::shared_ptr<Asset>> m_Assets;
 	};
 
 }

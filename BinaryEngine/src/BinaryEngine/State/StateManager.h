@@ -25,8 +25,7 @@ namespace BinaryEngine {
 		{
 			m_PendingChanges.emplace_back(
 				Action::Push,
-				std::make_unique<T>(*this, m_Context, std::forward<Args>(args)...)
-			);
+				std::make_unique<T>(*this, m_Context, std::forward<Args>(args)...));
 		}
 
 		template<typename T, typename... Args>
@@ -36,8 +35,7 @@ namespace BinaryEngine {
 			m_PendingChanges.emplace_back(
 				Action::Replace,
 				std::make_unique<T>(*this, m_Context, std::forward<Args>(args)...),
-				&target
-			);
+				&target);
 		}
 
 		bool HasState();
@@ -53,7 +51,14 @@ namespace BinaryEngine {
 		void CleanUp();
 
 	private:
-		enum class Action { None = 0, Push, Pop, Replace, Remove, Clear };
+		enum class Action {
+			None = 0,
+			Push,
+			Pop,
+			Replace,
+			Remove,
+			Clear
+		};
 
 		struct PendingChange {
 			Action action{ Action::None };
@@ -64,7 +69,6 @@ namespace BinaryEngine {
 		std::vector<std::unique_ptr<State>> m_States;
 		std::vector<PendingChange> m_PendingChanges;
 		Context m_Context;
-
 	};
 
 }

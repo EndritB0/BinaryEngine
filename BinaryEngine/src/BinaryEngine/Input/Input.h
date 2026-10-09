@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Event/KeyCodes.h"
@@ -26,7 +26,6 @@ namespace BinaryEngine {
 		static Vector2f GetMousePosition();
 		static float GetMouseX();
 		static float GetMouseY();
-
 	};
 
 }
