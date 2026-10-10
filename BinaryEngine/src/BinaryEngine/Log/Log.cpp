@@ -45,7 +45,7 @@ namespace BinaryEngine {
 
 		s_Instance.reset(new Log());
 
-		spdlog::set_pattern("%^[%T] %n: %v%$");
+		spdlog::set_pattern("%^[%T] [%l] %n: %v%$");
 		s_Instance->m_CoreLogger = spdlog::stdout_color_mt("Binary Engine");
 		s_Instance->m_CoreLogger->set_level(spdlog::level::trace);
 		CORE_INFO("[Logger] Binary Engine Logger Initialised");
