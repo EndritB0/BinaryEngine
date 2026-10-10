@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Sandbox/States/SandboxShellState.h"
 
-#include <array>
-
 #include <BinaryEngine/State/StateManager.h>
 
 #include "Sandbox/DemoRegistry.h"
@@ -28,8 +26,8 @@ namespace Sandbox {
 
 	}
 
-	SandboxShellState::SandboxShellState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context) :
-		State(stateManager, context)
+	SandboxShellState::SandboxShellState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context, const SandboxOptions& options) :
+		State(stateManager, context), m_Options(options)
 	{
 		APP_TRACE("[SandboxShellState] Created");
 	}
@@ -44,6 +42,12 @@ namespace Sandbox {
 		APP_INFO("[SandboxShellState] Attached");
 
 		m_Context.renderer.SetClearColor(BinaryEngine::Color::Black);
+
+		if (m_Options.Frames.has_value())
+		{
+			const std::size_t demoCount{ m_Options.AllDemos ? GetDemos().size() : 1 };
+			APP_INFO("[SandboxShellState] Smoke run: {} frames per demo, {} demo(s)", *m_Options.Frames, demoCount);
+		}
 	}
 
 	void SandboxShellState::OnDetach()
@@ -66,7 +70,15 @@ namespace Sandbox {
 
 		if (!m_ActiveDemoIndex.has_value())
 		{
-			SwitchToDemo(0);
+			SwitchToDemo(GetStartDemoIndex());
+		}
+		else if (m_Options.Frames.has_value())
+		{
+			++m_FramesOnActiveDemo;
+			if (m_FramesOnActiveDemo >= *m_Options.Frames)
+			{
+				AdvanceSmokeRun();
+			}
 		}
 	}
 
@@ -112,6 +124,20 @@ namespace Sandbox {
 
 		APP_INFO("[SandboxShellState] Switching to demo '{}' (F{})", demo.Name, demoIndex + 1);
 		m_ActiveDemoIndex = demoIndex;
+		m_FramesOnActiveDemo = 0;
+	}
+
+	void SandboxShellState::AdvanceSmokeRun()
+	{
+		const std::size_t nextDemoIndex{ *m_ActiveDemoIndex + 1 };
+		if (m_Options.AllDemos && nextDemoIndex < GetDemos().size())
+		{
+			SwitchToDemo(nextDemoIndex);
+			return;
+		}
+
+		APP_INFO("[SandboxShellState] Smoke run finished");
+		Quit();
 	}
 
 	void SandboxShellState::Quit()
@@ -120,4 +146,9 @@ namespace Sandbox {
 		m_StateManager.RequestClearStates();
 	}
 
+	std::size_t SandboxShellState::GetStartDemoIndex() const
+	{
+		const DemoEntry* startDemo{ FindDemo(m_Options.StartDemo) };
+		return startDemo != nullptr ? static_cast<std::size_t>(startDemo - GetDemos().data()) : 0;
+	}
 }

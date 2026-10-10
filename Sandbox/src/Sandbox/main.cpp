@@ -1,7 +1,9 @@
 #include "pch.h"
+
+#include "Sandbox/SandboxOptions.h"
 #include "Sandbox/States/SandboxShellState.h"
 
-int main()
+int main(int argc, char* argv[])
 {
 	BinaryEngine::ApplicationSpecification specification{
 		.Window = {
@@ -27,9 +29,15 @@ int main()
 
 	BinaryEngine::Log::Init(specification.Window.title);
 
+	const std::optional<Sandbox::SandboxOptions> options{ Sandbox::ParseSandboxOptions(argc, argv) };
+	if (!options.has_value())
+	{
+		return 1;
+	}
+
 	{
 		BinaryEngine::Application app(specification);
-		app.Add<Sandbox::SandboxShellState>();
+		app.Add<Sandbox::SandboxShellState>(*options);
 		app.Run();
 	}
 
