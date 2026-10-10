@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Sandbox/States/IntroState.h"
+#include "Sandbox/States/SandboxShellState.h"
 
 int main()
 {
@@ -29,7 +29,7 @@ int main()
 
 	{
 		BinaryEngine::Application app(specification);
-		app.Add<Sandbox::IntroState>();
+		app.Add<Sandbox::SandboxShellState>();
 		app.Run();
 	}
 

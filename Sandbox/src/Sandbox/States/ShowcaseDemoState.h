@@ -8,10 +8,10 @@
 
 namespace Sandbox {
 
-	class MainMenuState : public BinaryEngine::State {
+	class ShowcaseDemoState : public BinaryEngine::State {
 	public:
-		MainMenuState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context);
-		virtual ~MainMenuState() override;
+		ShowcaseDemoState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context);
+		virtual ~ShowcaseDemoState() override;
 
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
@@ -20,7 +20,6 @@ namespace Sandbox {
 		virtual void OnRender() override;
 
 	private:
-		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
 		bool OnMouseScrolled(BinaryEngine::MouseScrolledEvent& event);
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 

@@ -1,26 +1,24 @@
 #include "pch.h"
-#include "Sandbox/States/MainMenuState.h"
+#include "Sandbox/States/ShowcaseDemoState.h"
 
 #include <BinaryEngine/Scene/Components.h>
 
-#include "Sandbox/States/IntroState.h"
-
 namespace Sandbox {
 
-	MainMenuState::MainMenuState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context) :
+	ShowcaseDemoState::ShowcaseDemoState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context) :
 		State(stateManager, context)
 	{
-		APP_TRACE("[MainMenuState] Created");
+		APP_TRACE("[ShowcaseDemoState] Created");
 	}
 
-	MainMenuState::~MainMenuState()
+	ShowcaseDemoState::~ShowcaseDemoState()
 	{
-		APP_TRACE("[MainMenuState] Destroyed");
+		APP_TRACE("[ShowcaseDemoState] Destroyed");
 	}
 
-	void MainMenuState::OnAttach()
+	void ShowcaseDemoState::OnAttach()
 	{
-		APP_INFO("[MainMenuState] Attached");
+		APP_INFO("[ShowcaseDemoState] Attached");
 
 		m_Context.renderer.SetClearColor(BinaryEngine::Color::Blue);
 
@@ -65,20 +63,19 @@ namespace Sandbox {
 		hudTransform.transform.Position = { 8.0f, 20.0f, 10.0f };
 	}
 
-	void MainMenuState::OnDetach()
+	void ShowcaseDemoState::OnDetach()
 	{
-		APP_INFO("[MainMenuState] Detached");
+		APP_INFO("[ShowcaseDemoState] Detached");
 	}
 
-	void MainMenuState::OnEvent(BinaryEngine::Event& event)
+	void ShowcaseDemoState::OnEvent(BinaryEngine::Event& event)
 	{
 		BinaryEngine::EventDispatcher dispatcher(event);
-		dispatcher.Dispatch<BinaryEngine::MouseButtonPressedEvent>(BIND_FUNCTION(OnMouseButtonPressed));
 		dispatcher.Dispatch<BinaryEngine::MouseScrolledEvent>(BIND_FUNCTION(OnMouseScrolled));
 		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
-	void MainMenuState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
+	void ShowcaseDemoState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
 	{
 		auto& playerTransform = m_PlayerEntity.GetComponent<BinaryEngine::TransformComponent>().transform;
 
@@ -120,36 +117,21 @@ namespace Sandbox {
 		m_ActiveScene.OnUpdate(dt);
 	}
 
-	void MainMenuState::OnRender()
+	void ShowcaseDemoState::OnRender()
 	{
 		m_Context.renderer.BeginScene(m_Camera);
 		m_ActiveScene.OnRender(m_Context.renderer, m_Context.assetManager);
 		m_Context.renderer.EndScene();
 	}
 
-	bool MainMenuState::OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event)
-	{
-		switch (event.GetButton())
-		{
-			case BinaryEngine::Mouse::Right:
-			{
-				APP_INFO("[MainMenuState] Button 1 Pressed");
-				m_StateManager.RequestClearStates();
-				m_StateManager.RequestPushState<IntroState>();
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool MainMenuState::OnMouseScrolled(BinaryEngine::MouseScrolledEvent& event)
+	bool ShowcaseDemoState::OnMouseScrolled(BinaryEngine::MouseScrolledEvent& event)
 	{
 		const float zoomStep{ event.GetOffsetY() > 0.0f ? 1.1f : (1.0f / 1.1f) };
 		m_Camera.SetZoom(m_Camera.GetZoom() * zoomStep);
 		return true;
 	}
 
-	bool MainMenuState::OnKeyPressed(BinaryEngine::KeyPressedEvent& event)
+	bool ShowcaseDemoState::OnKeyPressed(BinaryEngine::KeyPressedEvent& event)
 	{
 		switch (event.GetKeyCode())
 		{

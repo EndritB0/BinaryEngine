@@ -3,10 +3,12 @@ add_executable(Sandbox)
 set(SANDBOX_SOURCES
     "src/pch.h"
     "src/Sandbox/main.cpp"
-    "src/Sandbox/States/IntroState.cpp"
-    "src/Sandbox/States/IntroState.h"
-    "src/Sandbox/States/MainMenuState.cpp"
-    "src/Sandbox/States/MainMenuState.h"
+    "src/Sandbox/DemoRegistry.cpp"
+    "src/Sandbox/DemoRegistry.h"
+    "src/Sandbox/States/SandboxShellState.cpp"
+    "src/Sandbox/States/SandboxShellState.h"
+    "src/Sandbox/States/ShowcaseDemoState.cpp"
+    "src/Sandbox/States/ShowcaseDemoState.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
