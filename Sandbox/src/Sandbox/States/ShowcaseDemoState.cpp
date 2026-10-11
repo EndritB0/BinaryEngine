@@ -75,7 +75,7 @@ namespace Sandbox {
 		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
-	void ShowcaseDemoState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
+	void ShowcaseDemoState::OnUpdate(BinaryEngine::TimeStep dt)
 	{
 		auto& playerTransform = m_PlayerEntity.GetComponent<BinaryEngine::TransformComponent>().transform;
 

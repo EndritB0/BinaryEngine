@@ -1,10 +1,13 @@
 #pragma once
 
-#include <BinaryEngine/State/State.h>
+#include <BinaryEngine/Asset/AssetTypes.h>
 #include <BinaryEngine/Event/EventTypes.h>
 #include <BinaryEngine/Renderer/AnimationClip.h>
+#include <BinaryEngine/Renderer/OrthographicCamera.h>
 #include <BinaryEngine/Scene/Entity.h>
 #include <BinaryEngine/Scene/Scene.h>
+#include <BinaryEngine/State/State.h>
+#include <BinaryEngine/Window/Window.h>
 
 namespace Sandbox {
 
