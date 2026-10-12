@@ -9,11 +9,28 @@
 
 namespace BinaryEngine {
 
-	Application::Application(const ApplicationSpecification& specification)
+	Application::PlatformContext::PlatformContext()
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO))
 		{
-			CORE_ERROR("[Application] Failed to initialize Application: {}", SDL_GetError());
+			CORE_ERROR("[PlatformContext] Failed to initialise Platform Context: {}", SDL_GetError());
+			return;
+		}
+
+		m_IsInitialised = true;
+		CORE_INFO("[PlatformContext] Platform Context Initialised");
+	}
+
+	Application::PlatformContext::~PlatformContext()
+	{
+		SDL_Quit();
+		CORE_INFO("[PlatformContext] Platform Context Shutdown");
+	}
+
+	Application::Application(const ApplicationSpecification& specification)
+	{
+		if (!m_PlatformContext.IsValid())
+		{
 			return;
 		}
 
@@ -45,7 +62,6 @@ namespace BinaryEngine {
 
 	Application::~Application()
 	{
-		SDL_Quit();
 		CORE_INFO("[Application] Application Shutdown");
 	}
 

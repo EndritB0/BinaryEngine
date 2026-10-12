@@ -54,6 +54,24 @@ namespace BinaryEngine {
 		bool IsApplicationInitialised() const { return (m_Window.has_value() && m_Window->IsValid()) && (m_Renderer.has_value() && m_Renderer->IsValid()); }
 
 	private:
+		class PlatformContext {
+		public:
+			PlatformContext();
+			~PlatformContext();
+
+			PlatformContext(const PlatformContext&) = delete;
+			PlatformContext& operator=(const PlatformContext&) = delete;
+			PlatformContext(PlatformContext&&) = delete;
+			PlatformContext& operator=(PlatformContext&&) = delete;
+
+			bool IsValid() const { return m_IsInitialised; }
+
+		private:
+			bool m_IsInitialised{ false };
+		};
+
+	private:
+		PlatformContext m_PlatformContext;
 		CameraSpecification m_CameraSpecification;
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;
