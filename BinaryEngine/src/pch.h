@@ -1,8 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
+#include <bit>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>

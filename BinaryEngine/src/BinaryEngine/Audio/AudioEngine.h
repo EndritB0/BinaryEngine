@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -12,6 +13,12 @@
 namespace BinaryEngine {
 
 	class AssetManager;
+
+	namespace Detail {
+
+		class Mixer;
+
+	}
 
 	class AudioEngine {
 	public:
@@ -44,6 +51,7 @@ namespace BinaryEngine {
 	private:
 		AudioSpecification m_Specification;
 		std::vector<BusRecord> m_Buses;
+		std::unique_ptr<Detail::Mixer> m_Mixer;
 		struct SDL_AudioStream* m_Stream{ nullptr };
 		bool m_IsSubsystemInitialised{ false };
 	};

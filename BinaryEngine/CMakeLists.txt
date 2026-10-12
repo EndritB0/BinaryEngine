@@ -64,6 +64,12 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Audio/AudioTypes.h"
     "src/BinaryEngine/Audio/AudioEngine.cpp"
     "src/BinaryEngine/Audio/AudioEngine.h"
+    "src/BinaryEngine/Audio/Detail/AudioCommand.h"
+    "src/BinaryEngine/Audio/Detail/Mixer.cpp"
+    "src/BinaryEngine/Audio/Detail/Mixer.h"
+    "src/BinaryEngine/Audio/Detail/SpscQueue.h"
+    "src/BinaryEngine/Audio/Detail/VoiceSource.cpp"
+    "src/BinaryEngine/Audio/Detail/VoiceSource.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")

@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "BinaryEngine/Audio/AudioEngine.h"
 
+#include "BinaryEngine/Audio/Detail/Mixer.h"
+
 namespace {
 
-	constexpr int s_OutputChannelCount{ 2 };
+	constexpr int s_BytesPerOutputFrame{ static_cast<int>(sizeof(float) * BinaryEngine::Detail::Mixer::s_OutputChannelCount) };
 	constexpr std::string_view s_MasterBusName{ "Master" };
 
 	void NormaliseAudioSpecification(BinaryEngine::AudioSpecification& specification)
@@ -34,6 +36,24 @@ namespace {
 		return std::isnan(volume) ? 0.0f : std::clamp(volume, 0.0f, 1.0f);
 	}
 
+	void SDLCALL FeedAudioStream(void* userdata, SDL_AudioStream* stream, int additionalAmount, [[maybe_unused]] int totalAmount)
+	{
+		if (additionalAmount <= 0)
+		{
+			return;
+		}
+
+		BinaryEngine::Detail::Mixer& mixer{ *static_cast<BinaryEngine::Detail::Mixer*>(userdata) };
+		std::uint32_t framesToMix{ static_cast<std::uint32_t>((additionalAmount + s_BytesPerOutputFrame - 1) / s_BytesPerOutputFrame) };
+
+		while (framesToMix > 0)
+		{
+			const std::uint32_t blockFrames{ std::min(framesToMix, BinaryEngine::Detail::Mixer::s_MaxBlockFrames) };
+			const float* block{ mixer.MixBlock(blockFrames) };
+			SDL_PutAudioStreamData(stream, block, static_cast<int>(blockFrames) * s_BytesPerOutputFrame);
+			framesToMix -= blockFrames;
+		}
+	}
 }
 
 namespace BinaryEngine {
@@ -54,12 +74,15 @@ namespace BinaryEngine {
 			m_Stream = nullptr;
 		}
 
+		const double mixedSeconds{ m_Mixer != nullptr ? static_cast<double>(m_Mixer->GetMixedFrameCount()) / m_Specification.SampleRate : 0.0 };
+		m_Mixer.reset();
+
 		if (m_IsSubsystemInitialised)
 		{
 			SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		}
 
-		CORE_INFO("[AudioEngine] Audio Engine Shutdown");
+		CORE_INFO("[AudioEngine] Audio Engine Shutdown (mixed {:.2f} s of audio)", mixedSeconds);
 	}
 
 	AudioBusHandle AudioEngine::GetBus(std::string_view name) const
@@ -159,16 +182,25 @@ namespace BinaryEngine {
 		}
 		m_IsSubsystemInitialised = true;
 
+		std::vector<Detail::MixerBusSetup> busSetups;
+		busSetups.reserve(m_Buses.size());
+		for (const BusRecord& bus : m_Buses)
+		{
+			busSetups.emplace_back(bus.ParentIndex, bus.Volume);
+		}
+		m_Mixer = std::make_unique<Detail::Mixer>(m_Specification.SampleRate, m_Specification.MaxVoices, busSetups);
+
 		const SDL_AudioSpec outputSpecification{
 			.format{ SDL_AUDIO_F32 },
-			.channels{ s_OutputChannelCount },
+			.channels{ static_cast<int>(Detail::Mixer::s_OutputChannelCount) },
 			.freq{ static_cast<int>(m_Specification.SampleRate) },
 		};
 
-		m_Stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &outputSpecification, nullptr, nullptr);
+		m_Stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &outputSpecification, FeedAudioStream, m_Mixer.get());
 		if (m_Stream == nullptr)
 		{
 			CORE_WARN("[AudioEngine] Failed to open the audio device, running without sound: {}", SDL_GetError());
+			m_Mixer.reset();
 			return;
 		}
 
@@ -177,6 +209,7 @@ namespace BinaryEngine {
 			CORE_WARN("[AudioEngine] Failed to start the audio device, running without sound: {}", SDL_GetError());
 			SDL_DestroyAudioStream(m_Stream);
 			m_Stream = nullptr;
+			m_Mixer.reset();
 			return;
 		}
 
