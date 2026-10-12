@@ -6,6 +6,7 @@
 
 #include "BinaryEngine/ApplicationSpecification.h"
 #include "BinaryEngine/Asset/AssetManager.h"
+#include "BinaryEngine/Audio/AudioEngine.h"
 #include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Event/EventTypes.h"
@@ -76,6 +77,7 @@ namespace BinaryEngine {
 		std::optional<Window> m_Window;
 		std::optional<Renderer> m_Renderer;
 		AssetManager m_AssetManager;
+		std::optional<AudioEngine> m_AudioEngine;
 		std::optional<StateManager> m_StateManager;
 		std::uint64_t m_LastFrameTime{};
 		bool m_IsRunning{ false };

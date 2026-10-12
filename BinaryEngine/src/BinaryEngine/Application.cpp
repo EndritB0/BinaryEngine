@@ -55,8 +55,10 @@ namespace BinaryEngine {
 			};
 		}
 
+		m_AudioEngine.emplace(specification.Audio, m_AssetManager);
+
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
-		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager, m_CameraSpecification });
+		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager, *m_AudioEngine, m_CameraSpecification });
 		CORE_INFO("[Application] Application Initialised");
 	}
 
@@ -115,6 +117,7 @@ namespace BinaryEngine {
 
 	void Application::Update(TimeStep dt)
 	{
+		m_AudioEngine->Update();
 		m_StateManager->ProcessUpdate(dt);
 	}
 

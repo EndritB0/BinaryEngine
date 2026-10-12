@@ -24,7 +24,15 @@ int main(int argc, char* argv[])
 			.DesignSize{ BinaryEngine::Vector2f{ 640.0f, 360.0f } },
 			.ViewportMode{ BinaryEngine::CameraViewportMode::FixedHeight },
 			.SnapMode{ BinaryEngine::CameraSnapMode::PixelPerfect },
-		}
+		},
+
+		.Audio = {
+			.Buses = {
+				{ .Name{ "Music" } },
+				{ .Name{ "SFX" } },
+				{ .Name{ "Ambience" }, .Parent{ "SFX" } },
+			},
+		},
 	};
 
 	BinaryEngine::Log::Init(specification.Window.title);

@@ -35,6 +35,10 @@
 #include "BinaryEngine/Asset/Asset.h"
 #include "BinaryEngine/Asset/AssetManager.h"
 
+#include "BinaryEngine/Audio/AudioSpecification.h"
+#include "BinaryEngine/Audio/AudioTypes.h"
+#include "BinaryEngine/Audio/AudioEngine.h"
+
 #include "BinaryEngine/State/Context.h"
 #include "BinaryEngine/State/State.h"
 #include "BinaryEngine/State/StateManager.h"

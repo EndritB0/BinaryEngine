@@ -60,6 +60,10 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Scene/Entity.h"
     "src/BinaryEngine/Scene/Scene.h"
     "src/BinaryEngine/Scene/Scene.cpp"
+    "src/BinaryEngine/Audio/AudioSpecification.h"
+    "src/BinaryEngine/Audio/AudioTypes.h"
+    "src/BinaryEngine/Audio/AudioEngine.cpp"
+    "src/BinaryEngine/Audio/AudioEngine.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
