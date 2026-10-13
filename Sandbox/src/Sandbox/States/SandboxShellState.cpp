@@ -130,7 +130,7 @@ namespace Sandbox {
 		}
 
 		const std::size_t demoCount{ GetDemos().size() };
-		for (std::size_t demoIndex{ 0 }; demoIndex < demoCount; ++demoIndex)
+		for (std::size_t demoIndex{ 0 }; demoIndex < demoCount; demoIndex++)
 		{
 			if (event.GetKeyCode() == s_DemoKeys[demoIndex])
 			{
@@ -235,7 +235,7 @@ namespace Sandbox {
 
 		const std::span<const DemoEntry> demos{ GetDemos() };
 		std::string text{ std::format("{} (F{})   ", demos[*m_ActiveDemoIndex].Name, *m_ActiveDemoIndex + 1) };
-		for (std::size_t demoIndex{ 0 }; demoIndex < demos.size(); ++demoIndex)
+		for (std::size_t demoIndex{ 0 }; demoIndex < demos.size(); demoIndex++)
 		{
 			text += std::format("F{} {}   ", demoIndex + 1, demos[demoIndex].Name);
 		}

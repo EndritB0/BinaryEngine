@@ -49,7 +49,7 @@ namespace BinaryEngine::Detail {
 		}
 
 		const std::uint32_t voiceCount{ static_cast<std::uint32_t>(m_Voices.size()) };
-		for (std::uint32_t slot{ 0 }; slot < voiceCount; ++slot)
+		for (std::uint32_t slot{ 0 }; slot < voiceCount; slot++)
 		{
 			if (m_Voices[slot].IsActive)
 			{
@@ -172,7 +172,7 @@ namespace BinaryEngine::Detail {
 		float* busSamples{ m_Buses[voice.BusIndex].Samples.data() };
 		std::uint32_t scratchFrame{ 0 };
 
-		for (std::uint32_t frame{ 0 }; frame < frameCount; ++frame)
+		for (std::uint32_t frame{ 0 }; frame < frameCount; frame++)
 		{
 			while (voice.Phase >= s_PhaseOne)
 			{
@@ -187,7 +187,7 @@ namespace BinaryEngine::Detail {
 
 			const float fraction{ static_cast<float>(voice.Phase) * s_PhaseToFraction };
 			const float gain{ voice.Envelope.Advance() * voice.Volume.Advance() };
-			for (std::uint32_t channel{ 0 }; channel < s_OutputChannelCount; ++channel)
+			for (std::uint32_t channel{ 0 }; channel < s_OutputChannelCount; channel++)
 			{
 				const float interpolated{ voice.CurrentFrame[channel] + (voice.NextFrame[channel] - voice.CurrentFrame[channel]) * fraction };
 				busSamples[frame * s_OutputChannelCount + channel] += interpolated * gain;
@@ -219,16 +219,16 @@ namespace BinaryEngine::Detail {
 
 	void Mixer::FoldBuses(std::uint32_t frameCount)
 	{
-		for (std::size_t busIndex{ m_Buses.size() - 1 }; busIndex > 0; --busIndex)
+		for (std::size_t busIndex{ m_Buses.size() - 1 }; busIndex > 0; busIndex--)
 		{
 			BusState& bus{ m_Buses[busIndex] };
 			float* parentSamples{ m_Buses[bus.ParentIndex].Samples.data() };
 			const float* busSamples{ bus.Samples.data() };
 
-			for (std::uint32_t frame{ 0 }; frame < frameCount; ++frame)
+			for (std::uint32_t frame{ 0 }; frame < frameCount; frame++)
 			{
 				const float gain{ bus.Volume.Advance() };
-				for (std::uint32_t channel{ 0 }; channel < s_OutputChannelCount; ++channel)
+				for (std::uint32_t channel{ 0 }; channel < s_OutputChannelCount; channel++)
 				{
 					const std::uint32_t sampleIndex{ frame * s_OutputChannelCount + channel };
 					parentSamples[sampleIndex] += busSamples[sampleIndex] * gain;
@@ -238,10 +238,10 @@ namespace BinaryEngine::Detail {
 
 		BusState& master{ m_Buses[0] };
 		float* masterSamples{ master.Samples.data() };
-		for (std::uint32_t frame{ 0 }; frame < frameCount; ++frame)
+		for (std::uint32_t frame{ 0 }; frame < frameCount; frame++)
 		{
 			const float gain{ master.Volume.Advance() };
-			for (std::uint32_t channel{ 0 }; channel < s_OutputChannelCount; ++channel)
+			for (std::uint32_t channel{ 0 }; channel < s_OutputChannelCount; channel++)
 			{
 				float& sample{ masterSamples[frame * s_OutputChannelCount + channel] };
 				sample = std::clamp(sample * gain, -1.0f, 1.0f);

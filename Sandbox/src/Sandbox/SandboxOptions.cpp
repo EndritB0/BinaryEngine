@@ -43,7 +43,7 @@ namespace Sandbox {
 		const std::span<char*> arguments{ argv, static_cast<std::size_t>(argc) };
 		SandboxOptions options;
 
-		for (std::size_t argumentIndex{ 1 }; argumentIndex < arguments.size(); ++argumentIndex)
+		for (std::size_t argumentIndex{ 1 }; argumentIndex < arguments.size(); argumentIndex++)
 		{
 			const std::string_view argument{ arguments[argumentIndex] };
 			const bool hasValue{ argumentIndex + 1 < arguments.size() };
