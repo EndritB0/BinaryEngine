@@ -7,6 +7,8 @@ set(SANDBOX_SOURCES
     "src/Sandbox/DemoRegistry.h"
     "src/Sandbox/SandboxOptions.cpp"
     "src/Sandbox/SandboxOptions.h"
+    "src/Sandbox/States/AudioDemoState.cpp"
+    "src/Sandbox/States/AudioDemoState.h"
     "src/Sandbox/States/SandboxShellState.cpp"
     "src/Sandbox/States/SandboxShellState.h"
     "src/Sandbox/States/ShowcaseDemoState.cpp"

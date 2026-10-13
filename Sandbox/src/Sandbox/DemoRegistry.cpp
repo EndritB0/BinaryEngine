@@ -3,6 +3,7 @@
 
 #include <BinaryEngine/State/StateManager.h>
 
+#include "Sandbox/States/AudioDemoState.h"
 #include "Sandbox/States/ShowcaseDemoState.h"
 
 namespace Sandbox {
@@ -11,6 +12,7 @@ namespace Sandbox {
 
 		const DemoEntry s_Demos[]{
 			{ "Showcase", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<ShowcaseDemoState>(); } },
+			{ "Audio", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<AudioDemoState>(); } },
 		};
 
 		static_assert(std::size(s_Demos) <= 12, "The shell selects demos with F1-F12, so there can be at most 12");

@@ -37,6 +37,9 @@
 
 #include "BinaryEngine/Audio/AudioSpecification.h"
 #include "BinaryEngine/Audio/AudioTypes.h"
+#include "BinaryEngine/Audio/AudioAsset.h"
+#include "BinaryEngine/Audio/AudioClip.h"
+#include "BinaryEngine/Audio/AudioScope.h"
 #include "BinaryEngine/Audio/AudioEngine.h"
 
 #include "BinaryEngine/State/Context.h"

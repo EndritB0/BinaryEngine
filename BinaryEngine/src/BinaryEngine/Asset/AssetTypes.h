@@ -28,6 +28,7 @@ namespace BinaryEngine {
 		Texture2D,
 		Shader,
 		Font,
+		AudioClip,
 	};
 
 }

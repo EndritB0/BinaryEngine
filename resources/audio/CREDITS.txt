@@ -1,0 +1,23 @@
+Asset Name: [Small_Flashlight_Click_on_Fast]
+Author: Rudmer_Rotteveel
+URL: https://freesound.org/people/rudmer_rotteveel/sounds/502506/
+License: CC0 1.0
+Notes: [Used as one_shot_1.wav]
+
+Asset Name: [menu move6]
+Author: Tissman
+URL: https://freesound.org/people/tissman/sounds/575543/
+License: CC0 1.0
+Notes: [Used as one_shot_2.wav]
+
+Asset Name: [Rain_Hitting_Window_9]
+Author: SignatureSoundsOrg
+URL: https://freesound.org/people/signaturesoundsorg/sounds/869851/
+License: CC0 1.0
+Notes: [Used as ambience_loop.wav]
+
+Asset Name: [Melancholic Crystal Keys with Soft Pad [140 BPM]]
+Author: Jadis0x
+URL: https://freesound.org/people/jadis0x/sounds/858825/
+License: CC0 1.0
+Notes: [Used as music_loop.ogg]
