@@ -3,6 +3,7 @@
 
 #include <BinaryEngine/Audio/AudioClip.h>
 #include <BinaryEngine/Audio/AudioEngine.h>
+#include <BinaryEngine/Audio/StreamingAudioClip.h>
 #include <BinaryEngine/Input/Input.h>
 #include <BinaryEngine/Renderer/Font.h>
 #include <BinaryEngine/Renderer/Renderer.h>
@@ -17,13 +18,15 @@ namespace Sandbox {
 		constexpr std::string_view s_FirstOneShotPath{ "./resources/audio/one_shot_1.wav" };
 		constexpr std::string_view s_SecondOneShotPath{ "./resources/audio/one_shot_2.wav" };
 		constexpr std::string_view s_AmbiencePath{ "./resources/audio/ambience_loop.wav" };
-		constexpr std::string_view s_KeyHelp{ "Z / X  one-shot     Hold C  flood the voices\nA  ambience loop (0.5 s fade-in)\nUp / Down  Master volume     [ / ]  SFX volume" };
+		constexpr std::string_view s_MusicPath{ "./resources/audio/music_loop.ogg" };
+		constexpr std::string_view s_KeyHelp{ "Z / X  one-shot     Hold C  flood the voices\nA  ambience loop (0.5 s fade-in)     M  music     S  music, 2 s fade-out\nUp / Down  Master volume     [ / ]  SFX volume     - / =  Music volume     , / .  Ambience volume" };
+		constexpr float s_MusicSlowFadeSeconds{ 2.0f };
 		constexpr float s_AmbienceFadeInSeconds{ 0.5f };
 		constexpr float s_VolumeStep{ 0.1f };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x1E, 0x14, 0x2D };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr int s_FloodPlaysPerFrame{ 4 };
-
+		BinaryEngine::VoiceHandle s_MusicVoice;
 	}
 
 	AudioDemoState::AudioDemoState(BinaryEngine::StateManager& stateManager, const BinaryEngine::Context& context) :
@@ -46,6 +49,7 @@ namespace Sandbox {
 		m_FirstOneShotHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_FirstOneShotPath);
 		m_SecondOneShotHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_SecondOneShotPath);
 		m_AmbienceHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_AmbiencePath);
+		m_MusicHandle = m_Context.assetManager.LoadAsset<BinaryEngine::StreamingAudioClip>(s_MusicPath);
 
 		m_SfxBus = m_Context.audio.GetBus("SFX");
 		m_MusicBus = m_Context.audio.GetBus("Music");
@@ -144,6 +148,48 @@ namespace Sandbox {
 				return true;
 			}
 
+			case BinaryEngine::Key::Equal:
+			{
+				ChangeBusVolume(m_MusicBus, s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::Minus:
+			{
+				ChangeBusVolume(m_MusicBus, -s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::Period:
+			{
+				ChangeBusVolume(m_AmbienceBus, s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::Comma:
+			{
+				ChangeBusVolume(m_AmbienceBus, -s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::M:
+			{
+				if (!event.IsRepeat())
+				{
+					ToggleMusic();
+				}
+				return true;
+			}
+
+			case BinaryEngine::Key::S:
+			{
+				if (!event.IsRepeat())
+				{
+					StopMusicSlowly();
+				}
+				return true;
+			}
+
 			default: return false;
 		}
 	}
@@ -169,6 +215,23 @@ namespace Sandbox {
 	{
 		BinaryEngine::AudioEngine& audio{ m_Context.audio };
 		audio.SetBusVolume(bus, audio.GetBusVolume(bus) + change);
+	}
+
+	void AudioDemoState::ToggleMusic()
+	{
+		BinaryEngine::AudioEngine& audio{ m_Context.audio };
+		if (audio.IsPlaying(s_MusicVoice))
+		{
+			audio.Stop(s_MusicVoice);
+			return;
+		}
+
+		s_MusicVoice = audio.GetGlobalScope().Play(m_MusicHandle, { .Bus{ m_MusicBus }, .Loop{ true } });
+	}
+
+	void AudioDemoState::StopMusicSlowly()
+	{
+		m_Context.audio.Stop(s_MusicVoice, s_MusicSlowFadeSeconds);
 	}
 
 	void AudioDemoState::UpdateHud()

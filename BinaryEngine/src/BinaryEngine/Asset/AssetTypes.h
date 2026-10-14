@@ -29,6 +29,7 @@ namespace BinaryEngine {
 		Shader,
 		Font,
 		AudioClip,
+		StreamingAudioClip,
 	};
 
 }

@@ -27,6 +27,8 @@ namespace Sandbox {
 		void PlayOneShot(BinaryEngine::AssetHandle clip);
 		void ToggleAmbience();
 		void ChangeBusVolume(BinaryEngine::AudioBusHandle bus, float change);
+		void ToggleMusic();
+		void StopMusicSlowly();
 		void UpdateHud();
 
 	private:
@@ -37,6 +39,7 @@ namespace Sandbox {
 		BinaryEngine::AssetHandle m_FirstOneShotHandle;
 		BinaryEngine::AssetHandle m_SecondOneShotHandle;
 		BinaryEngine::AssetHandle m_AmbienceHandle;
+		BinaryEngine::AssetHandle m_MusicHandle;
 
 		BinaryEngine::AudioBusHandle m_SfxBus;
 		BinaryEngine::AudioBusHandle m_MusicBus;

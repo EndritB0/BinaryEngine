@@ -39,6 +39,7 @@
 #include "BinaryEngine/Audio/AudioTypes.h"
 #include "BinaryEngine/Audio/AudioAsset.h"
 #include "BinaryEngine/Audio/AudioClip.h"
+#include "BinaryEngine/Audio/StreamingAudioClip.h"
 #include "BinaryEngine/Audio/AudioScope.h"
 #include "BinaryEngine/Audio/AudioEngine.h"
 
