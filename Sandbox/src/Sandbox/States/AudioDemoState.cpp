@@ -16,7 +16,10 @@ namespace Sandbox {
 		constexpr std::string_view s_FontPath{ "./resources/fonts/OpenSans-Regular.ttf" };
 		constexpr std::string_view s_FirstOneShotPath{ "./resources/audio/one_shot_1.wav" };
 		constexpr std::string_view s_SecondOneShotPath{ "./resources/audio/one_shot_2.wav" };
-		constexpr std::string_view s_KeyHelp{ "Z / X  one-shot     Hold C  flood the voices" };
+		constexpr std::string_view s_AmbiencePath{ "./resources/audio/ambience_loop.wav" };
+		constexpr std::string_view s_KeyHelp{ "Z / X  one-shot     Hold C  flood the voices\nA  ambience loop (0.5 s fade-in)\nUp / Down  Master volume     [ / ]  SFX volume" };
+		constexpr float s_AmbienceFadeInSeconds{ 0.5f };
+		constexpr float s_VolumeStep{ 0.1f };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x1E, 0x14, 0x2D };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr int s_FloodPlaysPerFrame{ 4 };
@@ -42,6 +45,7 @@ namespace Sandbox {
 
 		m_FirstOneShotHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_FirstOneShotPath);
 		m_SecondOneShotHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_SecondOneShotPath);
+		m_AmbienceHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_AmbiencePath);
 
 		m_SfxBus = m_Context.audio.GetBus("SFX");
 		m_MusicBus = m_Context.audio.GetBus("Music");
@@ -107,6 +111,39 @@ namespace Sandbox {
 				return true;
 			}
 
+			case BinaryEngine::Key::A:
+			{
+				if (!event.IsRepeat())
+				{
+					ToggleAmbience();
+				}
+				return true;
+			}
+
+			case BinaryEngine::Key::UpArrow:
+			{
+				ChangeBusVolume(BinaryEngine::AudioBusHandle::Master(), s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::DownArrow:
+			{
+				ChangeBusVolume(BinaryEngine::AudioBusHandle::Master(), -s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::RightBracket:
+			{
+				ChangeBusVolume(m_SfxBus, s_VolumeStep);
+				return true;
+			}
+
+			case BinaryEngine::Key::LeftBracket:
+			{
+				ChangeBusVolume(m_SfxBus, -s_VolumeStep);
+				return true;
+			}
+
 			default: return false;
 		}
 	}
@@ -114,6 +151,24 @@ namespace Sandbox {
 	void AudioDemoState::PlayOneShot(BinaryEngine::AssetHandle clip)
 	{
 		m_Audio.Play(clip, { .Bus{ m_SfxBus } });
+	}
+
+	void AudioDemoState::ToggleAmbience()
+	{
+		BinaryEngine::AudioEngine& audio{ m_Context.audio };
+		if (audio.IsPlaying(m_AmbienceVoice))
+		{
+			audio.Stop(m_AmbienceVoice);
+			return;
+		}
+
+		m_AmbienceVoice = m_Audio.Play(m_AmbienceHandle, { .Bus{ m_AmbienceBus }, .Loop{ true }, .FadeInSeconds{ s_AmbienceFadeInSeconds } });
+	}
+
+	void AudioDemoState::ChangeBusVolume(BinaryEngine::AudioBusHandle bus, float change)
+	{
+		BinaryEngine::AudioEngine& audio{ m_Context.audio };
+		audio.SetBusVolume(bus, audio.GetBusVolume(bus) + change);
 	}
 
 	void AudioDemoState::UpdateHud()

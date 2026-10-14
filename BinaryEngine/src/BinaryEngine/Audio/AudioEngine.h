@@ -46,6 +46,8 @@ namespace BinaryEngine {
 		AudioBusHandle GetBus(std::string_view name) const;
 		void SetBusVolume(AudioBusHandle bus, float volume);
 		float GetBusVolume(AudioBusHandle bus) const;
+		void Stop(VoiceHandle voice, std::optional<float> fadeSeconds = std::nullopt);
+		void SetVolume(VoiceHandle voice, float volume);
 		bool IsPlaying(VoiceHandle voice) const;
 		AudioScope& GetGlobalScope() { return *m_GlobalScope; }
 		Statistics GetStatistics() const;

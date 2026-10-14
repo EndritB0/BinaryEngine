@@ -25,6 +25,8 @@ namespace Sandbox {
 	private:
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 		void PlayOneShot(BinaryEngine::AssetHandle clip);
+		void ToggleAmbience();
+		void ChangeBusVolume(BinaryEngine::AudioBusHandle bus, float change);
 		void UpdateHud();
 
 	private:
@@ -34,10 +36,13 @@ namespace Sandbox {
 
 		BinaryEngine::AssetHandle m_FirstOneShotHandle;
 		BinaryEngine::AssetHandle m_SecondOneShotHandle;
+		BinaryEngine::AssetHandle m_AmbienceHandle;
 
 		BinaryEngine::AudioBusHandle m_SfxBus;
 		BinaryEngine::AudioBusHandle m_MusicBus;
 		BinaryEngine::AudioBusHandle m_AmbienceBus;
+
+		BinaryEngine::VoiceHandle m_AmbienceVoice;
 	};
 
 }

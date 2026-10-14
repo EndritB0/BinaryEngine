@@ -149,6 +149,36 @@ namespace BinaryEngine {
 		return m_Buses[bus.m_Index].Volume;
 	}
 
+	void AudioEngine::Stop(VoiceHandle voice, std::optional<float> fadeSeconds)
+	{
+		if (!IsPlaying(voice))
+		{
+			return;
+		}
+
+		SendCommand(Detail::AudioCommand{
+			.Type{ Detail::AudioCommandType::Stop },
+			.Slot{ voice.m_Slot },
+			.Generation{ voice.m_Generation },
+			.FadeFrames{ SecondsToFrames(fadeSeconds.value_or(m_Specification.StopFadeSeconds)) },
+		});
+	}
+
+	void AudioEngine::SetVolume(VoiceHandle voice, float volume)
+	{
+		if (!IsPlaying(voice))
+		{
+			return;
+		}
+
+		SendCommand(Detail::AudioCommand{
+			.Type{ Detail::AudioCommandType::SetVoiceVolume },
+			.Slot{ voice.m_Slot },
+			.Generation{ voice.m_Generation },
+			.Volume{ ClampVolume(volume) },
+		});
+	}
+
 	bool AudioEngine::IsPlaying(VoiceHandle voice) const
 	{
 		if (!voice.IsValid() || voice.m_Slot >= m_Voices.size())

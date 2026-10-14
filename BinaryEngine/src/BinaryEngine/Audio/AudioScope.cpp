@@ -13,6 +13,7 @@ namespace BinaryEngine {
 
 	AudioScope::~AudioScope()
 	{
+		StopAll();
 		m_AudioEngine.DetachScope(*this);
 	}
 
@@ -21,4 +22,11 @@ namespace BinaryEngine {
 		return m_AudioEngine.PlayInScope(*this, clip, specification);
 	}
 
+	void AudioScope::StopAll(std::optional<float> fadeSeconds)
+	{
+		for (const VoiceHandle voice : m_Voices)
+		{
+			m_AudioEngine.Stop(voice, fadeSeconds);
+		}
+	}
 }

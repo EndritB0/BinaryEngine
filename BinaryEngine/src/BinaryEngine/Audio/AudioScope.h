@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "BinaryEngine/Asset/AssetTypes.h"
@@ -20,6 +21,7 @@ namespace BinaryEngine {
 		AudioScope& operator=(AudioScope&&) = delete;
 
 		VoiceHandle Play(AssetHandle clip, const PlaySpecification& specification = {});
+		void StopAll(std::optional<float> fadeSeconds = std::nullopt);
 
 	private:
 		friend class AudioEngine;
