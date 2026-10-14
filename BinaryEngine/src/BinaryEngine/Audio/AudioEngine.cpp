@@ -210,7 +210,7 @@ namespace BinaryEngine {
 
 		FlushCommandBacklog();
 
-		Detail::VoiceFinishedEvent finishedVoice;
+		Detail::VoiceFinishedEvent finishedVoice{};
 		while (m_Mixer->PopFinishedVoice(finishedVoice))
 		{
 			ReleaseVoice(finishedVoice);
@@ -358,18 +358,22 @@ namespace BinaryEngine {
 			return VoiceHandle{};
 		}
 
+		if (m_InvalidClipWarnings.contains(clipHandle))
+		{
+			return VoiceHandle{};
+		}
+
 		const std::shared_ptr<AudioAsset> clip{ m_AssetManager.GetAsset<AudioAsset>(clipHandle) };
 		if (!clip)
 		{
+			m_InvalidClipWarnings.insert(clipHandle);
 			return VoiceHandle{};
 		}
 
 		if (!clip->IsValid())
 		{
-			if (m_InvalidClipWarnings.insert(clipHandle).second)
-			{
-				CORE_WARN("[AudioEngine] Can't play {}: the asset failed to load", clip->GetFilePath().string());
-			}
+			m_InvalidClipWarnings.insert(clipHandle);
+			CORE_WARN("[AudioEngine] Can't play {}: the asset failed to load", clip->GetFilePath().string());
 			return VoiceHandle{};
 		}
 

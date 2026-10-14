@@ -84,7 +84,7 @@ namespace Sandbox {
 		{
 			for (int playIndex{ 0 }; playIndex < s_FloodPlaysPerFrame; playIndex++)
 			{
-				PlayOneShot(m_FirstOneShotHandle);
+				PlayOneShot(m_SecondOneShotHandle);
 			}
 		}
 

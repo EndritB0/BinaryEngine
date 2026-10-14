@@ -64,7 +64,7 @@ namespace BinaryEngine::Detail {
 
 	void Mixer::ProcessCommands()
 	{
-		AudioCommand command;
+		AudioCommand command{};
 		while (m_Commands.TryPop(command))
 		{
 			switch (command.Type)
