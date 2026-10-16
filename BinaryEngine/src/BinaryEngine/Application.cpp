@@ -75,6 +75,10 @@ namespace BinaryEngine {
 			return;
 		}
 
+		const std::uint16_t fpsLimit{ m_Window->GetSpecification().fpsLimit };
+		const std::uint64_t frameBudgetNanoseconds{ fpsLimit > 0 ? static_cast<std::uint64_t>(SDL_NS_PER_SECOND) / fpsLimit : 0 };
+		CORE_INFO("[Application] Frame rate limit: {}", fpsLimit == 0 ? "uncapped" : (std::to_string(fpsLimit) + " FPS"));
+
 		m_IsRunning = true;
 		m_LastFrameTime = SDL_GetTicksNS();
 
@@ -88,6 +92,15 @@ namespace BinaryEngine {
 			Update(dt);
 			Render();
 			PostFrame();
+
+			if (frameBudgetNanoseconds > 0)
+			{
+				const std::uint64_t frameTime{ SDL_GetTicksNS() - currentFrameTime };
+				if (frameTime < frameBudgetNanoseconds)
+				{
+					SDL_DelayPrecise(frameBudgetNanoseconds - frameTime);
+				}
+			}
 		}
 
 		CORE_INFO("[Application] Application Loop Ended");
