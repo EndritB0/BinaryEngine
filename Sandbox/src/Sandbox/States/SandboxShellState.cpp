@@ -51,6 +51,7 @@ namespace Sandbox {
 
 		m_Context.renderer.SetClearColor(BinaryEngine::Color::Black);
 		CreateOverlay();
+		SwitchToDemo(GetStartDemoIndex());
 
 		if (m_Options.Frames.has_value())
 		{
@@ -79,11 +80,7 @@ namespace Sandbox {
 			return;
 		}
 
-		if (!m_ActiveDemoIndex.has_value())
-		{
-			SwitchToDemo(GetStartDemoIndex());
-		}
-		else if (m_Options.Frames.has_value())
+		if (m_Options.Frames.has_value())
 		{
 			++m_FramesOnActiveDemo;
 			if (m_FramesOnActiveDemo >= *m_Options.Frames)

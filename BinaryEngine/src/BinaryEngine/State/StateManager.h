@@ -48,9 +48,6 @@ namespace BinaryEngine {
 		void ApplyPendingChanges();
 
 	private:
-		void CleanUp();
-
-	private:
 		enum class Action {
 			None = 0,
 			Push,
@@ -65,6 +62,10 @@ namespace BinaryEngine {
 			std::unique_ptr<State> state{ nullptr };
 			State* target{ nullptr };
 		};
+
+	private:
+		void ApplyChange(PendingChange& change);
+		void CleanUp();
 
 		std::vector<std::unique_ptr<State>> m_States;
 		std::vector<PendingChange> m_PendingChanges;

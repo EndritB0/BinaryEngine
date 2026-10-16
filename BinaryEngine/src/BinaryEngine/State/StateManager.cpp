@@ -2,6 +2,9 @@
 #include "BinaryEngine/State/StateManager.h"
 
 namespace BinaryEngine {
+
+	constexpr std::size_t s_MaxPendingChangePasses{ 16 };
+
 	StateManager::StateManager(const Context& context) :
 		m_Context(context)
 	{
@@ -70,81 +73,93 @@ namespace BinaryEngine {
 
 	void StateManager::ApplyPendingChanges()
 	{
-		if (m_PendingChanges.empty())
+		std::size_t passCount{ 0 };
+		while (!m_PendingChanges.empty() && passCount < s_MaxPendingChangePasses)
 		{
-			return;
+			std::vector<PendingChange> changesToApply{ std::move(m_PendingChanges) };
+
+			for (auto& change : changesToApply)
+			{
+				ApplyChange(change);
+			}
+
+			passCount++;
 		}
 
-		for (auto& change : m_PendingChanges)
+		if (!m_PendingChanges.empty())
 		{
-			switch (change.action)
+			CORE_ERROR("[StateManager] Dropped {} pending state change(s) after {} passes. States may be requesting transitions from each other in a loop", m_PendingChanges.size(), s_MaxPendingChangePasses);
+			m_PendingChanges.clear();
+		}
+	}
+
+	void StateManager::ApplyChange(PendingChange& change)
+	{
+		switch (change.action)
+		{
+			case Action::Push:
 			{
-				case Action::Push:
+				m_States.push_back(std::move(change.state));
+				m_States.back()->OnAttach();
+				break;
+			}
+
+			case Action::Pop:
+			{
+				if (!m_States.empty())
+				{
+					m_States.back()->OnDetach();
+					m_States.pop_back();
+				}
+				break;
+			}
+
+			case Action::Replace:
+			{
+				auto targetState{ std::find_if(
+					m_States.begin(),
+					m_States.end(),
+					[&](const std::unique_ptr<State>& state) { return state.get() == change.target; }) };
+
+				if (targetState != m_States.end())
+				{
+					(*targetState)->OnDetach();
+					*targetState = std::move(change.state);
+					(*targetState)->OnAttach();
+					break;
+				}
+				else
 				{
 					m_States.push_back(std::move(change.state));
 					m_States.back()->OnAttach();
-					break;
 				}
-
-				case Action::Pop:
-				{
-					if (!m_States.empty())
-					{
-						m_States.back()->OnDetach();
-						m_States.pop_back();
-					}
-					break;
-				}
-
-				case Action::Replace:
-				{
-					auto targetState{ std::find_if(
-						m_States.begin(),
-						m_States.end(),
-						[&](const std::unique_ptr<State>& state) { return state.get() == change.target; }) };
-
-					if (targetState != m_States.end())
-					{
-						(*targetState)->OnDetach();
-						*targetState = std::move(change.state);
-						(*targetState)->OnAttach();
-						break;
-					}
-					else
-					{
-						m_States.push_back(std::move(change.state));
-						m_States.back()->OnAttach();
-					}
-					break;
-				}
-
-				case Action::Remove:
-				{
-					auto targetState{ std::find_if(
-						m_States.begin(),
-						m_States.end(),
-						[&](const std::unique_ptr<State>& state) { return state.get() == change.target; }) };
-
-					if (targetState != m_States.end())
-					{
-						(*targetState)->OnDetach();
-						m_States.erase(targetState);
-					}
-					break;
-				}
-
-				case Action::Clear:
-				{
-					CleanUp();
-					break;
-				}
-
-				default:
-					break;
+				break;
 			}
-		}
 
-		m_PendingChanges.clear();
+			case Action::Remove:
+			{
+				auto targetState{ std::find_if(
+					m_States.begin(),
+					m_States.end(),
+					[&](const std::unique_ptr<State>& state) { return state.get() == change.target; }) };
+
+				if (targetState != m_States.end())
+				{
+					(*targetState)->OnDetach();
+					m_States.erase(targetState);
+				}
+				break;
+			}
+
+			case Action::Clear:
+			{
+				CleanUp();
+				break;
+			}
+
+			default:
+				break;
+		}
 	}
 
 	void StateManager::CleanUp()
