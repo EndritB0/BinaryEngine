@@ -9,10 +9,11 @@ namespace BinaryEngine {
 
 	class AssetHandle {
 	public:
-		AssetHandle() :
-			m_Handle(UUID::Generate()) {}
+		AssetHandle() = default;
 		AssetHandle(std::uint64_t handle) :
 			m_Handle(handle) {}
+
+		static AssetHandle Generate() { return AssetHandle{ UUID::Generate() }; }
 
 		bool IsValid() const { return m_Handle != 0; }
 		operator std::uint64_t() const { return m_Handle; }

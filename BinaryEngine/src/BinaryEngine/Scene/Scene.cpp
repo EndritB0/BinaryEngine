@@ -81,6 +81,11 @@ namespace BinaryEngine {
 		auto spriteView = GetAllEntitiesWith<TransformComponent, SpriteComponent>();
 
 		spriteView.each([&](auto& transform, auto& sprite) {
+			if (!sprite.TextureHandle.IsValid())
+			{
+				return;
+			}
+
 			auto textureAsset = assetManager.GetAsset<Texture2D>(sprite.TextureHandle);
 
 			if (!textureAsset)
@@ -101,6 +106,11 @@ namespace BinaryEngine {
 		auto textView = GetAllEntitiesWith<TransformComponent, TextComponent>();
 
 		textView.each([&](auto& transform, auto& text) {
+			if (!text.FontHandle.IsValid())
+			{
+				return;
+			}
+
 			auto fontAsset = assetManager.GetAsset<Font>(text.FontHandle);
 
 			if (!fontAsset)

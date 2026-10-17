@@ -33,7 +33,7 @@ namespace BinaryEngine {
 				return m_PathRegistry[pathString];
 			}
 
-			AssetHandle handle;
+			const AssetHandle handle{ AssetHandle::Generate() };
 			std::shared_ptr<T> asset = std::make_shared<T>();
 
 			asset->Load(path, std::forward<Args>(args)...);
