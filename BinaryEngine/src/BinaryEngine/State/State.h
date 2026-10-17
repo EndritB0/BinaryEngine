@@ -22,6 +22,7 @@ namespace BinaryEngine {
 		virtual void OnEvent(Event& event) = 0;
 		virtual void OnUpdate(TimeStep dt) = 0;
 		virtual void OnRender() = 0;
+		virtual void OnRenderOverlay() {}
 
 	protected:
 		StateManager& m_StateManager;

@@ -25,6 +25,7 @@ namespace Sandbox {
 		virtual void OnEvent(BinaryEngine::Event& event) override;
 		virtual void OnUpdate(BinaryEngine::TimeStep dt) override;
 		virtual void OnRender() override;
+		virtual void OnRenderOverlay() override;
 
 	private:
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);

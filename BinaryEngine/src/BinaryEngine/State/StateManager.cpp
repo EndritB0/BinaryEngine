@@ -69,6 +69,11 @@ namespace BinaryEngine {
 		{
 			state->OnRender();
 		}
+
+		for (auto& state : m_States)
+		{
+			state->OnRenderOverlay();
+		}
 	}
 
 	void StateManager::ApplyPendingChanges()

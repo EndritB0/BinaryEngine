@@ -82,22 +82,25 @@ namespace Sandbox {
 
 		if (m_Options.Frames.has_value())
 		{
-			++m_FramesOnActiveDemo;
+			m_FramesOnActiveDemo++;
 			if (m_FramesOnActiveDemo >= *m_Options.Frames)
 			{
 				AdvanceSmokeRun();
 			}
 		}
-
-		UpdateOverlayStatistics();
 	}
 
 	void SandboxShellState::OnRender()
+	{}
+
+	void SandboxShellState::OnRenderOverlay()
 	{
 		if (!m_OverlayStatisticsEntity)
 		{
 			return;
 		}
+
+		UpdateOverlayStatistics();
 
 		m_Context.renderer.BeginScene(m_Camera);
 
