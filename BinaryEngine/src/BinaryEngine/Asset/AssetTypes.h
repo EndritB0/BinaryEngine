@@ -33,6 +33,47 @@ namespace BinaryEngine {
 		StreamingAudioClip,
 	};
 
+	constexpr std::string_view AssetTypeToString(AssetType type)
+	{
+		switch (type)
+		{
+			case BinaryEngine::AssetType::None:
+			{
+				return "None";
+			}
+
+			case BinaryEngine::AssetType::Texture2D:
+			{
+				return "Texture2D";
+			}
+
+			case BinaryEngine::AssetType::Shader:
+			{
+				return "Shader";
+			}
+
+			case BinaryEngine::AssetType::Font:
+			{
+				return "Font";
+			}
+
+			case BinaryEngine::AssetType::AudioClip:
+			{
+				return "AudioClip";
+			}
+
+			case BinaryEngine::AssetType::StreamingAudioClip:
+			{
+				return "StreamingAudioClip";
+			}
+
+			default:
+			{
+				return "Unknown";
+			}
+		}
+	}
+
 }
 
 namespace std {

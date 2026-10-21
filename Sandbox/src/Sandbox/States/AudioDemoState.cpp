@@ -18,6 +18,7 @@ namespace Sandbox {
 		constexpr std::string_view s_FirstOneShotPath{ "./resources/audio/one_shot_1.wav" };
 		constexpr std::string_view s_SecondOneShotPath{ "./resources/audio/one_shot_2.wav" };
 		constexpr std::string_view s_AmbiencePath{ "./resources/audio/ambience_loop.wav" };
+		// constexpr std::string_view s_MusicPath{ s_FirstOneShotPath };
 		constexpr std::string_view s_MusicPath{ "./resources/audio/music_loop.ogg" };
 		constexpr std::string_view s_KeyHelp{ "Z / X  one-shot     Hold C  flood the voices\nA  ambience loop (0.5 s fade-in)     M  music     S  music, 2 s fade-out\nUp / Down  Master volume     [ / ]  SFX volume     - / =  Music volume     , / .  Ambience volume" };
 		constexpr float s_MusicSlowFadeSeconds{ 2.0f };

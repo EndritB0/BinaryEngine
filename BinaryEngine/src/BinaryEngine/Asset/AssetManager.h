@@ -27,10 +27,20 @@ namespace BinaryEngine {
 		{
 			std::string pathString{ path.string() };
 
-			if (m_PathRegistry.find(pathString) != m_PathRegistry.end())
+			const auto registeredPath{ m_PathRegistry.find(pathString) };
+			if (registeredPath != m_PathRegistry.end())
 			{
+				const AssetHandle cachedHandle{ registeredPath->second };
+				const AssetType cachedType{ m_Assets.find(cachedHandle)->second->GetAssetType() };
+
+				if (cachedType != T::GetStaticAssetType())
+				{
+					CORE_ERROR("[AssetManager] Can't load {} as {}: it's already loaded as {}", pathString, AssetTypeToString(T::GetStaticAssetType()), AssetTypeToString(cachedType));
+					return AssetHandle{};
+				}
+
 				CORE_TRACE("[AssetManager] Asset Already Loaded, returning existing handle");
-				return m_PathRegistry[pathString];
+				return cachedHandle;
 			}
 
 			const AssetHandle handle{ AssetHandle::Generate() };
