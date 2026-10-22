@@ -1,24 +1,22 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string_view>
-#include <vector>
-#include <glm/fwd.hpp>
 
 #include "BinaryEngine/Core/Color.h"
 #include "BinaryEngine/Core/Math.h"
-#include "BinaryEngine/Core/Transform.h"
-#include "BinaryEngine/Renderer/OrthographicCamera.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
-#include "BinaryEngine/Renderer/TextLayout.h"
 #include "BinaryEngine/Renderer/TextSpecification.h"
-#include "BinaryEngine/Renderer/Texture2D.h"
-#include "BinaryEngine/Renderer/TextureRegion.h"
-#include "BinaryEngine/Window/Window.h"
 
 namespace BinaryEngine {
 
 	class Font;
+	class OrthographicCamera;
+	class Texture2D;
+	class Window;
+	struct TextureRegion;
+	struct Transform;
 
 	class Renderer {
 	public:
@@ -39,18 +37,18 @@ namespace BinaryEngine {
 			std::uint32_t maxQuads{ 0 };
 		};
 
-		void* GetNativeDevice() const { return m_Device; }
-		bool IsValid() const { return m_Device != nullptr; }
+		void* GetNativeDevice() const;
+		bool IsValid() const;
 		void SetViewport(Vector2i position, Vector2i size);
 		void ResetViewport();
-		Vector2i GetViewportPosition() const { return m_ViewportPosition; }
-		Vector2i GetViewportSize() const { return m_ViewportSize; }
-		bool HasCustomViewport() const { return m_HasCustomViewport; }
+		Vector2i GetViewportPosition() const;
+		Vector2i GetViewportSize() const;
+		bool HasCustomViewport() const;
 		void SetPresentMode(PresentMode mode);
-		PresentMode GetPresentMode() const { return m_Specification.presentMode; };
+		PresentMode GetPresentMode() const;
 		void SetDefaultAlpha(std::uint8_t alpha);
-		std::uint8_t GetDefaultAlpha() const { return m_Specification.defaultAlpha; };
-		const Statistics& GetStatistics() const { return m_Statistics; }
+		std::uint8_t GetDefaultAlpha() const;
+		const Statistics& GetStatistics() const;
 		void Clear();
 		void Present();
 		void SetClearColor(const Color& color);
@@ -62,83 +60,8 @@ namespace BinaryEngine {
 		Vector2f MeasureText(const Font& font, std::string_view text, const TextSpecification& specification);
 
 	private:
-		struct SceneData {
-			glm::mat4 ViewProjectionMatrix{ 1.0f };
-			glm::mat4 ScreenViewProjectionMatrix{ 1.0f };
-		};
-
-		struct SpriteVertex {
-			float position[3]{};
-			float textureCoordinates[2]{};
-			float color[4]{};
-		};
-
-		struct RenderBatch {
-			struct SDL_GPUTexture* texture{ nullptr };
-			std::uint32_t firstQuad{ 0 };
-			std::uint32_t quadCount{ 0 };
-		};
-
-		struct SpriteDraw {
-			struct SDL_GPUTexture* texture{ nullptr };
-			float sortZ{ 0.0f };
-			SpriteVertex vertices[4]{};
-		};
-
-		struct CullBounds {
-			float minX{ 0.0f };
-			float minY{ 0.0f };
-			float maxX{ 0.0f };
-			float maxY{ 0.0f };
-			bool valid{ false };
-		};
-
-		SceneData m_SceneData;
-
-		struct SDL_GPUDevice* m_Device{ nullptr };
-		struct SDL_Window* m_Window{ nullptr };
-
-		struct SDL_GPUGraphicsPipeline* m_Pipeline{ nullptr };
-		struct SDL_GPUSampler* m_Sampler{ nullptr };
-		struct SDL_GPUBuffer* m_VertexBuffer{ nullptr };
-		struct SDL_GPUBuffer* m_IndexBuffer{ nullptr };
-		struct SDL_GPUTransferBuffer* m_VertexTransferBuffer{ nullptr };
-
-		std::vector<SpriteDraw> m_Draws;
-		std::vector<SpriteDraw> m_ScreenDraws;
-		std::vector<SpriteVertex> m_VertexStaging;
-		std::vector<RenderBatch> m_Batches;
-		TextLayoutResult m_TextLayout;
-		std::uint32_t m_QuadCount{ 0 };
-		std::uint32_t m_QuadCapacity{ 0 };
-		bool m_SceneActive{ false };
-
-		CullBounds m_CullBounds;
-		Statistics m_Statistics;
-
-		struct SDL_GPUCommandBuffer* m_CommandBuffer{ nullptr };
-		struct SDL_GPUTexture* m_SwapchainTexture{ nullptr };
-		std::uint32_t m_SwapchainWidth{ 0 };
-		std::uint32_t m_SwapchainHeight{ 0 };
-		bool m_FrameCleared{ false };
-
-		Vector2i m_ViewportPosition{ 0, 0 };
-		Vector2i m_ViewportSize{ 0, 0 };
-		bool m_HasCustomViewport{ false };
-
-		CameraViewport m_SceneViewport;
-
-		Color m_ClearColor{ Color::Black };
-		RendererSpecification m_Specification;
-
-	private:
-		void SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax);
-		void InitialiseSpriteRenderer();
-		bool UploadQuadIndices(struct SDL_GPUBuffer* target, std::uint32_t quadCapacity);
-		bool EnsureQuadCapacity(std::uint32_t newCapacity);
-		void CalculateCullBounds(const glm::mat4& inverseViewProjection);
-		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
-		void AppendBatches(const std::vector<SpriteDraw>& draws, std::uint32_t drawableQuadCount, bool forceNewBatch);
+		struct RendererData;
+		std::unique_ptr<RendererData> m_Data;
 	};
 
 }
