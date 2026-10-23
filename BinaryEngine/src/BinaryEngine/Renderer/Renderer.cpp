@@ -84,10 +84,12 @@ namespace {
 	};
 
 	struct SpriteVertex {
-		float position[3]{};
-		float textureCoordinates[2]{};
-		float color[4]{};
+		BinaryEngine::Vector2f Position{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f TextureCoordinates{ 0.0f, 0.0f };
+		BinaryEngine::Color VertexColor{};
 	};
+
+	static_assert(sizeof(SpriteVertex) == 20, "The sprite pipeline's vertex layout expects 20-byte vertices");
 
 	struct RenderBatch {
 		SDL_GPUTexture* texture{ nullptr };
@@ -619,11 +621,6 @@ namespace BinaryEngine {
 
 		const glm::mat4 modelMatrix{ transform.GetModelMatrix() };
 
-		const float red{ static_cast<float>(specification.FillColor.red) / 255.0f };
-		const float green{ static_cast<float>(specification.FillColor.green) / 255.0f };
-		const float blue{ static_cast<float>(specification.FillColor.blue) / 255.0f };
-		const float alpha{ static_cast<float>(specification.FillColor.alpha) / 255.0f };
-
 		std::vector<SpriteDraw>& targetDrawList{ isWorldSpace ? m_Data->m_Draws : m_Data->m_ScreenDraws };
 
 		for (const LaidOutGlyph& glyph : m_Data->m_TextLayout.Glyphs)
@@ -656,15 +653,9 @@ namespace BinaryEngine {
 				const glm::vec4 transformedPosition{ modelMatrix * glm::vec4(glyphCorners[cornerIndex], 0.0f, 1.0f) };
 
 				SpriteVertex& vertex{ draw.vertices[cornerIndex] };
-				vertex.position[0] = transformedPosition.x;
-				vertex.position[1] = transformedPosition.y;
-				vertex.position[2] = transformedPosition.z;
-				vertex.textureCoordinates[0] = glyphTextureCoordinates[cornerIndex].x;
-				vertex.textureCoordinates[1] = glyphTextureCoordinates[cornerIndex].y;
-				vertex.color[0] = red;
-				vertex.color[1] = green;
-				vertex.color[2] = blue;
-				vertex.color[3] = alpha;
+				vertex.Position = { transformedPosition.x, transformedPosition.y };
+				vertex.TextureCoordinates = glyphTextureCoordinates[cornerIndex];
+				vertex.VertexColor = specification.FillColor;
 			}
 
 			m_Data->m_Statistics.glyphCount++;
@@ -718,7 +709,7 @@ namespace BinaryEngine {
 			{ uvMin.x, uvMin.y },
 		};
 
-		const float alpha{ static_cast<float>(m_Specification.defaultAlpha) / 255.0f };
+		const Color vertexColor{ 0xFF, 0xFF, 0xFF, m_Specification.defaultAlpha };
 
 		SpriteDraw& draw{ m_Draws.emplace_back() };
 		draw.texture = nativeTexture;
@@ -729,15 +720,9 @@ namespace BinaryEngine {
 			glm::vec4 worldPosition{ modelMatrix * glm::vec4(localVertices[cornerIndex], 1.0f) };
 
 			SpriteVertex& vertex{ draw.vertices[cornerIndex] };
-			vertex.position[0] = worldPosition.x;
-			vertex.position[1] = worldPosition.y;
-			vertex.position[2] = worldPosition.z;
-			vertex.textureCoordinates[0] = quadTextureCoordinates[cornerIndex].x;
-			vertex.textureCoordinates[1] = quadTextureCoordinates[cornerIndex].y;
-			vertex.color[0] = 1.0f;
-			vertex.color[1] = 1.0f;
-			vertex.color[2] = 1.0f;
-			vertex.color[3] = alpha;
+			vertex.Position = { worldPosition.x, worldPosition.y };
+			vertex.TextureCoordinates = quadTextureCoordinates[cornerIndex];
+			vertex.VertexColor = vertexColor;
 		}
 	}
 
@@ -785,22 +770,22 @@ namespace BinaryEngine {
 			{
 				.location{ 0 },
 				.buffer_slot{ 0 },
-				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3 },
-				.offset{ 0 },
+				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2 },
+				.offset{ static_cast<std::uint32_t>(offsetof(SpriteVertex, Position)) },
 			},
 
 			{
 				.location{ 1 },
 				.buffer_slot{ 0 },
 				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2 },
-				.offset{ static_cast<std::uint32_t>(sizeof(float) * 3) },
+				.offset{ static_cast<std::uint32_t>(offsetof(SpriteVertex, TextureCoordinates)) },
 			},
 
 			{
 				.location{ 2 },
 				.buffer_slot{ 0 },
-				.format{ SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4 },
-				.offset{ static_cast<std::uint32_t>(sizeof(float) * 5) },
+				.format{ SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM },
+				.offset{ static_cast<std::uint32_t>(offsetof(SpriteVertex, VertexColor)) },
 			},
 		};
 
