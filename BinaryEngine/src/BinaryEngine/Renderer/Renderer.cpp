@@ -15,7 +15,67 @@ namespace {
 	constexpr std::uint32_t s_VerticesPerQuad{ 4 };
 	constexpr std::uint32_t s_IndicesPerQuad{ 6 };
 	constexpr std::uint32_t s_AbsoluteMaxQuads{ 16000000 };
-	constexpr std::uint32_t s_InitialScreenDrawCapacity{ 1024 };
+
+	constexpr std::uint64_t s_ScreenSpaceKeyBit{ std::uint64_t{ 1 } << 63 };
+	constexpr std::uint32_t s_SortKeyIndexBits{ 31 };
+	constexpr std::uint64_t s_SortKeyIndexMask{ (std::uint64_t{ 1 } << s_SortKeyIndexBits) - 1 };
+
+	enum class QuadSpace : std::uint8_t {
+		World = 0,
+		Screen
+	};
+
+	struct SpriteVertex {
+		BinaryEngine::Vector2f Position{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f TextureCoordinates{ 0.0f, 0.0f };
+		BinaryEngine::Color VertexColor{};
+	};
+
+	static_assert(sizeof(SpriteVertex) == 20, "The sprite pipeline's vertex layout expects 20-byte vertices");
+
+	constexpr std::uint32_t s_QuadVertexBytes{ s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
+
+	struct QuadCommand {
+		SDL_GPUTexture* Texture{ nullptr };
+		BinaryEngine::Vector2f Origin{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f EdgeX{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f EdgeY{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f UVStart{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f UVEnd{ 0.0f, 0.0f };
+		BinaryEngine::Color VertexColor{};
+		float SortZ{ 0.0f };
+		QuadSpace Space{ QuadSpace::World };
+	};
+
+	struct RenderBatch {
+		SDL_GPUTexture* texture{ nullptr };
+		std::uint32_t firstQuad{ 0 };
+		std::uint32_t quadCount{ 0 };
+	};
+
+	struct SceneRecord {
+		glm::mat4 ViewProjectionMatrix{ 1.0f };
+		glm::mat4 ScreenViewProjectionMatrix{ 1.0f };
+		BinaryEngine::CameraViewport Viewport{};
+		std::size_t FirstCommand{ 0 };
+		std::size_t FirstBatch{ 0 };
+		std::size_t WorldBatchCount{ 0 };
+		std::size_t ScreenBatchCount{ 0 };
+	};
+
+	struct CullBounds {
+		float minX{ 0.0f };
+		float minY{ 0.0f };
+		float maxX{ 0.0f };
+		float maxY{ 0.0f };
+		bool valid{ false };
+	};
+
+	struct AffineTransform2D {
+		BinaryEngine::Vector2f AxisX{ 1.0f, 0.0f };
+		BinaryEngine::Vector2f AxisY{ 0.0f, 1.0f };
+		BinaryEngine::Vector2f Translation{ 0.0f, 0.0f };
+	};
 
 	static const char* RenderAPIToDriverName(BinaryEngine::RenderAPI api)
 	{
@@ -78,45 +138,70 @@ namespace {
 		}
 	}
 
-	struct SceneData {
-		glm::mat4 ViewProjectionMatrix{ 1.0f };
-		glm::mat4 ScreenViewProjectionMatrix{ 1.0f };
-	};
+	static SDL_FColor ToFloatColor(const BinaryEngine::Color& color)
+	{
+		return {
+			static_cast<float>(color.red) / 255.0f,
+			static_cast<float>(color.green) / 255.0f,
+			static_cast<float>(color.blue) / 255.0f,
+			static_cast<float>(color.alpha) / 255.0f,
+		};
+	}
 
-	struct SpriteVertex {
-		BinaryEngine::Vector2f Position{ 0.0f, 0.0f };
-		BinaryEngine::Vector2f TextureCoordinates{ 0.0f, 0.0f };
-		BinaryEngine::Color VertexColor{};
-	};
+	static AffineTransform2D ToAffineTransform2DFromMatrix(const BinaryEngine::Transform& transform)
+	{
+		const glm::mat4 modelMatrix{ transform.GetModelMatrix() };
+		return {
+			.AxisX{ modelMatrix[0].x, modelMatrix[0].y },
+			.AxisY{ modelMatrix[1].x, modelMatrix[1].y },
+			.Translation{ modelMatrix[3].x, modelMatrix[3].y },
+		};
+	}
 
-	static_assert(sizeof(SpriteVertex) == 20, "The sprite pipeline's vertex layout expects 20-byte vertices");
+	static AffineTransform2D ToAffineTransform2D(const BinaryEngine::Transform& transform)
+	{
+		if (transform.Rotation.x != 0.0f || transform.Rotation.y != 0.0f)
+		{
+			return ToAffineTransform2DFromMatrix(transform);
+		}
 
-	struct RenderBatch {
-		SDL_GPUTexture* texture{ nullptr };
-		std::uint32_t firstQuad{ 0 };
-		std::uint32_t quadCount{ 0 };
-	};
+		const float rotationRadians{ glm::radians(transform.Rotation.z) };
+		const float cosine{ std::cos(rotationRadians) };
+		const float sine{ std::sin(rotationRadians) };
+		return {
+			.AxisX{ cosine * transform.Scale.x, sine * transform.Scale.x },
+			.AxisY{ -sine * transform.Scale.y, cosine * transform.Scale.y },
+			.Translation{ transform.Position.x, transform.Position.y },
+		};
+	}
 
-	struct SpriteDraw {
-		SDL_GPUTexture* texture{ nullptr };
-		float sortZ{ 0.0f };
-		SpriteVertex vertices[4]{};
-	};
+	static std::uint32_t ToOrderableBits(float value)
+	{
+		const float normalisedValue{ value == 0.0f ? 0.0f : value };
+		const std::uint32_t bits{ std::bit_cast<std::uint32_t>(normalisedValue) };
+		return (bits & 0x80000000u) != 0 ? ~bits : (bits | 0x80000000u);
+	}
 
-	struct CullBounds {
-		float minX{ 0.0f };
-		float minY{ 0.0f };
-		float maxX{ 0.0f };
-		float maxY{ 0.0f };
-		bool valid{ false };
-	};
+	static std::uint64_t MakeSortKey(QuadSpace space, float sortZ, std::uint32_t sceneCommandIndex)
+	{
+		const std::uint64_t spaceBit{ space == QuadSpace::Screen ? s_ScreenSpaceKeyBit : 0 };
+		return spaceBit | (static_cast<std::uint64_t>(ToOrderableBits(sortZ)) << s_SortKeyIndexBits) | sceneCommandIndex;
+	}
+
+	static std::array<SpriteVertex, s_VerticesPerQuad> MakeQuadVertices(const QuadCommand& command)
+	{
+		return { {
+			{ command.Origin, command.UVStart, command.VertexColor },
+			{ command.Origin + command.EdgeX, { command.UVEnd.x, command.UVStart.y }, command.VertexColor },
+			{ command.Origin + command.EdgeX + command.EdgeY, command.UVEnd, command.VertexColor },
+			{ command.Origin + command.EdgeY, { command.UVStart.x, command.UVEnd.y }, command.VertexColor },
+		} };
+	}
 }
 
 namespace BinaryEngine {
 
 	struct Renderer::RendererData {
-		SceneData m_SceneData;
-
 		SDL_GPUDevice* m_Device{ nullptr };
 		SDL_Window* m_Window{ nullptr };
 
@@ -126,14 +211,16 @@ namespace BinaryEngine {
 		SDL_GPUBuffer* m_IndexBuffer{ nullptr };
 		SDL_GPUTransferBuffer* m_VertexTransferBuffer{ nullptr };
 
-		std::vector<SpriteDraw> m_Draws;
-		std::vector<SpriteDraw> m_ScreenDraws;
-		std::vector<SpriteVertex> m_VertexStaging;
+		std::vector<QuadCommand> m_Commands;
+		std::vector<std::uint64_t> m_SortKeys;
+		std::vector<std::uint32_t> m_DrawOrder;
 		std::vector<RenderBatch> m_Batches;
+		std::vector<SceneRecord> m_Scenes;
 		TextLayoutResult m_TextLayout;
-		std::uint32_t m_QuadCount{ 0 };
 		std::uint32_t m_QuadCapacity{ 0 };
 		bool m_SceneActive{ false };
+		std::uint32_t m_FrameDroppedQuads{ 0 };
+		bool m_QuadLimitWarned{ false };
 
 		CullBounds m_CullBounds;
 		Statistics m_Statistics;
@@ -148,18 +235,26 @@ namespace BinaryEngine {
 		Vector2i m_ViewportSize{ 0, 0 };
 		bool m_HasCustomViewport{ false };
 
-		CameraViewport m_SceneViewport;
-
 		Color m_ClearColor{ Color::Black };
 		RendererSpecification m_Specification;
 
 		void SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax);
+		bool HasRoomForCommand();
+		void ResetQueue();
+		void ResetFrame();
+		void DiscardOpenScene();
+		void CloseScene();
+		std::size_t AppendBatches(const SceneRecord& scene, std::uint32_t firstKeyIndex, std::uint32_t keyCount);
+		bool UploadQuads(std::uint32_t drawableQuadCount);
+		void BindQuadPipeline(SDL_GPURenderPass* renderPass);
+		void SetSceneViewport(SDL_GPURenderPass* renderPass, const SceneRecord& scene);
+		void DrawBatches(SDL_GPURenderPass* renderPass, const glm::mat4& viewProjection, std::size_t firstBatch, std::size_t batchCount, std::uint32_t drawableQuadCount);
+		void SubmitScene();
 		void InitialiseSpriteRenderer(const Shader& vertexShader, const Shader& fragmentShader);
 		bool UploadQuadIndices(SDL_GPUBuffer* target, std::uint32_t quadCapacity);
 		bool EnsureQuadCapacity(std::uint32_t newCapacity);
 		void CalculateCullBounds(const glm::mat4& inverseViewProjection);
-		bool IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const;
-		void AppendBatches(const std::vector<SpriteDraw>& draws, std::uint32_t drawableQuadCount, bool forceNewBatch);
+		bool IsSpriteCulled(const Transform& transform, const Vector2f& quadSize) const;
 	};
 
 	Renderer::Renderer(const Window& window, const RendererSpecification& specification) :
@@ -322,6 +417,8 @@ namespace BinaryEngine {
 
 	void Renderer::Clear()
 	{
+		m_Data->ResetFrame();
+
 		m_Data->m_FrameCleared = false;
 		m_Data->m_SwapchainTexture = nullptr;
 
@@ -348,16 +445,9 @@ namespace BinaryEngine {
 
 		if (!m_Data->m_FrameCleared && m_Data->m_SwapchainTexture)
 		{
-			SDL_FColor clearColor{
-				static_cast<float>(m_Data->m_ClearColor.red) / 255.0f,
-				static_cast<float>(m_Data->m_ClearColor.green) / 255.0f,
-				static_cast<float>(m_Data->m_ClearColor.blue) / 255.0f,
-				static_cast<float>(m_Data->m_ClearColor.alpha) / 255.0f
-			};
-
 			SDL_GPUColorTargetInfo colorTarget{
 				.texture{ m_Data->m_SwapchainTexture },
-				.clear_color{ clearColor },
+				.clear_color{ ToFloatColor(m_Data->m_ClearColor) },
 				.load_op{ SDL_GPU_LOADOP_CLEAR },
 				.store_op{ SDL_GPU_STOREOP_STORE },
 			};
@@ -382,20 +472,22 @@ namespace BinaryEngine {
 
 	void Renderer::BeginScene(OrthographicCamera& camera)
 	{
+		m_Data->ResetQueue();
+
 		const Vector2i swapchainSize{ static_cast<int>(m_Data->m_SwapchainWidth), static_cast<int>(m_Data->m_SwapchainHeight) };
 		if (swapchainSize.x > 0 && swapchainSize.y > 0 && camera.GetWindowSize() != swapchainSize)
 		{
 			camera.OnResize(swapchainSize);
 		}
 
-		m_Data->m_SceneData.ViewProjectionMatrix = camera.GetViewProjectionMatrix();
+		SceneRecord& scene{ m_Data->m_Scenes.emplace_back() };
+		scene.ViewProjectionMatrix = camera.GetViewProjectionMatrix();
 
 		const Vector2f screenViewSize{ camera.GetScreenViewSize() };
-		m_Data->m_SceneData.ScreenViewProjectionMatrix = glm::ortho(0.0f, screenViewSize.x, screenViewSize.y, 0.0f, -1.0f, 1.0f);
+		scene.ScreenViewProjectionMatrix = glm::ortho(0.0f, screenViewSize.x, screenViewSize.y, 0.0f, -1.0f, 1.0f);
 
-		m_Data->m_Draws.clear();
-		m_Data->m_ScreenDraws.clear();
-		m_Data->m_QuadCount = 0;
+		scene.Viewport = m_Data->m_HasCustomViewport ? CameraViewport{ m_Data->m_ViewportPosition, m_Data->m_ViewportSize } : camera.CalculateViewport(swapchainSize);
+		scene.FirstCommand = m_Data->m_Commands.size();
 		m_Data->m_SceneActive = true;
 
 		m_Data->m_Statistics.quadCount = 0;
@@ -403,168 +495,24 @@ namespace BinaryEngine {
 		m_Data->m_Statistics.culledSprites = 0;
 		m_Data->m_Statistics.glyphCount = 0;
 
-		if (m_Data->m_HasCustomViewport)
-		{
-			m_Data->m_SceneViewport = { m_Data->m_ViewportPosition, m_Data->m_ViewportSize };
-		}
-		else
-		{
-			m_Data->m_SceneViewport = camera.CalculateViewport({ static_cast<int>(m_Data->m_SwapchainWidth), static_cast<int>(m_Data->m_SwapchainHeight) });
-		}
-
 		m_Data->CalculateCullBounds(camera.GetInverseViewProjectionMatrix());
 	}
 
 	void Renderer::EndScene()
 	{
-		m_Data->m_SceneActive = false;
-
-		if (!m_Data->m_CommandBuffer || !m_Data->m_SwapchainTexture)
+		if (!m_Data->m_SceneActive)
 		{
-			m_Data->m_Draws.clear();
-			m_Data->m_ScreenDraws.clear();
 			return;
 		}
 
-		std::uint32_t neededCapacity{ static_cast<std::uint32_t>(m_Data->m_Draws.size() + m_Data->m_ScreenDraws.size()) };
-		if (neededCapacity > m_Data->m_Specification.maxQuadCapacity)
+		if (!m_Data->m_CommandBuffer || !m_Data->m_SwapchainTexture)
 		{
-			CORE_WARN("[Renderer] Scene requested {} quads, ceiling is {}, dropping {}", neededCapacity, m_Data->m_Specification.maxQuadCapacity, neededCapacity - m_Data->m_Specification.maxQuadCapacity);
-			neededCapacity = m_Data->m_Specification.maxQuadCapacity;
+			m_Data->DiscardOpenScene();
+			return;
 		}
 
-		if (neededCapacity > m_Data->m_QuadCapacity)
-		{
-			m_Data->EnsureQuadCapacity(neededCapacity);
-		}
-
-		const std::uint32_t drawableQuadCount{ std::min(neededCapacity, m_Data->m_QuadCapacity) };
-
-		const std::uint32_t worldDrawableQuadCount{ std::min(static_cast<std::uint32_t>(m_Data->m_Draws.size()), drawableQuadCount) };
-		const std::uint32_t screenDrawableQuadCount{ std::min(static_cast<std::uint32_t>(m_Data->m_ScreenDraws.size()), drawableQuadCount - worldDrawableQuadCount) };
-
-		const auto sortByDepth = [](const SpriteDraw& left, const SpriteDraw& right) { return left.sortZ < right.sortZ; };
-		std::stable_sort(m_Data->m_Draws.begin(), m_Data->m_Draws.end(), sortByDepth);
-		std::stable_sort(m_Data->m_ScreenDraws.begin(), m_Data->m_ScreenDraws.end(), sortByDepth);
-
-		m_Data->m_VertexStaging.clear();
-		m_Data->m_Batches.clear();
-
-		m_Data->AppendBatches(m_Data->m_Draws, worldDrawableQuadCount, false);
-		const std::size_t worldBatchCount{ m_Data->m_Batches.size() };
-		m_Data->AppendBatches(m_Data->m_ScreenDraws, screenDrawableQuadCount, true);
-
-		m_Data->m_Statistics.quadCount = m_Data->m_QuadCount;
-		m_Data->m_Statistics.drawCalls = static_cast<std::uint32_t>(m_Data->m_Batches.size());
-
-		bool drawSprites{ m_Data->m_Pipeline && m_Data->m_Sampler && m_Data->m_QuadCount > 0 };
-		if (drawSprites)
-		{
-			const std::uint32_t vertexBytes{ m_Data->m_QuadCount * s_VerticesPerQuad * static_cast<std::uint32_t>(sizeof(SpriteVertex)) };
-
-			void* mappedVertices{ SDL_MapGPUTransferBuffer(m_Data->m_Device, m_Data->m_VertexTransferBuffer, true) };
-			if (mappedVertices)
-			{
-				SDL_memcpy(mappedVertices, m_Data->m_VertexStaging.data(), vertexBytes);
-				SDL_UnmapGPUTransferBuffer(m_Data->m_Device, m_Data->m_VertexTransferBuffer);
-
-				SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(m_Data->m_CommandBuffer) };
-
-				SDL_GPUTransferBufferLocation vertexSource{
-					.transfer_buffer{ m_Data->m_VertexTransferBuffer },
-					.offset{ 0 },
-				};
-
-				SDL_GPUBufferRegion vertexRegion{
-					.buffer{ m_Data->m_VertexBuffer },
-					.offset{ 0 },
-					.size{ vertexBytes },
-				};
-
-				SDL_UploadToGPUBuffer(copyPass, &vertexSource, &vertexRegion, true);
-				SDL_EndGPUCopyPass(copyPass);
-			}
-			else
-			{
-				drawSprites = false;
-				CORE_ERROR("[Renderer] Failed to map vertex transfer buffer: {}", SDL_GetError());
-			}
-		}
-
-		SDL_FColor clearColor{
-			static_cast<float>(m_Data->m_ClearColor.red) / 255.0f,
-			static_cast<float>(m_Data->m_ClearColor.green) / 255.0f,
-			static_cast<float>(m_Data->m_ClearColor.blue) / 255.0f,
-			static_cast<float>(m_Data->m_ClearColor.alpha) / 255.0f
-		};
-
-		SDL_GPUColorTargetInfo colorTarget{
-			.texture = m_Data->m_SwapchainTexture,
-			.clear_color = clearColor,
-			.load_op{ m_Data->m_FrameCleared ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR },
-			.store_op{ SDL_GPU_STOREOP_STORE },
-		};
-
-		SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_Data->m_CommandBuffer, &colorTarget, 1, nullptr) };
-		if (renderPass)
-		{
-			const bool useSceneViewport{ m_Data->m_SceneViewport.Size.x > 0 && m_Data->m_SceneViewport.Size.y > 0 };
-
-			SDL_GPUViewport viewport{
-				useSceneViewport ? static_cast<float>(m_Data->m_SceneViewport.Position.x) : 0.0f,
-				useSceneViewport ? static_cast<float>(m_Data->m_SceneViewport.Position.y) : 0.0f,
-				useSceneViewport ? static_cast<float>(m_Data->m_SceneViewport.Size.x) : static_cast<float>(m_Data->m_SwapchainWidth),
-				useSceneViewport ? static_cast<float>(m_Data->m_SceneViewport.Size.y) : static_cast<float>(m_Data->m_SwapchainHeight),
-				0.0f, 1.0f
-			};
-			SDL_SetGPUViewport(renderPass, &viewport);
-
-			if (drawSprites)
-			{
-				SDL_BindGPUGraphicsPipeline(renderPass, m_Data->m_Pipeline);
-
-				SDL_GPUBufferBinding vertexBinding{
-					.buffer{ m_Data->m_VertexBuffer },
-					.offset{ 0 },
-				};
-				SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
-
-				SDL_GPUBufferBinding indexBinding{
-					.buffer{ m_Data->m_IndexBuffer },
-					.offset{ 0 },
-				};
-				SDL_BindGPUIndexBuffer(renderPass, &indexBinding, SDL_GPU_INDEXELEMENTSIZE_32BIT);
-
-				const auto drawBatchRange = [&](std::size_t firstBatchIndex, std::size_t endBatchIndex) {
-					for (std::size_t batchIndex{ firstBatchIndex }; batchIndex < endBatchIndex; batchIndex++)
-					{
-						const RenderBatch& batch{ m_Data->m_Batches[batchIndex] };
-
-						SDL_GPUTextureSamplerBinding textureBinding{
-							.texture{ batch.texture },
-							.sampler{ m_Data->m_Sampler },
-						};
-						SDL_BindGPUFragmentSamplers(renderPass, 0, &textureBinding, 1);
-						SDL_DrawGPUIndexedPrimitives(renderPass, batch.quadCount * s_IndicesPerQuad, 1, batch.firstQuad * s_IndicesPerQuad, 0, 0);
-					}
-				};
-
-				SDL_PushGPUVertexUniformData(m_Data->m_CommandBuffer, 0, &m_Data->m_SceneData.ViewProjectionMatrix,
-					static_cast<std::uint32_t>(sizeof(m_Data->m_SceneData.ViewProjectionMatrix)));
-				drawBatchRange(0, worldBatchCount);
-
-				if (worldBatchCount < m_Data->m_Batches.size())
-				{
-					SDL_PushGPUVertexUniformData(m_Data->m_CommandBuffer, 0, &m_Data->m_SceneData.ScreenViewProjectionMatrix,
-						static_cast<std::uint32_t>(sizeof(m_Data->m_SceneData.ScreenViewProjectionMatrix)));
-					drawBatchRange(worldBatchCount, m_Data->m_Batches.size());
-				}
-			}
-
-			SDL_EndGPURenderPass(renderPass);
-		}
-
-		m_Data->m_FrameCleared = true;
+		m_Data->CloseScene();
+		m_Data->SubmitScene();
 	}
 
 	void Renderer::DrawSprite(const Texture2D& texture, const Transform& transform)
@@ -618,45 +566,32 @@ namespace BinaryEngine {
 
 		const bool isWorldSpace{ specification.Space == TextSpace::World };
 		const float verticalSign{ isWorldSpace ? -1.0f : 1.0f };
+		const QuadSpace space{ isWorldSpace ? QuadSpace::World : QuadSpace::Screen };
 
-		const glm::mat4 modelMatrix{ transform.GetModelMatrix() };
-
-		std::vector<SpriteDraw>& targetDrawList{ isWorldSpace ? m_Data->m_Draws : m_Data->m_ScreenDraws };
+		const AffineTransform2D basis{ ToAffineTransform2D(transform) };
 
 		for (const LaidOutGlyph& glyph : m_Data->m_TextLayout.Glyphs)
 		{
+			if (!m_Data->HasRoomForCommand())
+			{
+				return;
+			}
+
 			const float left{ glyph.Position.x * glyphScale };
 			const float right{ (glyph.Position.x + glyph.Size.x) * glyphScale };
 			const float top{ glyph.Position.y * glyphScale * verticalSign };
 			const float bottom{ (glyph.Position.y + glyph.Size.y) * glyphScale * verticalSign };
 
-			const glm::vec2 glyphCorners[4]{
-				{ left, top },
-				{ right, top },
-				{ right, bottom },
-				{ left, bottom },
-			};
-
-			const glm::vec2 glyphTextureCoordinates[4]{
-				{ glyph.UVMin.x, glyph.UVMin.y },
-				{ glyph.UVMax.x, glyph.UVMin.y },
-				{ glyph.UVMax.x, glyph.UVMax.y },
-				{ glyph.UVMin.x, glyph.UVMax.y },
-			};
-
-			SpriteDraw& draw{ targetDrawList.emplace_back() };
-			draw.texture = nativeTexture;
-			draw.sortZ = transform.Position.z;
-
-			for (int cornerIndex{}; cornerIndex < 4; cornerIndex++)
-			{
-				const glm::vec4 transformedPosition{ modelMatrix * glm::vec4(glyphCorners[cornerIndex], 0.0f, 1.0f) };
-
-				SpriteVertex& vertex{ draw.vertices[cornerIndex] };
-				vertex.Position = { transformedPosition.x, transformedPosition.y };
-				vertex.TextureCoordinates = glyphTextureCoordinates[cornerIndex];
-				vertex.VertexColor = specification.FillColor;
-			}
+			QuadCommand& command{ m_Data->m_Commands.emplace_back() };
+			command.Texture = nativeTexture;
+			command.Origin = basis.Translation + basis.AxisX * left + basis.AxisY * top;
+			command.EdgeX = basis.AxisX * (right - left);
+			command.EdgeY = basis.AxisY * (bottom - top);
+			command.UVStart = glyph.UVMin;
+			command.UVEnd = glyph.UVMax;
+			command.VertexColor = specification.FillColor;
+			command.SortZ = transform.Position.z;
+			command.Space = space;
 
 			m_Data->m_Statistics.glyphCount++;
 		}
@@ -693,60 +628,254 @@ namespace BinaryEngine {
 			return;
 		}
 
-		glm::mat4 modelMatrix{ transform.GetModelMatrix() * glm::scale(glm::mat4(1.0f), glm::vec3(quadSize.x, quadSize.y, 1.0f)) };
-
-		constexpr glm::vec3 localVertices[4]{
-			{ -0.5f, -0.5f, 0.0f },
-			{ 0.5f, -0.5f, 0.0f },
-			{ 0.5f, 0.5f, 0.0f },
-			{ -0.5f, 0.5f, 0.0f },
-		};
-
-		const glm::vec2 quadTextureCoordinates[4]{
-			{ uvMin.x, uvMax.y },
-			{ uvMax.x, uvMax.y },
-			{ uvMax.x, uvMin.y },
-			{ uvMin.x, uvMin.y },
-		};
-
-		const Color vertexColor{ 0xFF, 0xFF, 0xFF, m_Specification.defaultAlpha };
-
-		SpriteDraw& draw{ m_Draws.emplace_back() };
-		draw.texture = nativeTexture;
-		draw.sortZ = transform.Position.z;
-
-		for (int cornerIndex{}; cornerIndex < 4; cornerIndex++)
+		if (!HasRoomForCommand())
 		{
-			glm::vec4 worldPosition{ modelMatrix * glm::vec4(localVertices[cornerIndex], 1.0f) };
+			return;
+		}
 
-			SpriteVertex& vertex{ draw.vertices[cornerIndex] };
-			vertex.Position = { worldPosition.x, worldPosition.y };
-			vertex.TextureCoordinates = quadTextureCoordinates[cornerIndex];
-			vertex.VertexColor = vertexColor;
+		const AffineTransform2D basis{ ToAffineTransform2D(transform) };
+
+		const Vector2f edgeX{ basis.AxisX * quadSize.x };
+		const Vector2f edgeY{ basis.AxisY * quadSize.y };
+
+		QuadCommand& command{ m_Commands.emplace_back() };
+		command.Texture = nativeTexture;
+		command.Origin = basis.Translation - (edgeX + edgeY) * 0.5f;
+		command.EdgeX = edgeX;
+		command.EdgeY = edgeY;
+		command.UVStart = { uvMin.x, uvMax.y };
+		command.UVEnd = { uvMax.x, uvMin.y };
+		command.VertexColor = Color{ 0xFF, 0xFF, 0xFF, m_Specification.defaultAlpha };
+		command.SortZ = transform.Position.z;
+		command.Space = QuadSpace::World;
+	}
+
+	bool Renderer::RendererData::HasRoomForCommand()
+	{
+		if (m_Commands.size() - m_Scenes.back().FirstCommand < s_AbsoluteMaxQuads)
+		{
+			return true;
+		}
+
+		m_FrameDroppedQuads++;
+		return false;
+	}
+
+	void Renderer::RendererData::ResetQueue()
+	{
+		m_Commands.clear();
+		m_DrawOrder.clear();
+		m_Batches.clear();
+		m_Scenes.clear();
+		m_SceneActive = false;
+	}
+
+	void Renderer::RendererData::ResetFrame()
+	{
+		ResetQueue();
+
+		if (m_FrameDroppedQuads == 0)
+		{
+			m_QuadLimitWarned = false;
+		}
+		m_FrameDroppedQuads = 0;
+	}
+
+	void Renderer::RendererData::DiscardOpenScene()
+	{
+		m_Commands.resize(m_Scenes.back().FirstCommand);
+		m_Scenes.pop_back();
+		m_SceneActive = false;
+	}
+
+	void Renderer::RendererData::CloseScene()
+	{
+		m_SceneActive = false;
+
+		SceneRecord& scene{ m_Scenes.back() };
+		const std::uint32_t sceneCommandCount{ static_cast<std::uint32_t>(m_Commands.size() - scene.FirstCommand) };
+
+		m_SortKeys.clear();
+		for (std::uint32_t sceneCommandIndex{ 0 }; sceneCommandIndex < sceneCommandCount; sceneCommandIndex++)
+		{
+			const QuadCommand& command{ m_Commands[scene.FirstCommand + sceneCommandIndex] };
+			m_SortKeys.push_back(MakeSortKey(command.Space, command.SortZ, sceneCommandIndex));
+		}
+		std::sort(m_SortKeys.begin(), m_SortKeys.end());
+
+		const auto firstScreenKey{ std::partition_point(m_SortKeys.begin(), m_SortKeys.end(), [](std::uint64_t sortKey) { return (sortKey & s_ScreenSpaceKeyBit) == 0; }) };
+		const std::uint32_t worldQuadCount{ static_cast<std::uint32_t>(firstScreenKey - m_SortKeys.begin()) };
+		const std::uint32_t screenQuadCount{ sceneCommandCount - worldQuadCount };
+
+		const std::uint32_t quadBudget{ m_Specification.maxQuadCapacity - static_cast<std::uint32_t>(m_DrawOrder.size()) };
+		const std::uint32_t keptScreenQuadCount{ std::min(screenQuadCount, quadBudget) };
+		const std::uint32_t keptWorldQuadCount{ std::min(worldQuadCount, quadBudget - keptScreenQuadCount) };
+		m_FrameDroppedQuads += sceneCommandCount - keptWorldQuadCount - keptScreenQuadCount;
+
+		scene.FirstBatch = m_Batches.size();
+		scene.WorldBatchCount = AppendBatches(scene, 0, keptWorldQuadCount);
+		scene.ScreenBatchCount = AppendBatches(scene, worldQuadCount, keptScreenQuadCount);
+
+		m_Statistics.quadCount = keptWorldQuadCount + keptScreenQuadCount;
+		m_Statistics.drawCalls = static_cast<std::uint32_t>(scene.WorldBatchCount + scene.ScreenBatchCount);
+
+		if (m_FrameDroppedQuads > 0 && !m_QuadLimitWarned)
+		{
+			CORE_WARN("[Renderer] The frame went over the quad limit of {} and dropped {} quads. Further drops aren't logged until a frame fits.", m_Specification.maxQuadCapacity, m_FrameDroppedQuads);
+			m_QuadLimitWarned = true;
 		}
 	}
 
-	void Renderer::RendererData::AppendBatches(const std::vector<SpriteDraw>& draws, std::uint32_t drawableQuadCount, bool forceNewBatch)
+	std::size_t Renderer::RendererData::AppendBatches(const SceneRecord& scene, std::uint32_t firstKeyIndex, std::uint32_t keyCount)
 	{
-		for (std::uint32_t drawIndex{}; drawIndex < drawableQuadCount; drawIndex++)
+		const std::size_t firstBatchIndex{ m_Batches.size() };
+
+		for (std::uint32_t keyIndex{ firstKeyIndex }; keyIndex < firstKeyIndex + keyCount; keyIndex++)
 		{
-			const SpriteDraw& draw{ draws[drawIndex] };
+			const std::uint32_t commandIndex{ static_cast<std::uint32_t>(scene.FirstCommand + (m_SortKeys[keyIndex] & s_SortKeyIndexMask)) };
+			SDL_GPUTexture* texture{ m_Commands[commandIndex].Texture };
 
-			const bool startNewBatch{ m_Batches.empty() || m_Batches.back().texture != draw.texture || (forceNewBatch && drawIndex == 0) };
-
-			if (startNewBatch)
+			if (m_Batches.size() == firstBatchIndex || m_Batches.back().texture != texture)
 			{
-				m_Batches.emplace_back(draw.texture, m_QuadCount, 0);
+				m_Batches.emplace_back(texture, static_cast<std::uint32_t>(m_DrawOrder.size()), 0);
 			}
 
-			for (const SpriteVertex& vertex : draw.vertices)
-			{
-				m_VertexStaging.push_back(vertex);
-			}
-
+			m_DrawOrder.push_back(commandIndex);
 			m_Batches.back().quadCount++;
-			m_QuadCount++;
 		}
+
+		return m_Batches.size() - firstBatchIndex;
+	}
+
+	bool Renderer::RendererData::UploadQuads(std::uint32_t drawableQuadCount)
+	{
+		void* mappedVertices{ SDL_MapGPUTransferBuffer(m_Device, m_VertexTransferBuffer, true) };
+		if (!mappedVertices)
+		{
+			CORE_ERROR("[Renderer] Failed to map vertex transfer buffer: {}", SDL_GetError());
+			return false;
+		}
+
+		std::byte* destination{ static_cast<std::byte*>(mappedVertices) };
+		for (std::uint32_t quadSlot{ 0 }; quadSlot < drawableQuadCount; quadSlot++)
+		{
+			const std::array<SpriteVertex, s_VerticesPerQuad> quadVertices{ MakeQuadVertices(m_Commands[m_DrawOrder[quadSlot]]) };
+			std::memcpy(destination + static_cast<std::size_t>(quadSlot) * s_QuadVertexBytes, quadVertices.data(), s_QuadVertexBytes);
+		}
+
+		SDL_UnmapGPUTransferBuffer(m_Device, m_VertexTransferBuffer);
+
+		SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(m_CommandBuffer) };
+
+		SDL_GPUTransferBufferLocation vertexSource{
+			.transfer_buffer{ m_VertexTransferBuffer },
+			.offset{ 0 },
+		};
+
+		SDL_GPUBufferRegion vertexRegion{
+			.buffer{ m_VertexBuffer },
+			.offset{ 0 },
+			.size{ drawableQuadCount * s_QuadVertexBytes },
+		};
+
+		SDL_UploadToGPUBuffer(copyPass, &vertexSource, &vertexRegion, true);
+		SDL_EndGPUCopyPass(copyPass);
+		return true;
+	}
+
+	void Renderer::RendererData::BindQuadPipeline(SDL_GPURenderPass* renderPass)
+	{
+		SDL_BindGPUGraphicsPipeline(renderPass, m_Pipeline);
+
+		SDL_GPUBufferBinding vertexBinding{
+			.buffer{ m_VertexBuffer },
+			.offset{ 0 },
+		};
+		SDL_BindGPUVertexBuffers(renderPass, 0, &vertexBinding, 1);
+
+		SDL_GPUBufferBinding indexBinding{
+			.buffer{ m_IndexBuffer },
+			.offset{ 0 },
+		};
+		SDL_BindGPUIndexBuffer(renderPass, &indexBinding, SDL_GPU_INDEXELEMENTSIZE_32BIT);
+	}
+
+	void Renderer::RendererData::SetSceneViewport(SDL_GPURenderPass* renderPass, const SceneRecord& scene)
+	{
+		const bool useSceneViewport{ scene.Viewport.Size.x > 0 && scene.Viewport.Size.y > 0 };
+
+		SDL_GPUViewport viewport{
+			useSceneViewport ? static_cast<float>(scene.Viewport.Position.x) : 0.0f,
+			useSceneViewport ? static_cast<float>(scene.Viewport.Position.y) : 0.0f,
+			useSceneViewport ? static_cast<float>(scene.Viewport.Size.x) : static_cast<float>(m_SwapchainWidth),
+			useSceneViewport ? static_cast<float>(scene.Viewport.Size.y) : static_cast<float>(m_SwapchainHeight),
+			0.0f, 1.0f
+		};
+		SDL_SetGPUViewport(renderPass, &viewport);
+	}
+
+	void Renderer::RendererData::DrawBatches(SDL_GPURenderPass* renderPass, const glm::mat4& viewProjection, std::size_t firstBatch, std::size_t batchCount, std::uint32_t drawableQuadCount)
+	{
+		if (batchCount == 0)
+		{
+			return;
+		}
+
+		SDL_PushGPUVertexUniformData(m_CommandBuffer, 0, &viewProjection, static_cast<std::uint32_t>(sizeof(viewProjection)));
+
+		for (std::size_t batchIndex{ firstBatch }; batchIndex < firstBatch + batchCount; batchIndex++)
+		{
+			const RenderBatch& batch{ m_Batches[batchIndex] };
+			if (batch.firstQuad >= drawableQuadCount)
+			{
+				return;
+			}
+
+			const std::uint32_t quadCount{ std::min(batch.quadCount, drawableQuadCount - batch.firstQuad) };
+
+			SDL_GPUTextureSamplerBinding textureBinding{
+				.texture{ batch.texture },
+				.sampler{ m_Sampler },
+			};
+			SDL_BindGPUFragmentSamplers(renderPass, 0, &textureBinding, 1);
+			SDL_DrawGPUIndexedPrimitives(renderPass, quadCount * s_IndicesPerQuad, 1, batch.firstQuad * s_IndicesPerQuad, 0, 0);
+		}
+	}
+
+	void Renderer::RendererData::SubmitScene()
+	{
+		const SceneRecord& scene{ m_Scenes.back() };
+		const std::uint32_t sceneQuadCount{ static_cast<std::uint32_t>(m_DrawOrder.size()) };
+		if (sceneQuadCount > m_QuadCapacity)
+		{
+			EnsureQuadCapacity(sceneQuadCount);
+		}
+
+		const std::uint32_t drawableQuadCount{ std::min(sceneQuadCount, m_QuadCapacity) };
+		const bool drawQuads{ m_Pipeline && m_Sampler && drawableQuadCount > 0 && UploadQuads(drawableQuadCount) };
+
+		SDL_GPUColorTargetInfo colorTarget{
+			.texture{ m_SwapchainTexture },
+			.clear_color{ ToFloatColor(m_ClearColor) },
+			.load_op{ m_FrameCleared ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR },
+			.store_op{ SDL_GPU_STOREOP_STORE },
+		};
+
+		SDL_GPURenderPass* renderPass{ SDL_BeginGPURenderPass(m_CommandBuffer, &colorTarget, 1, nullptr) };
+		if (renderPass)
+		{
+			if (drawQuads)
+			{
+				BindQuadPipeline(renderPass);
+				SetSceneViewport(renderPass, scene);
+				DrawBatches(renderPass, scene.ViewProjectionMatrix, scene.FirstBatch, scene.WorldBatchCount, drawableQuadCount);
+				DrawBatches(renderPass, scene.ScreenViewProjectionMatrix, scene.FirstBatch + scene.WorldBatchCount, scene.ScreenBatchCount, drawableQuadCount);
+			}
+
+			SDL_EndGPURenderPass(renderPass);
+		}
+
+		m_FrameCleared = true;
 	}
 
 	void Renderer::RendererData::InitialiseSpriteRenderer(const Shader& vertexShader, const Shader& fragmentShader)
@@ -852,10 +981,11 @@ namespace BinaryEngine {
 			return;
 		}
 
-		m_Draws.reserve(m_Specification.maxQuadCapacity);
-		m_ScreenDraws.reserve(s_InitialScreenDrawCapacity);
-		m_VertexStaging.reserve(m_Specification.maxQuadCapacity * s_VerticesPerQuad);
+		m_Commands.reserve(m_Specification.initialQuadCapacity);
+		m_SortKeys.reserve(m_Specification.initialQuadCapacity);
+		m_DrawOrder.reserve(m_Specification.initialQuadCapacity);
 		m_Batches.reserve(64);
+		m_Scenes.reserve(4);
 		CORE_INFO("[Renderer] Sprite Renderer Initialised ({} quad capacity, {} max)", m_QuadCapacity, m_Specification.maxQuadCapacity);
 	}
 
@@ -1051,10 +1181,10 @@ namespace BinaryEngine {
 		m_CullBounds.maxY = maxY;
 	}
 
-	bool Renderer::RendererData::IsSpriteCulled(const Transform& transform, const Vector2f& textureSize) const
+	bool Renderer::RendererData::IsSpriteCulled(const Transform& transform, const Vector2f& quadSize) const
 	{
-		const float halfWidth{ textureSize.x * transform.Scale.x * 0.5f };
-		const float halfHeight{ textureSize.y * transform.Scale.y * 0.5f };
+		const float halfWidth{ quadSize.x * transform.Scale.x * 0.5f };
+		const float halfHeight{ quadSize.y * transform.Scale.y * 0.5f };
 		const float radius{ std::sqrt(halfWidth * halfWidth + halfHeight * halfHeight) };
 
 		return transform.Position.x + radius < m_CullBounds.minX
