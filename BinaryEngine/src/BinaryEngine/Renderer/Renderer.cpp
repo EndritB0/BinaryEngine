@@ -455,7 +455,11 @@ namespace BinaryEngine {
 			m_Data->SubmitFrame();
 		}
 
-		SDL_SubmitGPUCommandBuffer(m_Data->m_CommandBuffer);
+		if (!SDL_SubmitGPUCommandBuffer(m_Data->m_CommandBuffer))
+		{
+			CORE_ERROR("[Renderer] Failed to submit command buffer: {}", SDL_GetError());
+		}
+
 		m_Data->m_CommandBuffer = nullptr;
 		m_Data->m_SwapchainTexture = nullptr;
 	}
@@ -757,6 +761,11 @@ namespace BinaryEngine {
 		SDL_UnmapGPUTransferBuffer(m_Device, m_VertexTransferBuffer);
 
 		SDL_GPUCopyPass* copyPass{ SDL_BeginGPUCopyPass(m_CommandBuffer) };
+		if (!copyPass)
+		{
+			CORE_ERROR("[Renderer] Failed to begin copy pass: {}", SDL_GetError());
+			return false;
+		}
 
 		if (m_PendingIndexTransferBuffer)
 		{
@@ -971,7 +980,7 @@ namespace BinaryEngine {
 		m_Pipeline = SDL_CreateGPUGraphicsPipeline(m_Device, &pipelineInfo);
 		if (!m_Pipeline)
 		{
-			CORE_ERROR("[Renderer] Failed to create Graphics Pipeline {}", SDL_GetError());
+			CORE_ERROR("[Renderer] Failed to create Graphics Pipeline: {}", SDL_GetError());
 			return;
 		}
 
