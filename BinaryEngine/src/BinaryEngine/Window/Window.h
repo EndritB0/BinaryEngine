@@ -12,6 +12,7 @@ namespace BinaryEngine {
 	class Window {
 	public:
 		using EventCallback = std::function<void(Event&)>;
+		using LiveRedrawCallback = std::function<void()>;
 
 		Window(const WindowSpecification& specification);
 		~Window();
@@ -37,12 +38,14 @@ namespace BinaryEngine {
 		bool IsMinimized() const { return m_IsMinimized; }
 		bool IsMaximized() const { return m_IsMaximized; }
 		void SetEventCallback(const EventCallback& callback) { m_EventCallback = callback; }
+		void SetLiveRedrawCallback(const LiveRedrawCallback& callback) { m_LiveRedrawCallback = callback; }
 		void ProcessEvents();
 
 	private:
 		WindowSpecification m_WindowSpecification;
 		struct SDL_Window* m_Window{ nullptr };
 		EventCallback m_EventCallback;
+		LiveRedrawCallback m_LiveRedrawCallback;
 		bool m_IsMinimized{ false };
 		bool m_IsMaximized{ false };
 	};

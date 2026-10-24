@@ -11,6 +11,7 @@ int main(int argc, char* argv[])
 			.Resolution{ BinaryEngine::Vector2i{ 1280, 720 } },
 			.FpsLimit{ 120 },
 			.Fullscreen{ false },
+			.LiveRedraw{ true },
 		},
 
 		.Renderer = {

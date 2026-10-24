@@ -3,6 +3,26 @@
 
 #include "BinaryEngine/Event/EventTypes.h"
 
+namespace {
+
+	bool SDLCALL DispatchLiveRedraw(void* userdata, SDL_Event* event)
+	{
+		if (event->type != SDL_EVENT_WINDOW_EXPOSED || event->window.data1 != 1)
+		{
+			return true;
+		}
+
+		const BinaryEngine::Window::LiveRedrawCallback& liveRedrawCallback{ *static_cast<const BinaryEngine::Window::LiveRedrawCallback*>(userdata) };
+		if (liveRedrawCallback)
+		{
+			liveRedrawCallback();
+		}
+
+		return true;
+	}
+
+}
+
 namespace BinaryEngine {
 
 	Window::Window(const WindowSpecification& specification) :
@@ -16,6 +36,11 @@ namespace BinaryEngine {
 			return;
 		}
 
+		if (m_WindowSpecification.LiveRedraw && !SDL_AddEventWatch(DispatchLiveRedraw, &m_LiveRedrawCallback))
+		{
+			CORE_WARN("[Window] Failed to add the live redraw event watch, the window won't redraw while it's dragged: {}", SDL_GetError());
+		}
+
 		CORE_INFO("[Window] Window Initalised: {} ({}x{})", m_WindowSpecification.Title, m_WindowSpecification.Resolution.x, m_WindowSpecification.Resolution.y);
 	}
 
@@ -23,6 +48,7 @@ namespace BinaryEngine {
 	{
 		if (m_Window)
 		{
+			SDL_RemoveEventWatch(DispatchLiveRedraw, &m_LiveRedrawCallback);
 			SDL_DestroyWindow(m_Window);
 			CORE_INFO("[Window] Window Shutdown");
 		}

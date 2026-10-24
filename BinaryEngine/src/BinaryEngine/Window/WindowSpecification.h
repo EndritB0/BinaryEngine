@@ -11,6 +11,7 @@ namespace BinaryEngine {
 		Vector2i Resolution{ 1280, 720 };
 		std::uint16_t FpsLimit{ 120 };
 		bool Fullscreen{ false };
+		bool LiveRedraw{ true };
 	};
 
 }
