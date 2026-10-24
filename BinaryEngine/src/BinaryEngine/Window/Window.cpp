@@ -8,7 +8,7 @@ namespace BinaryEngine {
 	Window::Window(const WindowSpecification& specification) :
 		m_WindowSpecification(specification)
 	{
-		m_Window = SDL_CreateWindow(m_WindowSpecification.title.c_str(), m_WindowSpecification.resolution.x, m_WindowSpecification.resolution.y, SDL_WINDOW_RESIZABLE);
+		m_Window = SDL_CreateWindow(m_WindowSpecification.Title.c_str(), m_WindowSpecification.Resolution.x, m_WindowSpecification.Resolution.y, SDL_WINDOW_RESIZABLE);
 
 		if (!m_Window)
 		{
@@ -16,7 +16,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		CORE_INFO("[Window] Window Initalised: {} ({}x{})", m_WindowSpecification.title, m_WindowSpecification.resolution.x, m_WindowSpecification.resolution.y);
+		CORE_INFO("[Window] Window Initalised: {} ({}x{})", m_WindowSpecification.Title, m_WindowSpecification.Resolution.x, m_WindowSpecification.Resolution.y);
 	}
 
 	Window::~Window()
@@ -54,9 +54,9 @@ namespace BinaryEngine {
 
 	void Window::SetTitle(const std::string& title)
 	{
-		m_WindowSpecification.title = title;
-		SDL_SetWindowTitle(m_Window, m_WindowSpecification.title.c_str());
-		CORE_TRACE("[Window] Window title set to: {}", m_WindowSpecification.title);
+		m_WindowSpecification.Title = title;
+		SDL_SetWindowTitle(m_Window, m_WindowSpecification.Title.c_str());
+		CORE_TRACE("[Window] Window title set to: {}", m_WindowSpecification.Title);
 	}
 
 	void Window::SetSize(const Vector2i& size)

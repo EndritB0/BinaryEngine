@@ -28,14 +28,14 @@ namespace BinaryEngine {
 	};
 
 	struct RendererSpecification {
-		RenderAPI renderAPI{ RenderAPI::Default };
-		PresentMode presentMode{ PresentMode::VSync };
-		TextureFilter textureFilter{ TextureFilter::Nearest };
-		ValidationMode validationMode{ ValidationMode::Disabled };
-		std::uint8_t defaultAlpha{ 255 };
-		std::uint32_t initialQuadCapacity{ 10000 };
-		std::uint32_t maxQuadCapacity{ 1000000 };
-		bool cullSprites{ true };
+		BinaryEngine::RenderAPI RenderAPI{ RenderAPI::Default };
+		BinaryEngine::PresentMode PresentMode{ PresentMode::VSync };
+		BinaryEngine::TextureFilter TextureFilter{ TextureFilter::Nearest };
+		BinaryEngine::ValidationMode ValidationMode{ ValidationMode::Disabled };
+		std::uint8_t DefaultAlpha{ 255 };
+		std::uint32_t InitialQuadCapacity{ 10000 };
+		std::uint32_t MaxQuadCapacity{ 1000000 };
+		bool CullSprites{ true };
 	};
 
 }

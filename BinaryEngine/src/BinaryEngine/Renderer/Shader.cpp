@@ -119,11 +119,11 @@ namespace BinaryEngine {
 			.code{ code.data() },
 			.entrypoint{ "main" },
 			.format{ format },
-			.stage{ ConvertShaderStage(shaderSpecification.stage) },
-			.num_samplers{ shaderSpecification.samplerCount },
+			.stage{ ConvertShaderStage(shaderSpecification.Stage) },
+			.num_samplers{ shaderSpecification.SamplerCount },
 			.num_storage_textures{ 0 },
 			.num_storage_buffers{ 0 },
-			.num_uniform_buffers{ shaderSpecification.uniformBufferCount },
+			.num_uniform_buffers{ shaderSpecification.UniformBufferCount },
 		};
 
 		SDL_GPUShader* shader = SDL_CreateGPUShader(device, &info);

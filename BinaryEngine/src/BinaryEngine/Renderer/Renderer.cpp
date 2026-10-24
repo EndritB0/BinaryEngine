@@ -115,28 +115,28 @@ namespace {
 
 	static void NormaliseSpriteCapacitySpecification(BinaryEngine::RendererSpecification& specification)
 	{
-		if (specification.maxQuadCapacity > s_AbsoluteMaxQuads)
+		if (specification.MaxQuadCapacity > s_AbsoluteMaxQuads)
 		{
-			CORE_WARN("[Renderer] maxQuadCapacity ({}) exceeds the absolute limit, clamping to {}", specification.maxQuadCapacity, s_AbsoluteMaxQuads);
-			specification.maxQuadCapacity = s_AbsoluteMaxQuads;
+			CORE_WARN("[Renderer] MaxQuadCapacity ({}) exceeds the absolute limit, clamping to {}", specification.MaxQuadCapacity, s_AbsoluteMaxQuads);
+			specification.MaxQuadCapacity = s_AbsoluteMaxQuads;
 		}
 
-		if (specification.maxQuadCapacity == 0)
+		if (specification.MaxQuadCapacity == 0)
 		{
-			CORE_WARN("[Renderer] maxQuadCapacity is 0, clamping to 1");
-			specification.maxQuadCapacity = 1;
+			CORE_WARN("[Renderer] MaxQuadCapacity is 0, clamping to 1");
+			specification.MaxQuadCapacity = 1;
 		}
 
-		if (specification.initialQuadCapacity == 0)
+		if (specification.InitialQuadCapacity == 0)
 		{
-			CORE_WARN("[Renderer] initialQuadCapacity is 0, clamping to 1");
-			specification.initialQuadCapacity = 1;
+			CORE_WARN("[Renderer] InitialQuadCapacity is 0, clamping to 1");
+			specification.InitialQuadCapacity = 1;
 		}
 
-		if (specification.initialQuadCapacity > specification.maxQuadCapacity)
+		if (specification.InitialQuadCapacity > specification.MaxQuadCapacity)
 		{
-			CORE_WARN("[Renderer] initialQuadCapacity ({}) exceeds maxQuadCapacity ({}), clamping", specification.initialQuadCapacity, specification.maxQuadCapacity);
-			specification.initialQuadCapacity = specification.maxQuadCapacity;
+			CORE_WARN("[Renderer] InitialQuadCapacity ({}) exceeds MaxQuadCapacity ({}), clamping", specification.InitialQuadCapacity, specification.MaxQuadCapacity);
+			specification.InitialQuadCapacity = specification.MaxQuadCapacity;
 		}
 	}
 
@@ -269,11 +269,11 @@ namespace BinaryEngine {
 		m_Data->m_Window = static_cast<SDL_Window*>(window.GetNativeWindow());
 
 		NormaliseSpriteCapacitySpecification(m_Data->m_Specification);
-		m_Data->m_Statistics.maxQuads = m_Data->m_Specification.maxQuadCapacity;
+		m_Data->m_Statistics.maxQuads = m_Data->m_Specification.MaxQuadCapacity;
 
 		constexpr SDL_GPUShaderFormat shaderFormats{ SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL };
-		const char* requestedDriver{ RenderAPIToDriverName(m_Data->m_Specification.renderAPI) };
-		const bool debugMode{ m_Data->m_Specification.validationMode == ValidationMode::Enabled };
+		const char* requestedDriver{ RenderAPIToDriverName(m_Data->m_Specification.RenderAPI) };
+		const bool debugMode{ m_Data->m_Specification.ValidationMode == ValidationMode::Enabled };
 
 		m_Data->m_Device = SDL_CreateGPUDevice(shaderFormats, debugMode, requestedDriver);
 
@@ -291,7 +291,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		SetPresentMode(m_Data->m_Specification.presentMode);
+		SetPresentMode(m_Data->m_Specification.PresentMode);
 
 		CORE_INFO("[Renderer] Renderer Initialized with API: {}", SDL_GetGPUDeviceDriver(m_Data->m_Device));
 
@@ -370,12 +370,12 @@ namespace BinaryEngine {
 
 	PresentMode Renderer::GetPresentMode() const
 	{
-		return m_Data->m_Specification.presentMode;
+		return m_Data->m_Specification.PresentMode;
 	}
 
 	std::uint8_t Renderer::GetDefaultAlpha() const
 	{
-		return m_Data->m_Specification.defaultAlpha;
+		return m_Data->m_Specification.DefaultAlpha;
 	}
 
 	const Renderer::Statistics& Renderer::GetStatistics() const
@@ -414,13 +414,13 @@ namespace BinaryEngine {
 			return;
 		}
 
-		m_Data->m_Specification.presentMode = mode;
+		m_Data->m_Specification.PresentMode = mode;
 		CORE_TRACE("[Renderer] Present mode set to '{}'", PresentModeToString(mode));
 	}
 
 	void Renderer::SetDefaultAlpha(std::uint8_t alpha)
 	{
-		m_Data->m_Specification.defaultAlpha = alpha;
+		m_Data->m_Specification.DefaultAlpha = alpha;
 		CORE_TRACE("[Renderer] Default Alpha set to {}", alpha);
 	}
 
@@ -623,7 +623,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		if (m_Specification.cullSprites && m_CullBounds.valid && IsSpriteCulled(transform, quadSize))
+		if (m_Specification.CullSprites && m_CullBounds.valid && IsSpriteCulled(transform, quadSize))
 		{
 			m_Statistics.culledSprites++;
 			return;
@@ -646,7 +646,7 @@ namespace BinaryEngine {
 		command.EdgeY = edgeY;
 		command.UVStart = { uvMin.x, uvMax.y };
 		command.UVEnd = { uvMax.x, uvMin.y };
-		command.VertexColor = Color{ 0xFF, 0xFF, 0xFF, m_Specification.defaultAlpha };
+		command.VertexColor = Color{ 0xFF, 0xFF, 0xFF, m_Specification.DefaultAlpha };
 		command.SortZ = transform.Position.z;
 		command.Space = QuadSpace::World;
 	}
@@ -708,7 +708,7 @@ namespace BinaryEngine {
 		const std::uint32_t worldQuadCount{ static_cast<std::uint32_t>(firstScreenKey - m_SortKeys.begin()) };
 		const std::uint32_t screenQuadCount{ sceneCommandCount - worldQuadCount };
 
-		const std::uint32_t quadBudget{ m_Specification.maxQuadCapacity - static_cast<std::uint32_t>(m_DrawOrder.size()) };
+		const std::uint32_t quadBudget{ m_Specification.MaxQuadCapacity - static_cast<std::uint32_t>(m_DrawOrder.size()) };
 		const std::uint32_t keptScreenQuadCount{ std::min(screenQuadCount, quadBudget) };
 		const std::uint32_t keptWorldQuadCount{ std::min(worldQuadCount, quadBudget - keptScreenQuadCount) };
 		m_FrameDroppedQuads += sceneCommandCount - keptWorldQuadCount - keptScreenQuadCount;
@@ -894,7 +894,7 @@ namespace BinaryEngine {
 	{
 		if (m_FrameDroppedQuads > 0 && !m_QuadLimitWarned)
 		{
-			CORE_WARN("[Renderer] The frame went over the quad limit of {} and dropped {} quads. Further drops aren't logged until a frame fits.", m_Specification.maxQuadCapacity, m_FrameDroppedQuads);
+			CORE_WARN("[Renderer] The frame went over the quad limit of {} and dropped {} quads. Further drops aren't logged until a frame fits.", m_Specification.MaxQuadCapacity, m_FrameDroppedQuads);
 			m_QuadLimitWarned = true;
 		}
 
@@ -984,7 +984,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		const bool useLinearFiltering{ m_Specification.textureFilter == TextureFilter::Linear };
+		const bool useLinearFiltering{ m_Specification.TextureFilter == TextureFilter::Linear };
 		const SDL_GPUFilter filter{ useLinearFiltering ? SDL_GPU_FILTER_LINEAR : SDL_GPU_FILTER_NEAREST };
 		const SDL_GPUSamplerMipmapMode mipmapMode{ useLinearFiltering ? SDL_GPU_SAMPLERMIPMAPMODE_LINEAR : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST };
 
@@ -1004,17 +1004,17 @@ namespace BinaryEngine {
 			return;
 		}
 
-		if (!CreateQuadBuffers(m_Specification.initialQuadCapacity))
+		if (!CreateQuadBuffers(m_Specification.InitialQuadCapacity))
 		{
 			return;
 		}
 
-		m_Commands.reserve(m_Specification.initialQuadCapacity);
-		m_SortKeys.reserve(m_Specification.initialQuadCapacity);
-		m_DrawOrder.reserve(m_Specification.initialQuadCapacity);
+		m_Commands.reserve(m_Specification.InitialQuadCapacity);
+		m_SortKeys.reserve(m_Specification.InitialQuadCapacity);
+		m_DrawOrder.reserve(m_Specification.InitialQuadCapacity);
 		m_Batches.reserve(64);
 		m_Scenes.reserve(4);
-		CORE_INFO("[Renderer] Sprite Renderer Initialised ({} quad capacity, {} max)", m_QuadCapacity, m_Specification.maxQuadCapacity);
+		CORE_INFO("[Renderer] Sprite Renderer Initialised ({} quad capacity, {} max)", m_QuadCapacity, m_Specification.MaxQuadCapacity);
 	}
 
 	bool Renderer::RendererData::WriteQuadIndices(SDL_GPUTransferBuffer* indexTransfer, std::uint32_t quadCapacity)
@@ -1146,7 +1146,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		const std::uint32_t grownCapacity{ std::min(std::max(neededQuadCount, m_QuadCapacity * 2), m_Specification.maxQuadCapacity) };
+		const std::uint32_t grownCapacity{ std::min(std::max(neededQuadCount, m_QuadCapacity * 2), m_Specification.MaxQuadCapacity) };
 		if (!CreateQuadBuffers(grownCapacity))
 		{
 			m_GrowthFailed = true;

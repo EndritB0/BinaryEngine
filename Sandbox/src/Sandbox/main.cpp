@@ -7,17 +7,17 @@ int main(int argc, char* argv[])
 {
 	BinaryEngine::ApplicationSpecification specification{
 		.Window = {
-			.title{ "SandBox" },
-			.resolution{ BinaryEngine::Vector2i{ 1280, 720 } },
-			.fpsLimit{ 120 },
-			.fullscreen{ false },
+			.Title{ "SandBox" },
+			.Resolution{ BinaryEngine::Vector2i{ 1280, 720 } },
+			.FpsLimit{ 120 },
+			.Fullscreen{ false },
 		},
 
 		.Renderer = {
-			.renderAPI{ BinaryEngine::RenderAPI::Default },
-			.presentMode{ BinaryEngine::PresentMode::Immediate },
-			.textureFilter{ BinaryEngine::TextureFilter::Nearest },
-			.validationMode{ BinaryEngine::ValidationMode::Enabled },
+			.RenderAPI{ BinaryEngine::RenderAPI::Default },
+			.PresentMode{ BinaryEngine::PresentMode::Immediate },
+			.TextureFilter{ BinaryEngine::TextureFilter::Nearest },
+			.ValidationMode{ BinaryEngine::ValidationMode::Enabled },
 		},
 
 		.Camera = {
@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 		},
 	};
 
-	BinaryEngine::Log::Init(specification.Window.title);
+	BinaryEngine::Log::Init(specification.Window.Title);
 
 	const std::optional<Sandbox::SandboxOptions> options{ Sandbox::ParseSandboxOptions(argc, argv) };
 	if (!options.has_value())

@@ -16,9 +16,9 @@ namespace BinaryEngine {
 	};
 
 	struct ShaderSpecification {
-		ShaderStage stage{ ShaderStage::Vertex };
-		std::uint32_t samplerCount{};
-		std::uint32_t uniformBufferCount{};
+		ShaderStage Stage{ ShaderStage::Vertex };
+		std::uint32_t SamplerCount{};
+		std::uint32_t UniformBufferCount{};
 	};
 
 	class Shader : public Asset {

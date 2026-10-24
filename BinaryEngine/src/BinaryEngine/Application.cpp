@@ -50,8 +50,8 @@ namespace BinaryEngine {
 		if (!m_CameraSpecification.DesignSize.has_value())
 		{
 			m_CameraSpecification.DesignSize = Vector2f{
-				static_cast<float>(specification.Window.resolution.x),
-				static_cast<float>(specification.Window.resolution.y)
+				static_cast<float>(specification.Window.Resolution.x),
+				static_cast<float>(specification.Window.Resolution.y)
 			};
 		}
 
@@ -75,7 +75,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		const std::uint16_t fpsLimit{ m_Window->GetSpecification().fpsLimit };
+		const std::uint16_t fpsLimit{ m_Window->GetSpecification().FpsLimit };
 		const std::uint64_t frameBudgetNanoseconds{ fpsLimit > 0 ? static_cast<std::uint64_t>(SDL_NS_PER_SECOND) / fpsLimit : 0 };
 		CORE_INFO("[Application] Frame rate limit: {}", fpsLimit == 0 ? "uncapped" : (std::to_string(fpsLimit) + " FPS"));
 
