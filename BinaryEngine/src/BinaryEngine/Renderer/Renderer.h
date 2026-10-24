@@ -57,7 +57,7 @@ namespace BinaryEngine {
 		void DrawSprite(const Texture2D& texture, const Transform& transform);
 		void DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region);
 		void DrawText(const Font& font, std::string_view text, const Transform& transform, const TextSpecification& specification = TextSpecification());
-		Vector2f MeasureText(const Font& font, std::string_view text, const TextSpecification& specification);
+		Vector2f MeasureText(const Font& font, std::string_view text, const TextSpecification& specification) const;
 
 	private:
 		struct RendererData;

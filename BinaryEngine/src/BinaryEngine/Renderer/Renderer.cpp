@@ -350,7 +350,7 @@ namespace BinaryEngine {
 
 	bool Renderer::IsValid() const
 	{
-		return m_Data->m_Device != nullptr;
+		return m_Data->m_Device && m_Data->m_Pipeline && m_Data->m_Sampler && m_Data->m_QuadCapacity > 0;
 	}
 
 	Vector2i Renderer::GetViewportPosition() const
@@ -403,7 +403,7 @@ namespace BinaryEngine {
 
 		if (mode != PresentMode::VSync && !SDL_WindowSupportsGPUPresentMode(m_Data->m_Device, m_Data->m_Window, sdlMode))
 		{
-			CORE_WARN("[Renderer] Requested present mode '{}' is not supported by the window, falling back to VSync", static_cast<int>(mode));
+			CORE_WARN("[Renderer] Requested present mode '{}' is not supported by the window, falling back to VSync", PresentModeToString(mode));
 			sdlMode = SDL_GPU_PRESENTMODE_VSYNC;
 			mode = PresentMode::VSync;
 		}
@@ -594,7 +594,7 @@ namespace BinaryEngine {
 		}
 	}
 
-	Vector2f Renderer::MeasureText(const Font& font, std::string_view text, const TextSpecification& specification)
+	Vector2f Renderer::MeasureText(const Font& font, std::string_view text, const TextSpecification& specification) const
 	{
 		if (!font.IsValid())
 		{
