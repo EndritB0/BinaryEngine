@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 			.RenderAPI{ BinaryEngine::RenderAPI::Default },
 			.PresentMode{ BinaryEngine::PresentMode::Immediate },
 			.TextureFilter{ BinaryEngine::TextureFilter::Nearest },
-			.ValidationMode{ BinaryEngine::ValidationMode::Enabled },
+			.ValidationMode{ BinaryEngine::ValidationMode::Disabled },
 		},
 
 		.Camera = {
