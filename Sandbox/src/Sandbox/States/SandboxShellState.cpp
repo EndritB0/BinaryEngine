@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Sandbox/States/SandboxShellState.h"
 
+#include <BinaryEngine/Core/FrameClock.h>
 #include <BinaryEngine/Renderer/Font.h>
 #include <BinaryEngine/Renderer/Renderer.h>
 #include <BinaryEngine/Renderer/TextSpecification.h>
@@ -71,9 +72,9 @@ namespace Sandbox {
 		dispatcher.Dispatch<BinaryEngine::KeyPressedEvent>(BIND_FUNCTION(OnKeyPressed));
 	}
 
-	void SandboxShellState::OnUpdate(BinaryEngine::TimeStep dt)
+	void SandboxShellState::OnUpdate([[maybe_unused]] BinaryEngine::TimeStep dt)
 	{
-		UpdateFrameTiming(dt);
+		UpdateFrameTiming();
 
 		if (m_IsQuitting)
 		{
@@ -211,9 +212,9 @@ namespace Sandbox {
 		m_OverlayStatisticsEntity.AddComponent<BinaryEngine::TextComponent>(fontHandle, std::string{}, overlaySpecification);
 	}
 
-	void SandboxShellState::UpdateFrameTiming(BinaryEngine::TimeStep dt)
+	void SandboxShellState::UpdateFrameTiming()
 	{
-		m_TimingAccumulatedSeconds += dt.GetSeconds();
+		m_TimingAccumulatedSeconds += m_Context.clock.GetFrameTime().GetSeconds();
 		++m_TimingAccumulatedFrames;
 
 		if (m_TimingAccumulatedSeconds >= s_TimingRefreshSeconds)

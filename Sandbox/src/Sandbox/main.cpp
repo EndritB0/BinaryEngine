@@ -34,6 +34,11 @@ int main(int argc, char* argv[])
 				{ .Name{ "Ambience" }, .Parent{ "SFX" } },
 			},
 		},
+
+		.Clock = {
+			.FixedUpdateRate{ 60 },
+			.MaxFrameTimeSeconds{ 0.25f },
+		},
 	};
 
 	BinaryEngine::Log::Init(specification.Window.Title);

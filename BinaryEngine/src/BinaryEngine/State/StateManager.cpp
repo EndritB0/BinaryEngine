@@ -55,6 +55,14 @@ namespace BinaryEngine {
 		}
 	}
 
+	void StateManager::ProcessFixedUpdate(TimeStep fixedStep)
+	{
+		for (auto& state : m_States)
+		{
+			state->OnFixedUpdate(fixedStep);
+		}
+	}
+
 	void StateManager::ProcessUpdate(TimeStep dt)
 	{
 		for (auto& state : m_States)

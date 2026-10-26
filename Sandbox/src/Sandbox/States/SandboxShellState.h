@@ -34,7 +34,7 @@ namespace Sandbox {
 		void Quit();
 		std::size_t GetStartDemoIndex() const;
 		void CreateOverlay();
-		void UpdateFrameTiming(BinaryEngine::TimeStep dt);
+		void UpdateFrameTiming();
 		void UpdateOverlayHeader();
 		void UpdateOverlayStatistics();
 

@@ -27,7 +27,8 @@ namespace BinaryEngine {
 		CORE_INFO("[PlatformContext] Platform Context Shutdown");
 	}
 
-	Application::Application(const ApplicationSpecification& specification)
+	Application::Application(const ApplicationSpecification& specification) :
+		m_FrameClock(specification.Clock)
 	{
 		if (!m_PlatformContext.IsValid())
 		{
@@ -59,7 +60,7 @@ namespace BinaryEngine {
 
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
 		m_Window->SetLiveRedrawCallback([this]() { this->OnLiveRedraw(); });
-		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager, *m_AudioEngine, m_CameraSpecification });
+		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager, *m_AudioEngine, m_CameraSpecification, m_FrameClock });
 		CORE_INFO("[Application] Application Initialised");
 	}
 
@@ -79,9 +80,10 @@ namespace BinaryEngine {
 		const std::uint16_t fpsLimit{ m_Window->GetSpecification().FpsLimit };
 		m_FrameBudgetNanoseconds = fpsLimit > 0 ? static_cast<std::uint64_t>(SDL_NS_PER_SECOND) / fpsLimit : 0;
 		CORE_INFO("[Application] Frame rate limit: {}", fpsLimit == 0 ? "uncapped" : (std::to_string(fpsLimit) + " FPS"));
+		CORE_INFO("[Application] Fixed update rate: {} Hz, max frame time: {:.0f} ms", m_FrameClock.GetFixedUpdateRate(), m_FrameClock.GetMaxFrameTime().GetMillisecondsDouble());
 
 		m_IsRunning = true;
-		m_LastFrameTime = SDL_GetTicksNS();
+		m_FrameClock.Start(SDL_GetTicksNS());
 
 		while (m_IsRunning)
 		{
@@ -128,10 +130,16 @@ namespace BinaryEngine {
 		m_Window->ProcessEvents();
 	}
 
-	void Application::Update(TimeStep dt)
+	void Application::Update()
 	{
 		m_AudioEngine->Update();
-		m_StateManager->ProcessUpdate(dt);
+
+		while (m_FrameClock.ConsumeFixedStep())
+		{
+			m_StateManager->ProcessFixedUpdate(m_FrameClock.GetFixedStep());
+		}
+
+		m_StateManager->ProcessUpdate(m_FrameClock.GetDeltaTime());
 	}
 
 	void Application::Render()
@@ -155,13 +163,12 @@ namespace BinaryEngine {
 		m_IsInFrame = true;
 
 		const std::uint64_t currentFrameTime{ SDL_GetTicksNS() };
-		const TimeStep dt{ currentFrameTime - m_LastFrameTime };
-		m_LastFrameTime = currentFrameTime;
+		m_FrameClock.BeginFrame(currentFrameTime);
 
 		const bool isMoreThanOneBudgetLate{ currentFrameTime >= m_NextFrameDueTime + m_FrameBudgetNanoseconds };
 		m_NextFrameDueTime = (isMoreThanOneBudgetLate ? currentFrameTime : m_NextFrameDueTime) + m_FrameBudgetNanoseconds;
 
-		Update(dt);
+		Update();
 		Render();
 		PostFrame();
 

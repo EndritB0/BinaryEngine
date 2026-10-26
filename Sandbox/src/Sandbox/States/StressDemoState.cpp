@@ -2,6 +2,7 @@
 #include "Sandbox/States/StressDemoState.h"
 
 #include <BinaryEngine/Core/Color.h>
+#include <BinaryEngine/Core/FrameClock.h>
 #include <BinaryEngine/Renderer/Font.h>
 #include <BinaryEngine/Renderer/Renderer.h>
 #include <BinaryEngine/Renderer/TextSpecification.h>
@@ -84,12 +85,11 @@ namespace Sandbox {
 
 	void StressDemoState::OnUpdate(BinaryEngine::TimeStep dt)
 	{
-		const float seconds{ dt.GetSeconds() };
-		RecordFrame(seconds);
+		RecordFrame(m_Context.clock.GetFrameTime().GetSeconds());
 
 		if (m_MotionEnabled)
 		{
-			MoveSprites(seconds);
+			MoveSprites(dt.GetSeconds());
 		}
 
 		UpdateHud();

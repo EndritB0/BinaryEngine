@@ -6,6 +6,7 @@ namespace BinaryEngine {
 	class Renderer;
 	class AssetManager;
 	class AudioEngine;
+	class FrameClock;
 	struct CameraSpecification;
 
 	struct Context {
@@ -14,6 +15,7 @@ namespace BinaryEngine {
 		AssetManager& assetManager;
 		AudioEngine& audio;
 		const CameraSpecification& camera;
+		FrameClock& clock;
 	};
 
 }

@@ -7,7 +7,7 @@
 #include "BinaryEngine/ApplicationSpecification.h"
 #include "BinaryEngine/Asset/AssetManager.h"
 #include "BinaryEngine/Audio/AudioEngine.h"
-#include "BinaryEngine/Core/Timestep.h"
+#include "BinaryEngine/Core/FrameClock.h"
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Event/EventTypes.h"
 #include "BinaryEngine/Log/Log.h"
@@ -48,7 +48,7 @@ namespace BinaryEngine {
 		void OnEvent(Event& event);
 		void StopApplication();
 		void ProcessEvents();
-		void Update(TimeStep dt);
+		void Update();
 		void Render();
 		void PostFrame();
 		void RunFrame();
@@ -80,8 +80,8 @@ namespace BinaryEngine {
 		std::optional<Renderer> m_Renderer;
 		AssetManager m_AssetManager;
 		std::optional<AudioEngine> m_AudioEngine;
+		FrameClock m_FrameClock;
 		std::optional<StateManager> m_StateManager;
-		std::uint64_t m_LastFrameTime{};
 		std::uint64_t m_FrameBudgetNanoseconds{ 0 };
 		std::uint64_t m_NextFrameDueTime{ 0 };
 		bool m_IsRunning{ false };

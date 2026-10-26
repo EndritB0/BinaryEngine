@@ -20,6 +20,7 @@ namespace BinaryEngine {
 		virtual void OnAttach() {};
 		virtual void OnDetach() {};
 		virtual void OnEvent(Event& event) = 0;
+		virtual void OnFixedUpdate([[maybe_unused]] TimeStep fixedStep) {}
 		virtual void OnUpdate(TimeStep dt) = 0;
 		virtual void OnRender() = 0;
 		virtual void OnRenderOverlay() {}

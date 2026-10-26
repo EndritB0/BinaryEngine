@@ -43,6 +43,7 @@ namespace BinaryEngine {
 		void RequestRemoveState(State& target);
 		void RequestClearStates();
 		void ProcessEvent(Event& event);
+		void ProcessFixedUpdate(TimeStep fixedStep);
 		void ProcessUpdate(TimeStep dt);
 		void ProcessRender();
 		void ApplyPendingChanges();
