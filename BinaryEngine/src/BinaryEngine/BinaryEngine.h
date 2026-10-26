@@ -3,6 +3,8 @@
 #include "BinaryEngine/Log/Log.h"
 
 #include "BinaryEngine/Core/Core.h"
+#include "BinaryEngine/Core/FrameClockSpecification.h"
+#include "BinaryEngine/Core/FrameClock.h"
 
 #include "BinaryEngine/Event/MouseCodes.h"
 #include "BinaryEngine/Event/KeyCodes.h"
