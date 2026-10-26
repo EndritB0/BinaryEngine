@@ -58,6 +58,7 @@ namespace BinaryEngine {
 		m_AudioEngine.emplace(specification.Audio, m_AssetManager);
 
 		m_Window->SetEventCallback([this](Event& event) { this->OnEvent(event); });
+		m_Window->SetLiveRedrawCallback([this]() { this->OnLiveRedraw(); });
 		m_StateManager.emplace(Context{ *m_Window, *m_Renderer, m_AssetManager, *m_AudioEngine, m_CameraSpecification });
 		CORE_INFO("[Application] Application Initialised");
 	}
@@ -76,7 +77,7 @@ namespace BinaryEngine {
 		}
 
 		const std::uint16_t fpsLimit{ m_Window->GetSpecification().FpsLimit };
-		const std::uint64_t frameBudgetNanoseconds{ fpsLimit > 0 ? static_cast<std::uint64_t>(SDL_NS_PER_SECOND) / fpsLimit : 0 };
+		m_FrameBudgetNanoseconds = fpsLimit > 0 ? static_cast<std::uint64_t>(SDL_NS_PER_SECOND) / fpsLimit : 0;
 		CORE_INFO("[Application] Frame rate limit: {}", fpsLimit == 0 ? "uncapped" : (std::to_string(fpsLimit) + " FPS"));
 
 		m_IsRunning = true;
@@ -84,21 +85,20 @@ namespace BinaryEngine {
 
 		while (m_IsRunning)
 		{
-			std::uint64_t currentFrameTime{ SDL_GetTicksNS() };
-			TimeStep dt{ currentFrameTime - m_LastFrameTime };
-			m_LastFrameTime = currentFrameTime;
-
 			ProcessEvents();
-			Update(dt);
-			Render();
-			PostFrame();
-
-			if (frameBudgetNanoseconds > 0)
+			if (!m_IsRunning)
 			{
-				const std::uint64_t frameTime{ SDL_GetTicksNS() - currentFrameTime };
-				if (frameTime < frameBudgetNanoseconds)
+				break;
+			}
+
+			RunFrame();
+
+			if (m_FrameBudgetNanoseconds > 0)
+			{
+				const std::uint64_t currentTime{ SDL_GetTicksNS() };
+				if (currentTime < m_NextFrameDueTime)
 				{
-					SDL_DelayPrecise(frameBudgetNanoseconds - frameTime);
+					SDL_DelayPrecise(m_NextFrameDueTime - currentTime);
 				}
 			}
 		}
@@ -150,10 +150,43 @@ namespace BinaryEngine {
 		}
 	}
 
+	void Application::RunFrame()
+	{
+		m_IsInFrame = true;
+
+		const std::uint64_t currentFrameTime{ SDL_GetTicksNS() };
+		const TimeStep dt{ currentFrameTime - m_LastFrameTime };
+		m_LastFrameTime = currentFrameTime;
+
+		const bool isMoreThanOneBudgetLate{ currentFrameTime >= m_NextFrameDueTime + m_FrameBudgetNanoseconds };
+		m_NextFrameDueTime = (isMoreThanOneBudgetLate ? currentFrameTime : m_NextFrameDueTime) + m_FrameBudgetNanoseconds;
+
+		Update(dt);
+		Render();
+		PostFrame();
+
+		m_IsInFrame = false;
+	}
+
 	bool Application::OnWindowClosed([[maybe_unused]] WindowClosedEvent& event)
 	{
 		StopApplication();
 		return true;
+	}
+
+	void Application::OnLiveRedraw()
+	{
+		if (!m_IsRunning || m_IsInFrame)
+		{
+			return;
+		}
+
+		if (m_FrameBudgetNanoseconds > 0 && SDL_GetTicksNS() < m_NextFrameDueTime)
+		{
+			return;
+		}
+
+		RunFrame();
 	}
 
 }

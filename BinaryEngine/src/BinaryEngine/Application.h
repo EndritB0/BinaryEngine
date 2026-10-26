@@ -51,7 +51,9 @@ namespace BinaryEngine {
 		void Update(TimeStep dt);
 		void Render();
 		void PostFrame();
+		void RunFrame();
 		bool OnWindowClosed(WindowClosedEvent& event);
+		void OnLiveRedraw();
 		bool IsApplicationInitialised() const { return (m_Window.has_value() && m_Window->IsValid()) && (m_Renderer.has_value() && m_Renderer->IsValid()); }
 
 	private:
@@ -80,7 +82,10 @@ namespace BinaryEngine {
 		std::optional<AudioEngine> m_AudioEngine;
 		std::optional<StateManager> m_StateManager;
 		std::uint64_t m_LastFrameTime{};
+		std::uint64_t m_FrameBudgetNanoseconds{ 0 };
+		std::uint64_t m_NextFrameDueTime{ 0 };
 		bool m_IsRunning{ false };
+		bool m_IsInFrame{ false };
 	};
 
 }
