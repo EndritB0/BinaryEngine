@@ -15,6 +15,11 @@ URL: https://youtu.be/dZr-53LAlOw
 namespace BinaryEngine {
 
 	class Log {
+	private:
+		struct Passkey {
+			explicit Passkey() = default;
+		};
+
 	public:
 		enum class Level {
 			Trace = 0,
@@ -27,14 +32,17 @@ namespace BinaryEngine {
 		};
 
 		static void Init(const std::string& appName = "Application");
+		static void Shutdown();
 
+		explicit Log(Passkey) {}
+		~Log();
 		Log(const Log&) = delete;
 		Log& operator=(const Log&) = delete;
 		Log(Log&&) = delete;
 		Log& operator=(Log&&) = delete;
 
-		inline static Log& Get() { return *s_Instance; }
-		inline static bool IsInitialised() { return s_Instance != nullptr; }
+		static Log& Get();
+		static bool IsInitialised();
 		static void SetCoreLevel(Level level);
 		static void SetAppLevel(Level level);
 
@@ -42,15 +50,8 @@ namespace BinaryEngine {
 		inline std::shared_ptr<spdlog::logger>& GetAppLogger() { return m_AppLogger; }
 
 	private:
-		friend struct std::default_delete<Log>;
-		Log() = default;
-		~Log();
-
-	private:
-		static std::unique_ptr<Log> s_Instance;
-
-		std::shared_ptr<spdlog::logger>m_CoreLogger{ nullptr };
-		std::shared_ptr<spdlog::logger>m_AppLogger{ nullptr };
+		std::shared_ptr<spdlog::logger> m_CoreLogger{ nullptr };
+		std::shared_ptr<spdlog::logger> m_AppLogger{ nullptr };
 	};
 }
 
