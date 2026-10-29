@@ -10,5 +10,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(stb)
 
-add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+add_library(stb STATIC
+    stb_image.cpp
+    stb_truetype.cpp
+    stb_vorbis.cpp
+)
+target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})

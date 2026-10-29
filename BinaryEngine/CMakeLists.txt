@@ -2,9 +2,6 @@ add_library(BinaryEngine STATIC)
 
 set(BINARYENGINE_SOURCES
     "src/pch.h"
-    "src/BinaryEngine/vendor/stb_image.cpp"
-    "src/BinaryEngine/vendor/stb_truetype.cpp"
-    "src/BinaryEngine/vendor/stb_vorbis.cpp"
     "src/BinaryEngine/BinaryEngine.h"
     "src/BinaryEngine/Application.cpp"
     "src/BinaryEngine/Application.h"
@@ -99,10 +96,3 @@ target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog EnTT::EnTT PRIVATE stb SDL3::SDL3-static ProjectWarnings)
-set_source_files_properties("src/BinaryEngine/vendor/stb_image.cpp" "src/BinaryEngine/vendor/stb_truetype.cpp" "src/BinaryEngine/vendor/stb_vorbis.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
-
-if(MSVC)
-    set_source_files_properties("src/BinaryEngine/vendor/stb_vorbis.cpp" PROPERTIES COMPILE_OPTIONS "/wd4244;/wd4245;/wd4456;/wd4457;/wd4701")
-else()
-    set_source_files_properties("src/BinaryEngine/vendor/stb_vorbis.cpp" PROPERTIES COMPILE_OPTIONS "-w")
-endif()
