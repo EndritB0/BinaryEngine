@@ -79,7 +79,7 @@ namespace {
 		BinaryEngine::Vector2f Translation{ 0.0f, 0.0f };
 	};
 
-	static const char* RenderAPIToDriverName(BinaryEngine::RenderAPI api)
+	const char* RenderAPIToDriverName(BinaryEngine::RenderAPI api)
 	{
 		switch (api)
 		{
@@ -91,7 +91,7 @@ namespace {
 		}
 	}
 
-	static SDL_GPUPresentMode ConvertPresentMode(BinaryEngine::PresentMode mode)
+	SDL_GPUPresentMode ConvertPresentMode(BinaryEngine::PresentMode mode)
 	{
 		switch (mode)
 		{
@@ -102,7 +102,7 @@ namespace {
 		}
 	}
 
-	static std::string_view PresentModeToString(BinaryEngine::PresentMode mode)
+	std::string_view PresentModeToString(BinaryEngine::PresentMode mode)
 	{
 		switch (mode)
 		{
@@ -113,7 +113,7 @@ namespace {
 		}
 	}
 
-	static void NormaliseSpriteCapacitySpecification(BinaryEngine::RendererSpecification& specification)
+	void NormaliseSpriteCapacitySpecification(BinaryEngine::RendererSpecification& specification)
 	{
 		if (specification.MaxQuadCapacity > s_AbsoluteMaxQuads)
 		{
@@ -140,7 +140,7 @@ namespace {
 		}
 	}
 
-	static SDL_FColor ToFloatColor(const BinaryEngine::Color& color)
+	SDL_FColor ToFloatColor(const BinaryEngine::Color& color)
 	{
 		return {
 			static_cast<float>(color.red) / 255.0f,
@@ -150,7 +150,7 @@ namespace {
 		};
 	}
 
-	static AffineTransform2D ToAffineTransform2DFromMatrix(const BinaryEngine::Transform& transform)
+	AffineTransform2D ToAffineTransform2DFromMatrix(const BinaryEngine::Transform& transform)
 	{
 		const glm::mat4 modelMatrix{ transform.GetModelMatrix() };
 		return {
@@ -160,7 +160,7 @@ namespace {
 		};
 	}
 
-	static AffineTransform2D ToAffineTransform2D(const BinaryEngine::Transform& transform)
+	AffineTransform2D ToAffineTransform2D(const BinaryEngine::Transform& transform)
 	{
 		if (transform.Rotation.x != 0.0f || transform.Rotation.y != 0.0f)
 		{
@@ -177,20 +177,20 @@ namespace {
 		};
 	}
 
-	static std::uint32_t ToOrderableBits(float value)
+	std::uint32_t ToOrderableBits(float value)
 	{
 		const float normalisedValue{ value == 0.0f ? 0.0f : value };
 		const std::uint32_t bits{ std::bit_cast<std::uint32_t>(normalisedValue) };
 		return (bits & 0x80000000u) != 0 ? ~bits : (bits | 0x80000000u);
 	}
 
-	static std::uint64_t MakeSortKey(QuadSpace space, float sortZ, std::uint32_t sceneCommandIndex)
+	std::uint64_t MakeSortKey(QuadSpace space, float sortZ, std::uint32_t sceneCommandIndex)
 	{
 		const std::uint64_t spaceBit{ space == QuadSpace::Screen ? s_ScreenSpaceKeyBit : 0 };
 		return spaceBit | (static_cast<std::uint64_t>(ToOrderableBits(sortZ)) << s_SortKeyIndexBits) | sceneCommandIndex;
 	}
 
-	static std::array<SpriteVertex, s_VerticesPerQuad> MakeQuadVertices(const QuadCommand& command)
+	std::array<SpriteVertex, s_VerticesPerQuad> MakeQuadVertices(const QuadCommand& command)
 	{
 		return { {
 			{ command.Origin, command.UVStart, command.VertexColor },

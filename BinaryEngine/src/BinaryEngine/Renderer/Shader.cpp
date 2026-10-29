@@ -5,7 +5,7 @@
 
 namespace {
 
-	static SDL_GPUShaderStage ConvertShaderStage(BinaryEngine::ShaderStage stage)
+	SDL_GPUShaderStage ConvertShaderStage(BinaryEngine::ShaderStage stage)
 	{
 		switch (stage)
 		{
