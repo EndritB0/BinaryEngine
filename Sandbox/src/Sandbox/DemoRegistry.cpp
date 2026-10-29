@@ -6,6 +6,7 @@
 #include "Sandbox/States/AudioDemoState.h"
 #include "Sandbox/States/ShowcaseDemoState.h"
 #include "Sandbox/States/StressDemoState.h"
+#include "Sandbox/States/TimestepDemoState.h"
 
 namespace Sandbox {
 
@@ -15,6 +16,7 @@ namespace Sandbox {
 			{ "Showcase", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<ShowcaseDemoState>(); } },
 			{ "Audio", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<AudioDemoState>(); } },
 			{ "Stress", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<StressDemoState>(); } },
+			{ "Timestep", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<TimestepDemoState>(); } },
 		};
 
 		static_assert(std::size(s_Demos) <= 12, "The shell selects demos with F1-F12, so there can be at most 12");

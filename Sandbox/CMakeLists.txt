@@ -15,6 +15,8 @@ set(SANDBOX_SOURCES
     "src/Sandbox/States/ShowcaseDemoState.h"
     "src/Sandbox/States/StressDemoState.cpp"
     "src/Sandbox/States/StressDemoState.h"
+    "src/Sandbox/States/TimestepDemoState.cpp"
+    "src/Sandbox/States/TimestepDemoState.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
