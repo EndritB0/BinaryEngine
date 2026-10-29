@@ -57,7 +57,7 @@ namespace BinaryEngine {
 
 	void Shader::Load(const std::filesystem::path& filePath, const Renderer& renderer, const ShaderSpecification shaderSpecification)
 	{
-		SDL_GPUDevice* device = static_cast<SDL_GPUDevice*>(renderer.GetNativeDevice());
+		SDL_GPUDevice* device{ renderer.GetNativeDevice() };
 		if (!device)
 		{
 			CORE_ERROR("[Shader] No GPU Device available to create shader: {}", filePath.string());

@@ -80,7 +80,7 @@ namespace BinaryEngine {
 			return false;
 		}
 
-		SDL_GPUDevice* device = static_cast<SDL_GPUDevice*>(renderer.GetNativeDevice());
+		SDL_GPUDevice* device{ renderer.GetNativeDevice() };
 		if (!device)
 		{
 			CORE_ERROR("[Texture2D] NO GPU Device avaiable to upload texture, {}", debugName);

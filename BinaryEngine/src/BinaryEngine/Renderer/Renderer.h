@@ -9,6 +9,8 @@
 #include "BinaryEngine/Renderer/RendererSpecification.h"
 #include "BinaryEngine/Renderer/TextSpecification.h"
 
+struct SDL_GPUDevice;
+
 namespace BinaryEngine {
 
 	class Font;
@@ -37,7 +39,6 @@ namespace BinaryEngine {
 			std::uint32_t maxQuads{ 0 };
 		};
 
-		void* GetNativeDevice() const;
 		bool IsValid() const;
 		void SetViewport(Vector2i position, Vector2i size);
 		void ResetViewport();
@@ -58,6 +59,12 @@ namespace BinaryEngine {
 		void DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region);
 		void DrawText(const Font& font, std::string_view text, const Transform& transform, const TextSpecification& specification = TextSpecification());
 		Vector2f MeasureText(const Font& font, std::string_view text, const TextSpecification& specification) const;
+
+	private:
+		friend class Shader;
+		friend class Texture2D;
+
+		::SDL_GPUDevice* GetNativeDevice() const;
 
 	private:
 		struct RendererData;

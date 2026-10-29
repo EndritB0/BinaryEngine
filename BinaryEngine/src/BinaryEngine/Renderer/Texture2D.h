@@ -7,6 +7,9 @@
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Math.h"
 
+struct SDL_GPUDevice;
+struct SDL_GPUTexture;
+
 namespace BinaryEngine {
 
 	class Renderer;
@@ -29,11 +32,14 @@ namespace BinaryEngine {
 		int GetWidth() const { return m_Size.x; }
 		int GetHeight() const { return m_Size.y; }
 		Vector2i GetSize() const { return m_Size; }
-		void* GetNativeTexture() const { return m_Texture; }
 
 	private:
-		struct SDL_GPUDevice* m_Device{ nullptr };
-		struct SDL_GPUTexture* m_Texture{ nullptr };
+		friend class Renderer;
+		::SDL_GPUTexture* GetNativeTexture() const { return m_Texture; }
+
+	private:
+		::SDL_GPUDevice* m_Device{ nullptr };
+		::SDL_GPUTexture* m_Texture{ nullptr };
 		Vector2i m_Size{ 0, 0 };
 	};
 

@@ -1,10 +1,14 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 
 #include "BinaryEngine/Asset/Asset.h"
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Math.h"
+
+struct SDL_GPUDevice;
+struct SDL_GPUShader;
 
 namespace BinaryEngine {
 
@@ -34,12 +38,15 @@ namespace BinaryEngine {
 		static AssetType GetStaticAssetType() { return AssetType::Shader; }
 		virtual AssetType GetAssetType() const override { return GetStaticAssetType(); }
 		void Load(const std::filesystem::path& filePath, const Renderer& renderer, const ShaderSpecification shaderSpecification);
-		void* GetNativeShader() const { return m_Shader; }
 		bool IsValid() const { return m_Shader != nullptr; }
 
 	private:
-		struct SDL_GPUDevice* m_Device{};
-		struct SDL_GPUShader* m_Shader{};
+		friend class Renderer;
+		::SDL_GPUShader* GetNativeShader() const { return m_Shader; }
+
+	private:
+		::SDL_GPUDevice* m_Device{};
+		::SDL_GPUShader* m_Shader{};
 	};
 
 }

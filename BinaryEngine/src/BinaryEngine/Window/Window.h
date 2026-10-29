@@ -7,6 +7,8 @@
 #include "BinaryEngine/Window/WindowSpecification.h"
 #include "BinaryEngine/Event/Event.h"
 
+struct SDL_Window;
+
 namespace BinaryEngine {
 
 	class Window {
@@ -22,7 +24,6 @@ namespace BinaryEngine {
 		Window(Window&&) = delete;
 		Window& operator=(Window&&) = delete;
 
-		void* GetNativeWindow() const { return static_cast<void*>(m_Window); }
 		bool IsValid() const { return m_Window != nullptr; }
 		const WindowSpecification GetSpecification() const { return m_WindowSpecification; }
 		int GetWidth() const;
@@ -42,8 +43,12 @@ namespace BinaryEngine {
 		void ProcessEvents();
 
 	private:
+		friend class Renderer;
+		::SDL_Window* GetNativeWindow() const { return m_Window; }
+
+	private:
 		WindowSpecification m_WindowSpecification;
-		struct SDL_Window* m_Window{ nullptr };
+		::SDL_Window* m_Window{ nullptr };
 		EventCallback m_EventCallback;
 		LiveRedrawCallback m_LiveRedrawCallback;
 		bool m_IsMinimized{ false };

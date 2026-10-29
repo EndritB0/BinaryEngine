@@ -266,7 +266,7 @@ namespace BinaryEngine {
 		m_Data(std::make_unique<RendererData>())
 	{
 		m_Data->m_Specification = specification;
-		m_Data->m_Window = static_cast<SDL_Window*>(window.GetNativeWindow());
+		m_Data->m_Window = window.GetNativeWindow();
 
 		NormaliseSpriteCapacitySpecification(m_Data->m_Specification);
 		m_Data->m_Statistics.maxQuads = m_Data->m_Specification.MaxQuadCapacity;
@@ -343,7 +343,7 @@ namespace BinaryEngine {
 		}
 	}
 
-	void* Renderer::GetNativeDevice() const
+	SDL_GPUDevice* Renderer::GetNativeDevice() const
 	{
 		return m_Data->m_Device;
 	}
@@ -551,7 +551,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		SDL_GPUTexture* nativeTexture{ static_cast<SDL_GPUTexture*>(font.GetTexture().GetNativeTexture()) };
+		SDL_GPUTexture* nativeTexture{ font.GetTexture().GetNativeTexture() };
 		if (!nativeTexture)
 		{
 			return;
@@ -617,7 +617,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		SDL_GPUTexture* nativeTexture{ static_cast<SDL_GPUTexture*>(texture.GetNativeTexture()) };
+		SDL_GPUTexture* nativeTexture{ texture.GetNativeTexture() };
 		if (!nativeTexture)
 		{
 			return;
@@ -962,8 +962,8 @@ namespace BinaryEngine {
 		};
 
 		SDL_GPUGraphicsPipelineCreateInfo pipelineInfo{
-			.vertex_shader{ static_cast<SDL_GPUShader*>(vertexShader.GetNativeShader()) },
-			.fragment_shader{ static_cast<SDL_GPUShader*>(fragmentShader.GetNativeShader()) },
+			.vertex_shader{ vertexShader.GetNativeShader() },
+			.fragment_shader{ fragmentShader.GetNativeShader() },
 			.vertex_input_state{
 				.vertex_buffer_descriptions{ &vertexBufferDescription },
 				.num_vertex_buffers{ 1 },
