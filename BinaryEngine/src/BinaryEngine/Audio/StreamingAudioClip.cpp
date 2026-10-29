@@ -66,13 +66,7 @@ namespace BinaryEngine {
 
 	std::unique_ptr<Detail::VoiceSource> StreamingAudioClip::CreateSource(bool loop) const
 	{
-		std::unique_ptr<Detail::StreamingVoiceSource> source{ std::make_unique<Detail::StreamingVoiceSource>(m_EncodedData, loop) };
-		if (!source->IsValid())
-		{
-			return nullptr;
-		}
-
-		return source;
+		return Detail::CreateStreamingVoiceSource(m_EncodedData, loop);
 	}
 
 }

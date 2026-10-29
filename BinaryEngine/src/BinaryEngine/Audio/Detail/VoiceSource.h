@@ -5,8 +5,6 @@
 #include <memory>
 #include <vector>
 
-struct stb_vorbis;
-
 namespace BinaryEngine::Detail {
 
 	enum class SourceStatus {
@@ -53,21 +51,5 @@ namespace BinaryEngine::Detail {
 		bool m_Loop{ false };
 	};
 
-	class StreamingVoiceSource : public VoiceSource {
-	public:
-		StreamingVoiceSource(std::shared_ptr<const std::vector<std::uint8_t>> encodedData, bool loop);
-		virtual ~StreamingVoiceSource() override;
-
-		bool IsValid() const { return m_Decoder != nullptr; }
-		virtual std::uint32_t GetSampleRate() const override { return m_SampleRate; }
-		virtual std::uint32_t GetChannelCount() const override { return m_ChannelCount; }
-		virtual SourceReadResult Read(float* destination, std::uint32_t frameCount) override;
-
-	private:
-		std::shared_ptr<const std::vector<std::uint8_t>> m_EncodedData;
-		::stb_vorbis* m_Decoder{ nullptr };
-		std::uint32_t m_SampleRate{ 0 };
-		std::uint32_t m_ChannelCount{ 0 };
-		bool m_Loop{ false };
-	};
+	std::unique_ptr<VoiceSource> CreateStreamingVoiceSource(std::shared_ptr<const std::vector<std::uint8_t>> encodedData, bool loop);
 }

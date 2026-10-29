@@ -27,7 +27,6 @@
 
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
-#include <stb_image.h>
 #include <entt/entt.hpp>
 
 #include "BinaryEngine/Log/Log.h"

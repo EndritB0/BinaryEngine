@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
 
+#include <stb_image.h>
+
 #include "BinaryEngine/Renderer/Renderer.h"
 
 namespace BinaryEngine {
