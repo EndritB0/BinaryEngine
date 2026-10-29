@@ -19,7 +19,6 @@ namespace BinaryEngine::Detail {
 		m_Commands(s_CommandQueueCapacity),
 		m_FinishedVoices(maxVoices),
 		m_Voices(maxVoices),
-		m_SourceScratch(static_cast<std::size_t>(s_SourceScratchFrames) * s_OutputChannelCount),
 		m_SampleRate(sampleRate),
 		m_VolumeRampFrames(static_cast<std::uint32_t>(static_cast<float>(sampleRate) * s_VolumeRampSeconds))
 	{
@@ -29,7 +28,6 @@ namespace BinaryEngine::Detail {
 			BusState& bus{ m_Buses.emplace_back() };
 			bus.ParentIndex = busSetup.ParentIndex;
 			bus.Volume.Reset(busSetup.Volume);
-			bus.Samples.resize(static_cast<std::size_t>(s_MaxBlockFrames) * s_OutputChannelCount);
 		}
 	}
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <vector>
@@ -56,8 +57,8 @@ namespace BinaryEngine::Detail {
 			std::uint32_t ChannelCount{ 1 };
 			std::uint64_t Phase{ 0 };
 			std::uint64_t PhaseStep{ 0 };
-			float CurrentFrame[s_OutputChannelCount]{};
-			float NextFrame[s_OutputChannelCount]{};
+			std::array<float, s_OutputChannelCount> CurrentFrame{};
+			std::array<float, s_OutputChannelCount> NextFrame{};
 			GainRamp Volume;
 			GainRamp Envelope;
 			bool IsActive{ false };
@@ -67,7 +68,7 @@ namespace BinaryEngine::Detail {
 		struct BusState {
 			std::uint32_t ParentIndex{ 0 };
 			GainRamp Volume;
-			std::vector<float> Samples;
+			std::array<float, s_MaxBlockFrames * s_OutputChannelCount> Samples{};
 		};
 
 		void ProcessCommands();
@@ -83,7 +84,7 @@ namespace BinaryEngine::Detail {
 		SpscQueue<VoiceFinishedEvent> m_FinishedVoices;
 		std::vector<VoiceState> m_Voices;
 		std::vector<BusState> m_Buses;
-		std::vector<float> m_SourceScratch;
+		std::array<float, s_SourceScratchFrames * s_OutputChannelCount> m_SourceScratch{};
 		std::uint32_t m_SampleRate{ 0 };
 		std::uint32_t m_VolumeRampFrames{ 0 };
 		std::atomic<std::uint32_t> m_DecodeErrorCount{ 0 };
