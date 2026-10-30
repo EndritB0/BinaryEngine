@@ -3,6 +3,9 @@
 
 #include "BinaryEngine/Asset/AssetManager.h"
 #include "BinaryEngine/Audio/AudioAsset.h"
+#include "BinaryEngine/Audio/AudioScope.h"
+#include "BinaryEngine/Audio/AudioSpecification.h"
+#include "BinaryEngine/Audio/Detail/AudioCommand.h"
 #include "BinaryEngine/Audio/Detail/Mixer.h"
 #include "BinaryEngine/Audio/Detail/VoiceSource.h"
 
@@ -12,6 +15,18 @@ namespace {
 	constexpr std::string_view s_MasterBusName{ "Master" };
 	constexpr float s_MaxFadeSeconds{ 3600.0f };
 	constexpr std::uint64_t s_DroppedPlayWarningRearmNanoseconds{ 1'000'000'000 };
+
+	struct BusRecord {
+		std::string Name;
+		std::uint32_t ParentIndex{ 0 };
+		float Volume{ 1.0f };
+	};
+
+	struct VoiceRecord {
+		std::unique_ptr<BinaryEngine::Detail::VoiceSource> Source;
+		BinaryEngine::AudioScope* Owner{ nullptr };
+		std::uint32_t Generation{ 1 };
+	};
 
 	void NormaliseAudioSpecification(BinaryEngine::AudioSpecification& specification)
 	{
@@ -69,42 +84,76 @@ namespace {
 
 namespace BinaryEngine {
 
-	AudioEngine::AudioEngine(const AudioSpecification& specification, AssetManager& assetManager) :
-		m_AssetManager(assetManager), m_Specification(specification)
-	{
-		NormaliseAudioSpecification(m_Specification);
-		BuildBusGraph(m_Specification.Buses);
+	struct AudioEngine::AudioEngineData {
+		AudioEngineData(AssetManager& assetManager, const AudioSpecification& specification) :
+			m_AssetManager(assetManager), m_Specification(specification) {}
 
-		m_Voices.resize(m_Specification.MaxVoices);
-		m_FreeSlots.reserve(m_Specification.MaxVoices);
-		for (std::uint32_t slot{ m_Specification.MaxVoices }; slot > 0; slot--)
+		AssetManager& m_AssetManager;
+		AudioSpecification m_Specification;
+		std::vector<BusRecord> m_Buses;
+		std::vector<VoiceRecord> m_Voices;
+		std::vector<std::uint32_t> m_FreeSlots;
+		std::vector<Detail::AudioCommand> m_CommandBacklog;
+		std::unordered_set<AssetHandle> m_InvalidClipWarnings;
+		std::unique_ptr<Detail::Mixer> m_Mixer;
+		SDL_AudioStream* m_Stream{ nullptr };
+		std::optional<AudioScope> m_GlobalScope;
+		std::uint64_t m_LastDroppedPlayNanoseconds{ 0 };
+		std::uint32_t m_LiveScopeCount{ 0 };
+		std::uint32_t m_DroppedPlays{ 0 };
+		std::uint32_t m_ReportedDecodeErrors{ 0 };
+		bool m_IsSubsystemInitialised{ false };
+		bool m_HasWarnedDroppedPlay{ false };
+		bool m_HasWarnedInvalidBus{ false };
+
+		void BuildBusGraph(const std::vector<AudioBusSpecification>& buses);
+		std::optional<std::uint32_t> FindBusIndex(std::string_view name) const;
+		bool IsValidBus(AudioBusHandle bus) const;
+		void OpenDevice();
+		std::uint32_t SecondsToFrames(float seconds) const;
+		void SendCommand(const Detail::AudioCommand& command);
+		void FlushCommandBacklog();
+		VoiceHandle DropPlay();
+		void ReleaseVoice(const Detail::VoiceFinishedEvent& finishedVoice);
+		void ReportAudioThreadErrors();
+	};
+
+	AudioEngine::AudioEngine(const AudioSpecification& specification, AssetManager& assetManager) :
+		m_Data(std::make_unique<AudioEngineData>(assetManager, specification))
+	{
+		NormaliseAudioSpecification(m_Data->m_Specification);
+		m_Data->BuildBusGraph(m_Data->m_Specification.Buses);
+
+		m_Data->m_Voices.resize(m_Data->m_Specification.MaxVoices);
+		m_Data->m_FreeSlots.reserve(m_Data->m_Specification.MaxVoices);
+		for (std::uint32_t slot{ m_Data->m_Specification.MaxVoices }; slot > 0; slot--)
 		{
-			m_FreeSlots.push_back(slot - 1);
+			m_Data->m_FreeSlots.push_back(slot - 1);
 		}
 
-		m_GlobalScope.emplace(*this);
-		OpenDevice();
+		m_Data->m_GlobalScope.emplace(*this);
+		m_Data->OpenDevice();
 	}
 
 	AudioEngine::~AudioEngine()
 	{
-		m_GlobalScope.reset();
-		if (m_LiveScopeCount != 0)
+		m_Data->m_GlobalScope.reset();
+		if (m_Data->m_LiveScopeCount != 0)
 		{
-			CORE_ERROR("[AudioEngine] {} AudioScope(s) are still alive; every scope must be destroyed before the AudioEngine", m_LiveScopeCount);
+			CORE_ERROR("[AudioEngine] {} AudioScope(s) are still alive; every scope must be destroyed before the AudioEngine", m_Data->m_LiveScopeCount);
 		}
 
-		if (m_Stream != nullptr)
+		if (m_Data->m_Stream != nullptr)
 		{
-			SDL_DestroyAudioStream(m_Stream);
-			m_Stream = nullptr;
+			SDL_DestroyAudioStream(m_Data->m_Stream);
+			m_Data->m_Stream = nullptr;
 		}
 
-		m_Voices.clear();
-		const double mixedSeconds{ m_Mixer != nullptr ? static_cast<double>(m_Mixer->GetMixedFrameCount()) / m_Specification.SampleRate : 0.0 };
-		m_Mixer.reset();
+		m_Data->m_Voices.clear();
+		const double mixedSeconds{ m_Data->m_Mixer != nullptr ? static_cast<double>(m_Data->m_Mixer->GetMixedFrameCount()) / m_Data->m_Specification.SampleRate : 0.0 };
+		m_Data->m_Mixer.reset();
 
-		if (m_IsSubsystemInitialised)
+		if (m_Data->m_IsSubsystemInitialised)
 		{
 			SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		}
@@ -112,9 +161,14 @@ namespace BinaryEngine {
 		CORE_INFO("[AudioEngine] Audio Engine Shutdown (mixed {:.2f} s of audio)", mixedSeconds);
 	}
 
+	bool AudioEngine::IsAvailable() const
+	{
+		return m_Data->m_Stream != nullptr;
+	}
+
 	AudioBusHandle AudioEngine::GetBus(std::string_view name) const
 	{
-		const std::optional<std::uint32_t> busIndex{ FindBusIndex(name) };
+		const std::optional<std::uint32_t> busIndex{ m_Data->FindBusIndex(name) };
 		if (!busIndex.has_value())
 		{
 			return AudioBusHandle{};
@@ -125,28 +179,28 @@ namespace BinaryEngine {
 
 	void AudioEngine::SetBusVolume(AudioBusHandle bus, float volume)
 	{
-		if (!IsValidBus(bus))
+		if (!m_Data->IsValidBus(bus))
 		{
 			return;
 		}
 
-		BusRecord& busRecord{ m_Buses[bus.m_Index] };
+		BusRecord& busRecord{ m_Data->m_Buses[bus.m_Index] };
 		busRecord.Volume = ClampVolume(volume);
 
 		if (IsAvailable())
 		{
-			SendCommand(Detail::AudioCommand{ .Type{ Detail::AudioCommandType::SetBusVolume }, .BusIndex{ bus.m_Index }, .Volume{ busRecord.Volume } });
+			m_Data->SendCommand(Detail::AudioCommand{ .Type{ Detail::AudioCommandType::SetBusVolume }, .BusIndex{ bus.m_Index }, .Volume{ busRecord.Volume } });
 		}
 	}
 
 	float AudioEngine::GetBusVolume(AudioBusHandle bus) const
 	{
-		if (!IsValidBus(bus))
+		if (!m_Data->IsValidBus(bus))
 		{
 			return 0.0f;
 		}
 
-		return m_Buses[bus.m_Index].Volume;
+		return m_Data->m_Buses[bus.m_Index].Volume;
 	}
 
 	void AudioEngine::Stop(VoiceHandle voice, std::optional<float> fadeSeconds)
@@ -156,11 +210,11 @@ namespace BinaryEngine {
 			return;
 		}
 
-		SendCommand(Detail::AudioCommand{
+		m_Data->SendCommand(Detail::AudioCommand{
 			.Type{ Detail::AudioCommandType::Stop },
 			.Slot{ voice.m_Slot },
 			.Generation{ voice.m_Generation },
-			.FadeFrames{ SecondsToFrames(fadeSeconds.value_or(m_Specification.StopFadeSeconds)) },
+			.FadeFrames{ m_Data->SecondsToFrames(fadeSeconds.value_or(m_Data->m_Specification.StopFadeSeconds)) },
 		});
 	}
 
@@ -171,7 +225,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		SendCommand(Detail::AudioCommand{
+		m_Data->SendCommand(Detail::AudioCommand{
 			.Type{ Detail::AudioCommandType::SetVoiceVolume },
 			.Slot{ voice.m_Slot },
 			.Generation{ voice.m_Generation },
@@ -181,23 +235,28 @@ namespace BinaryEngine {
 
 	bool AudioEngine::IsPlaying(VoiceHandle voice) const
 	{
-		if (!voice.IsValid() || voice.m_Slot >= m_Voices.size())
+		if (!voice.IsValid() || voice.m_Slot >= m_Data->m_Voices.size())
 		{
 			return false;
 		}
 
-		const VoiceRecord& voiceRecord{ m_Voices[voice.m_Slot] };
+		const VoiceRecord& voiceRecord{ m_Data->m_Voices[voice.m_Slot] };
 		return voiceRecord.Source != nullptr && voiceRecord.Generation == voice.m_Generation;
+	}
+
+	AudioScope& AudioEngine::GetGlobalScope()
+	{
+		return *m_Data->m_GlobalScope;
 	}
 
 	AudioEngine::Statistics AudioEngine::GetStatistics() const
 	{
 		return Statistics{
 			.IsAvailable{ IsAvailable() },
-			.ActiveVoices{ static_cast<std::uint32_t>(m_Voices.size() - m_FreeSlots.size()) },
-			.MaxVoices{ m_Specification.MaxVoices },
-			.DroppedPlays{ m_DroppedPlays },
-			.DecodeErrors{ IsAvailable() ? m_Mixer->GetDecodeErrorCount() : 0u },
+			.ActiveVoices{ static_cast<std::uint32_t>(m_Data->m_Voices.size() - m_Data->m_FreeSlots.size()) },
+			.MaxVoices{ m_Data->m_Specification.MaxVoices },
+			.DroppedPlays{ m_Data->m_DroppedPlays },
+			.DecodeErrors{ IsAvailable() ? m_Data->m_Mixer->GetDecodeErrorCount() : 0u },
 		};
 	}
 
@@ -208,23 +267,124 @@ namespace BinaryEngine {
 			return;
 		}
 
-		FlushCommandBacklog();
+		m_Data->FlushCommandBacklog();
 
 		Detail::VoiceFinishedEvent finishedVoice{};
-		while (m_Mixer->PopFinishedVoice(finishedVoice))
+		while (m_Data->m_Mixer->PopFinishedVoice(finishedVoice))
 		{
-			ReleaseVoice(finishedVoice);
+			m_Data->ReleaseVoice(finishedVoice);
 		}
 
-		if (m_HasWarnedDroppedPlay && SDL_GetTicksNS() - m_LastDroppedPlayNanoseconds >= s_DroppedPlayWarningRearmNanoseconds)
+		if (m_Data->m_HasWarnedDroppedPlay && SDL_GetTicksNS() - m_Data->m_LastDroppedPlayNanoseconds >= s_DroppedPlayWarningRearmNanoseconds)
 		{
-			m_HasWarnedDroppedPlay = false;
+			m_Data->m_HasWarnedDroppedPlay = false;
 		}
 
-		ReportAudioThreadErrors();
+		m_Data->ReportAudioThreadErrors();
 	}
 
-	void AudioEngine::BuildBusGraph(const std::vector<AudioBusSpecification>& buses)
+	VoiceHandle AudioEngine::PlayInScope(AudioScope& owner, AssetHandle clipHandle, const PlaySpecification& specification)
+	{
+		if (!IsAvailable())
+		{
+			return VoiceHandle{};
+		}
+
+		if (m_Data->m_InvalidClipWarnings.contains(clipHandle))
+		{
+			return VoiceHandle{};
+		}
+
+		const std::shared_ptr<AudioAsset> clip{ m_Data->m_AssetManager.GetAsset<AudioAsset>(clipHandle) };
+		if (!clip)
+		{
+			m_Data->m_InvalidClipWarnings.insert(clipHandle);
+			return VoiceHandle{};
+		}
+
+		if (!clip->IsValid())
+		{
+			m_Data->m_InvalidClipWarnings.insert(clipHandle);
+			CORE_WARN("[AudioEngine] Can't play {}: the asset failed to load", clip->GetFilePath().string());
+			return VoiceHandle{};
+		}
+
+		const std::uint32_t maxSourceRate{ m_Data->m_Specification.SampleRate * Detail::Mixer::s_MaxSourceRateRatio };
+		if (clip->GetSampleRate() > maxSourceRate)
+		{
+			CORE_ERROR("[AudioEngine] Can't play {}: its sample rate is {} Hz and the limit is {} Hz (4 x the mix rate)", clip->GetFilePath().string(), clip->GetSampleRate(), maxSourceRate);
+			return VoiceHandle{};
+		}
+
+		std::uint32_t busIndex{ specification.Bus.m_Index };
+		if (!m_Data->IsValidBus(specification.Bus))
+		{
+			if (!m_Data->m_HasWarnedInvalidBus)
+			{
+				CORE_WARN("[AudioEngine] Play was given an invalid bus, so the voice routes to Master");
+				m_Data->m_HasWarnedInvalidBus = true;
+			}
+			busIndex = 0;
+		}
+
+		if (m_Data->m_FreeSlots.empty() || !m_Data->m_CommandBacklog.empty())
+		{
+			return m_Data->DropPlay();
+		}
+
+		std::unique_ptr<Detail::VoiceSource> source{ clip->CreateSource(specification.Loop) };
+		if (!source)
+		{
+			CORE_ERROR("[AudioEngine] Can't play {}: its voice source failed to open", clip->GetFilePath().string());
+			return VoiceHandle{};
+		}
+
+		const std::uint32_t slot{ m_Data->m_FreeSlots.back() };
+		VoiceRecord& voice{ m_Data->m_Voices[slot] };
+		const Detail::AudioCommand playCommand{
+			.Type{ Detail::AudioCommandType::Play },
+			.Slot{ slot },
+			.Generation{ voice.Generation },
+			.Source{ source.get() },
+			.BusIndex{ busIndex },
+			.Volume{ ClampVolume(specification.Volume) },
+			.FadeFrames{ m_Data->SecondsToFrames(specification.FadeInSeconds) },
+		};
+
+		if (!m_Data->m_Mixer->PushCommand(playCommand))
+		{
+			return m_Data->DropPlay();
+		}
+
+		m_Data->m_FreeSlots.pop_back();
+		voice.Source = std::move(source);
+		voice.Owner = &owner;
+
+		const VoiceHandle handle{ slot, voice.Generation };
+		owner.m_Voices.push_back(handle);
+		return handle;
+	}
+
+	void AudioEngine::RegisterScope()
+	{
+		++m_Data->m_LiveScopeCount;
+	}
+
+	void AudioEngine::DetachScope(AudioScope& scope)
+	{
+		for (const VoiceHandle voice : scope.m_Voices)
+		{
+			if (IsPlaying(voice))
+			{
+				m_Data->m_Voices[voice.m_Slot].Owner = nullptr;
+			}
+		}
+
+		scope.m_Voices.clear();
+		--m_Data->m_LiveScopeCount;
+	}
+
+	void AudioEngine::AudioEngineData::BuildBusGraph(const std::vector<AudioBusSpecification>& buses)
 	{
 		m_Buses.reserve(buses.size() + 1);
 		m_Buses.emplace_back(std::string{ s_MasterBusName }, 0u, 1.0f);
@@ -260,7 +420,7 @@ namespace BinaryEngine {
 		}
 	}
 
-	std::optional<std::uint32_t> AudioEngine::FindBusIndex(std::string_view name) const
+	std::optional<std::uint32_t> AudioEngine::AudioEngineData::FindBusIndex(std::string_view name) const
 	{
 		for (std::size_t busIndex{ 0 }; busIndex < m_Buses.size(); busIndex++)
 		{
@@ -273,12 +433,12 @@ namespace BinaryEngine {
 		return std::nullopt;
 	}
 
-	bool AudioEngine::IsValidBus(AudioBusHandle bus) const
+	bool AudioEngine::AudioEngineData::IsValidBus(AudioBusHandle bus) const
 	{
 		return bus.IsValid() && bus.m_Index < m_Buses.size();
 	}
 
-	void AudioEngine::OpenDevice()
+	void AudioEngine::AudioEngineData::OpenDevice()
 	{
 		if (!SDL_InitSubSystem(SDL_INIT_AUDIO))
 		{
@@ -321,7 +481,7 @@ namespace BinaryEngine {
 		CORE_INFO("[AudioEngine] Audio Engine Initialised: {} Hz stereo, {} voices", m_Specification.SampleRate, m_Specification.MaxVoices);
 	}
 
-	std::uint32_t AudioEngine::SecondsToFrames(float seconds) const
+	std::uint32_t AudioEngine::AudioEngineData::SecondsToFrames(float seconds) const
 	{
 		if (std::isnan(seconds) || seconds <= 0.0f)
 		{
@@ -332,7 +492,7 @@ namespace BinaryEngine {
 		return static_cast<std::uint32_t>(clampedSeconds * static_cast<float>(m_Specification.SampleRate));
 	}
 
-	void AudioEngine::SendCommand(const Detail::AudioCommand& command)
+	void AudioEngine::AudioEngineData::SendCommand(const Detail::AudioCommand& command)
 	{
 		if (!m_CommandBacklog.empty() || !m_Mixer->PushCommand(command))
 		{
@@ -340,7 +500,7 @@ namespace BinaryEngine {
 		}
 	}
 
-	void AudioEngine::FlushCommandBacklog()
+	void AudioEngine::AudioEngineData::FlushCommandBacklog()
 	{
 		std::size_t sentCount{ 0 };
 		while (sentCount < m_CommandBacklog.size() && m_Mixer->PushCommand(m_CommandBacklog[sentCount]))
@@ -351,89 +511,7 @@ namespace BinaryEngine {
 		m_CommandBacklog.erase(m_CommandBacklog.begin(), m_CommandBacklog.begin() + static_cast<std::ptrdiff_t>(sentCount));
 	}
 
-	VoiceHandle AudioEngine::PlayInScope(AudioScope& owner, AssetHandle clipHandle, const PlaySpecification& specification)
-	{
-		if (!IsAvailable())
-		{
-			return VoiceHandle{};
-		}
-
-		if (m_InvalidClipWarnings.contains(clipHandle))
-		{
-			return VoiceHandle{};
-		}
-
-		const std::shared_ptr<AudioAsset> clip{ m_AssetManager.GetAsset<AudioAsset>(clipHandle) };
-		if (!clip)
-		{
-			m_InvalidClipWarnings.insert(clipHandle);
-			return VoiceHandle{};
-		}
-
-		if (!clip->IsValid())
-		{
-			m_InvalidClipWarnings.insert(clipHandle);
-			CORE_WARN("[AudioEngine] Can't play {}: the asset failed to load", clip->GetFilePath().string());
-			return VoiceHandle{};
-		}
-
-		const std::uint32_t maxSourceRate{ m_Specification.SampleRate * Detail::Mixer::s_MaxSourceRateRatio };
-		if (clip->GetSampleRate() > maxSourceRate)
-		{
-			CORE_ERROR("[AudioEngine] Can't play {}: its sample rate is {} Hz and the limit is {} Hz (4 x the mix rate)", clip->GetFilePath().string(), clip->GetSampleRate(), maxSourceRate);
-			return VoiceHandle{};
-		}
-
-		std::uint32_t busIndex{ specification.Bus.m_Index };
-		if (!IsValidBus(specification.Bus))
-		{
-			if (!m_HasWarnedInvalidBus)
-			{
-				CORE_WARN("[AudioEngine] Play was given an invalid bus, so the voice routes to Master");
-				m_HasWarnedInvalidBus = true;
-			}
-			busIndex = 0;
-		}
-
-		if (m_FreeSlots.empty() || !m_CommandBacklog.empty())
-		{
-			return DropPlay();
-		}
-
-		std::unique_ptr<Detail::VoiceSource> source{ clip->CreateSource(specification.Loop) };
-		if (!source)
-		{
-			CORE_ERROR("[AudioEngine] Can't play {}: its voice source failed to open", clip->GetFilePath().string());
-			return VoiceHandle{};
-		}
-
-		const std::uint32_t slot{ m_FreeSlots.back() };
-		VoiceRecord& voice{ m_Voices[slot] };
-		const Detail::AudioCommand playCommand{
-			.Type{ Detail::AudioCommandType::Play },
-			.Slot{ slot },
-			.Generation{ voice.Generation },
-			.Source{ source.get() },
-			.BusIndex{ busIndex },
-			.Volume{ ClampVolume(specification.Volume) },
-			.FadeFrames{ SecondsToFrames(specification.FadeInSeconds) },
-		};
-
-		if (!m_Mixer->PushCommand(playCommand))
-		{
-			return DropPlay();
-		}
-
-		m_FreeSlots.pop_back();
-		voice.Source = std::move(source);
-		voice.Owner = &owner;
-
-		const VoiceHandle handle{ slot, voice.Generation };
-		owner.m_Voices.push_back(handle);
-		return handle;
-	}
-
-	VoiceHandle AudioEngine::DropPlay()
+	VoiceHandle AudioEngine::AudioEngineData::DropPlay()
 	{
 		++m_DroppedPlays;
 		m_LastDroppedPlayNanoseconds = SDL_GetTicksNS();
@@ -446,7 +524,7 @@ namespace BinaryEngine {
 		return VoiceHandle{};
 	}
 
-	void AudioEngine::ReleaseVoice(const Detail::VoiceFinishedEvent& finishedVoice)
+	void AudioEngine::AudioEngineData::ReleaseVoice(const Detail::VoiceFinishedEvent& finishedVoice)
 	{
 		if (finishedVoice.Slot >= m_Voices.size())
 		{
@@ -470,7 +548,7 @@ namespace BinaryEngine {
 		m_FreeSlots.push_back(finishedVoice.Slot);
 	}
 
-	void AudioEngine::ReportAudioThreadErrors()
+	void AudioEngine::AudioEngineData::ReportAudioThreadErrors()
 	{
 		const std::uint32_t decodeErrors{ m_Mixer->GetDecodeErrorCount() };
 		if (decodeErrors == m_ReportedDecodeErrors)
@@ -480,24 +558,5 @@ namespace BinaryEngine {
 
 		CORE_ERROR("[AudioEngine] {} new decode error(s) on the audio thread; those voices stopped", decodeErrors - m_ReportedDecodeErrors);
 		m_ReportedDecodeErrors = decodeErrors;
-	}
-
-	void AudioEngine::RegisterScope()
-	{
-		++m_LiveScopeCount;
-	}
-
-	void AudioEngine::DetachScope(AudioScope& scope)
-	{
-		for (const VoiceHandle voice : scope.m_Voices)
-		{
-			if (IsPlaying(voice))
-			{
-				m_Voices[voice.m_Slot].Owner = nullptr;
-			}
-		}
-
-		scope.m_Voices.clear();
-		--m_LiveScopeCount;
 	}
 }
