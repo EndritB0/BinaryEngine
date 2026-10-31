@@ -72,12 +72,12 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Audio/AudioScope.h"
     "src/BinaryEngine/Audio/StreamingAudioClip.cpp"
     "src/BinaryEngine/Audio/StreamingAudioClip.h"
-    "src/BinaryEngine/Audio/Detail/AudioCommand.h"
-    "src/BinaryEngine/Audio/Detail/Mixer.cpp"
-    "src/BinaryEngine/Audio/Detail/Mixer.h"
-    "src/BinaryEngine/Audio/Detail/SpscQueue.h"
-    "src/BinaryEngine/Audio/Detail/VoiceSource.cpp"
-    "src/BinaryEngine/Audio/Detail/VoiceSource.h"
+    "internal/BinaryEngine/Audio/Detail/AudioCommand.h"
+    "internal/BinaryEngine/Audio/Detail/Mixer.cpp"
+    "internal/BinaryEngine/Audio/Detail/Mixer.h"
+    "internal/BinaryEngine/Audio/Detail/SpscQueue.h"
+    "internal/BinaryEngine/Audio/Detail/VoiceSource.cpp"
+    "internal/BinaryEngine/Audio/Detail/VoiceSource.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
@@ -91,7 +91,7 @@ source_group("Precompiled Headers" REGULAR_EXPRESSION ".*pch.*")
 target_sources(BinaryEngine PRIVATE ${BINARYENGINE_SOURCES})
 
 target_compile_features(BinaryEngine PRIVATE cxx_std_20)
-target_include_directories(BinaryEngine PUBLIC src)
+target_include_directories(BinaryEngine PUBLIC src PRIVATE internal)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
