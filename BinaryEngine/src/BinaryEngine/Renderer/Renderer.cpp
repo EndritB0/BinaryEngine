@@ -7,6 +7,7 @@
 #include "BinaryEngine/Renderer/Detail/QuadIndexBuffer.h"
 #include "BinaryEngine/Renderer/Detail/RenderQueue.h"
 #include "BinaryEngine/Renderer/Detail/RenderState.h"
+#include "BinaryEngine/Renderer/Detail/ShapeRenderer.h"
 #include "BinaryEngine/Renderer/Detail/SpriteRenderer.h"
 #include "BinaryEngine/Renderer/Font.h"
 #include "BinaryEngine/Renderer/OrthographicCamera.h"
@@ -136,6 +137,16 @@ namespace {
 			.Translation{ transform.Position.x, transform.Position.y },
 		};
 	}
+
+	float CalculateShapeMargin(BinaryEngine::Vector2f viewSize, BinaryEngine::Vector2i pixelSize)
+	{
+		if (pixelSize.x <= 0 || pixelSize.y <= 0)
+		{
+			return 0.0f;
+		}
+
+		return std::max(viewSize.x / static_cast<float>(pixelSize.x), viewSize.y / static_cast<float>(pixelSize.y));
+	}
 }
 
 namespace BinaryEngine {
@@ -147,11 +158,14 @@ namespace BinaryEngine {
 		Detail::RenderQueue m_Queue;
 		Detail::QuadIndexBuffer m_QuadIndexBuffer;
 		Detail::SpriteRenderer m_SpriteRenderer{ m_QuadIndexBuffer };
-		std::array<Detail::BatchRenderer*, Detail::s_BatchRendererCount> m_Renderers{ &m_SpriteRenderer };
+		Detail::ShapeRenderer m_ShapeRenderer{ m_QuadIndexBuffer };
+		std::array<Detail::BatchRenderer*, Detail::s_BatchRendererCount> m_Renderers{ &m_SpriteRenderer, &m_ShapeRenderer };
 
 		TextLayoutResult m_TextLayout;
 
 		CullBounds m_CullBounds;
+		float m_WorldShapeMargin{ 0.0f };
+		float m_ScreenShapeMargin{ 0.0f };
 		Statistics m_Statistics;
 
 		SDL_GPUCommandBuffer* m_CommandBuffer{ nullptr };
@@ -167,6 +181,8 @@ namespace BinaryEngine {
 		RendererSpecification m_Specification;
 
 		void SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax);
+		void SubmitShape(Detail::ShapeType shapeType, const Transform& transform, const ShapeSpecification& specification);
+		void AddShape(Detail::ShapeType shapeType, Vector2f center, Vector2f edgeX, Vector2f edgeY, Vector2f halfSize, Color color, float outlineThickness, float sortZ, RenderSpace space);
 		void ResetFrame();
 		void SetSceneViewport(SDL_GPURenderPass* renderPass, const Detail::SceneRecord& scene);
 		void DrawBatches(SDL_GPURenderPass* renderPass, const glm::mat4& viewProjection, std::size_t firstBatch, std::size_t batchCount, const Detail::RenderState*& boundState, Detail::BatchRendererType& boundRendererType);
@@ -383,6 +399,10 @@ namespace BinaryEngine {
 		const CameraViewport viewport{ m_Data->m_HasCustomViewport ? CameraViewport{ m_Data->m_ViewportPosition, m_Data->m_ViewportSize } : camera.CalculateViewport(swapchainSize) };
 		m_Data->m_Queue.OpenScene(camera.GetViewProjectionMatrix(), glm::ortho(0.0f, screenViewSize.x, screenViewSize.y, 0.0f, -1.0f, 1.0f), viewport);
 
+		const Vector2i marginPixelSize{ viewport.Size.x > 0 && viewport.Size.y > 0 ? viewport.Size : swapchainSize };
+		m_Data->m_WorldShapeMargin = CalculateShapeMargin(camera.GetWorldViewSize(), marginPixelSize);
+		m_Data->m_ScreenShapeMargin = CalculateShapeMargin(screenViewSize, marginPixelSize);
+
 		m_Data->m_Statistics.quadCount = 0;
 		m_Data->m_Statistics.drawCalls = 0;
 		m_Data->m_Statistics.culledSprites = 0;
@@ -493,6 +513,42 @@ namespace BinaryEngine {
 		return m_Data->m_TextLayout.Bounds * (specification.Size / font.GetPixelSize());
 	}
 
+	void Renderer::DrawRectangle(const Transform& transform, const ShapeSpecification& specification)
+	{
+		m_Data->SubmitShape(Detail::ShapeType::Rectangle, transform, specification);
+	}
+
+	void Renderer::DrawCircle(const Transform& transform, const ShapeSpecification& specification)
+	{
+		m_Data->SubmitShape(Detail::ShapeType::Circle, transform, specification);
+	}
+
+	void Renderer::DrawTriangle(const Transform& transform, const ShapeSpecification& specification)
+	{
+		m_Data->SubmitShape(Detail::ShapeType::Triangle, transform, specification);
+	}
+
+	void Renderer::DrawLine(Vector2f start, Vector2f end, const LineSpecification& specification)
+	{
+		if (!m_Data->m_Queue.IsSceneOpen() || specification.Thickness <= 0.0f)
+		{
+			return;
+		}
+
+		const Vector2f lineVector{ end - start };
+		const float lineLength{ glm::length(lineVector) };
+		if (lineLength == 0.0f)
+		{
+			return;
+		}
+
+		const Vector2f direction{ lineVector / lineLength };
+		const Vector2f edgeY{ Vector2f{ -direction.y, direction.x } * specification.Thickness };
+		const Vector2f halfSize{ lineLength * 0.5f, specification.Thickness * 0.5f };
+
+		m_Data->AddShape(Detail::ShapeType::Rectangle, (start + end) * 0.5f, lineVector, edgeY, halfSize, specification.Color, 0.0f, specification.SortZ, specification.Space);
+	}
+
 	void Renderer::RendererData::SubmitSprite(const Texture2D& texture, const Transform& transform, Vector2f quadSize, Vector2f uvMin, Vector2f uvMax)
 	{
 		if (!m_Queue.IsSceneOpen())
@@ -524,6 +580,33 @@ namespace BinaryEngine {
 
 		const std::uint32_t commandIndex{ m_SpriteRenderer.AddCommand(basis.Translation - (edgeX + edgeY) * 0.5f, edgeX, edgeY, { uvMin.x, uvMax.y }, { uvMax.x, uvMin.y }, Color{ 0xFF, 0xFF, 0xFF, m_Specification.DefaultAlpha }) };
 		m_Queue.AddEntry(m_SpriteRenderer.GetRenderState(), nativeTexture, commandIndex, transform.Position.z, Detail::BatchRendererType::Sprite, RenderSpace::World);
+	}
+
+	void Renderer::RendererData::SubmitShape(Detail::ShapeType shapeType, const Transform& transform, const ShapeSpecification& specification)
+	{
+		if (!m_Queue.IsSceneOpen() || transform.Scale.x == 0.0f || transform.Scale.y == 0.0f)
+		{
+			return;
+		}
+
+		const AffineTransform2D basis{ ToAffineTransform2D(transform) };
+		const Vector2f edgeY{ specification.Space == RenderSpace::Screen ? -basis.AxisY : basis.AxisY };
+		const Vector2f halfSize{ std::abs(transform.Scale.x) * 0.5f, std::abs(transform.Scale.y) * 0.5f };
+
+		AddShape(shapeType, basis.Translation, basis.AxisX, edgeY, halfSize, specification.Color, specification.OutlineThickness, transform.Position.z, specification.Space);
+	}
+
+	void Renderer::RendererData::AddShape(Detail::ShapeType shapeType, Vector2f center, Vector2f edgeX, Vector2f edgeY, Vector2f halfSize, Color color, float outlineThickness, float sortZ, RenderSpace space)
+	{
+		if (!m_Queue.HasRoomForEntry())
+		{
+			return;
+		}
+
+		const float margin{ space == RenderSpace::Screen ? m_ScreenShapeMargin : m_WorldShapeMargin };
+
+		const std::uint32_t commandIndex{ m_ShapeRenderer.AddCommand(shapeType, center, edgeX, edgeY, halfSize, margin, color, outlineThickness) };
+		m_Queue.AddEntry(m_ShapeRenderer.GetRenderState(), nullptr, commandIndex, sortZ, Detail::BatchRendererType::Shape, space);
 	}
 
 	void Renderer::RendererData::ResetFrame()
@@ -670,6 +753,23 @@ namespace BinaryEngine {
 		m_Statistics.quadCapacity = m_QuadIndexBuffer.GetCapacity();
 
 		if (!m_SpriteRenderer.Initialise(m_Device, m_Window, spriteVertexShader.GetNativeShader(), spriteFragmentShader.GetNativeShader(), m_Specification))
+		{
+			return;
+		}
+
+		Shader shapeVertexShader;
+		shapeVertexShader.Load("./resources/shader/shape/shape.vert", renderer, { ShaderStage::Vertex, 0, 1 });
+
+		Shader shapeFragmentShader;
+		shapeFragmentShader.Load("./resources/shader/shape/shape.frag", renderer, { ShaderStage::Fragment, 0, 0 });
+
+		if (!shapeVertexShader.IsValid() || !shapeFragmentShader.IsValid())
+		{
+			CORE_ERROR("[Renderer] Failed to initialize shape renderer");
+			return;
+		}
+
+		if (!m_ShapeRenderer.Initialise(m_Device, m_Window, shapeVertexShader.GetNativeShader(), shapeFragmentShader.GetNativeShader(), m_Specification))
 		{
 			return;
 		}

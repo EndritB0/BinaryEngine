@@ -7,6 +7,7 @@
 #include "BinaryEngine/Core/Color.h"
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
+#include "BinaryEngine/Renderer/ShapeSpecification.h"
 #include "BinaryEngine/Renderer/TextSpecification.h"
 
 struct SDL_GPUDevice;
@@ -59,6 +60,10 @@ namespace BinaryEngine {
 		void DrawSprite(const Texture2D& texture, const Transform& transform, const TextureRegion& region);
 		void DrawText(const Font& font, std::string_view text, const Transform& transform, const TextSpecification& specification = TextSpecification());
 		Vector2f MeasureText(const Font& font, std::string_view text, const TextSpecification& specification) const;
+		void DrawRectangle(const Transform& transform, const ShapeSpecification& specification = ShapeSpecification());
+		void DrawCircle(const Transform& transform, const ShapeSpecification& specification = ShapeSpecification());
+		void DrawTriangle(const Transform& transform, const ShapeSpecification& specification = ShapeSpecification());
+		void DrawLine(Vector2f start, Vector2f end, const LineSpecification& specification = LineSpecification());
 
 	private:
 		friend class Shader;

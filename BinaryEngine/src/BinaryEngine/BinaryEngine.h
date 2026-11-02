@@ -23,6 +23,7 @@
 
 #include "BinaryEngine/Renderer/RendererSpecification.h"
 #include "BinaryEngine/Renderer/RenderSpace.h"
+#include "BinaryEngine/Renderer/ShapeSpecification.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/Renderer/Texture2D.h"
 #include "BinaryEngine/Renderer/TextureRegion.h"

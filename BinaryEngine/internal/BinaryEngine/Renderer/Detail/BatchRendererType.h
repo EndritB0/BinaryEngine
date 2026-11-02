@@ -7,6 +7,7 @@ namespace BinaryEngine::Detail {
 
 	enum class BatchRendererType : std::uint8_t {
 		Sprite = 0,
+		Shape,
 		Count
 	};
 

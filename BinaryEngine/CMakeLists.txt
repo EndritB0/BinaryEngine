@@ -25,6 +25,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Renderer.h"
     "src/BinaryEngine/Renderer/RendererSpecification.h"
     "src/BinaryEngine/Renderer/RenderSpace.h"
+    "src/BinaryEngine/Renderer/ShapeSpecification.h"
     "src/BinaryEngine/Renderer/Texture2D.cpp"
     "src/BinaryEngine/Renderer/Texture2D.h"
     "src/BinaryEngine/Renderer/TextureRegion.h"
@@ -88,6 +89,8 @@ set(BINARYENGINE_SOURCES
     "internal/BinaryEngine/Renderer/Detail/RenderQueue.cpp"
     "internal/BinaryEngine/Renderer/Detail/RenderQueue.h"
     "internal/BinaryEngine/Renderer/Detail/RenderState.h"
+    "internal/BinaryEngine/Renderer/Detail/ShapeRenderer.cpp"
+    "internal/BinaryEngine/Renderer/Detail/ShapeRenderer.h"
     "internal/BinaryEngine/Renderer/Detail/SpriteRenderer.cpp"
     "internal/BinaryEngine/Renderer/Detail/SpriteRenderer.h"
 )
