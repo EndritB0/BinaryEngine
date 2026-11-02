@@ -78,6 +78,17 @@ set(BINARYENGINE_SOURCES
     "internal/BinaryEngine/Audio/Detail/SpscQueue.h"
     "internal/BinaryEngine/Audio/Detail/VoiceSource.cpp"
     "internal/BinaryEngine/Audio/Detail/VoiceSource.h"
+    "internal/BinaryEngine/Renderer/Detail/BatchRenderer.h"
+    "internal/BinaryEngine/Renderer/Detail/BatchRendererType.h"
+    "internal/BinaryEngine/Renderer/Detail/QuadIndexBuffer.cpp"
+    "internal/BinaryEngine/Renderer/Detail/QuadIndexBuffer.h"
+    "internal/BinaryEngine/Renderer/Detail/QuadRenderer.cpp"
+    "internal/BinaryEngine/Renderer/Detail/QuadRenderer.h"
+    "internal/BinaryEngine/Renderer/Detail/RenderQueue.cpp"
+    "internal/BinaryEngine/Renderer/Detail/RenderQueue.h"
+    "internal/BinaryEngine/Renderer/Detail/RenderState.h"
+    "internal/BinaryEngine/Renderer/Detail/SpriteRenderer.cpp"
+    "internal/BinaryEngine/Renderer/Detail/SpriteRenderer.h"
 )
 
 set(BASE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin")
