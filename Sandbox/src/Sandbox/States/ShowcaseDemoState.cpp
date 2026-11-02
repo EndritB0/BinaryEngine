@@ -45,7 +45,7 @@ namespace Sandbox {
 		BinaryEngine::TextSpecification nameTagSpec{
 			.Size{ 16.0f },
 			.FillColor{ BinaryEngine::Color::White },
-			.Space{ BinaryEngine::TextSpace::World },
+			.Space{ BinaryEngine::RenderSpace::World },
 			.Alignment{ BinaryEngine::TextAlignment::Center },
 		};
 		m_NameTagEntity = m_ActiveScene.CreateEntity("PlayerNameTag");
@@ -54,7 +54,7 @@ namespace Sandbox {
 		BinaryEngine::TextSpecification hudSpec{
 			.Size{ 16.0f },
 			.FillColor{ BinaryEngine::Color::White },
-			.Space{ BinaryEngine::TextSpace::Screen },
+			.Space{ BinaryEngine::RenderSpace::Screen },
 			.Alignment{ BinaryEngine::TextAlignment::Left },
 		};
 		BinaryEngine::Entity hudEntity = m_ActiveScene.CreateEntity("Hud");

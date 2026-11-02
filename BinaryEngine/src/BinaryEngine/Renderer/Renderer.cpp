@@ -458,9 +458,7 @@ namespace BinaryEngine {
 
 		const float glyphScale{ specification.Size / font.GetPixelSize() };
 
-		const bool isWorldSpace{ specification.Space == TextSpace::World };
-		const float verticalSign{ isWorldSpace ? -1.0f : 1.0f };
-		const Detail::QuadSpace space{ isWorldSpace ? Detail::QuadSpace::World : Detail::QuadSpace::Screen };
+		const float verticalSign{ specification.Space == RenderSpace::World ? -1.0f : 1.0f };
 
 		const AffineTransform2D basis{ ToAffineTransform2D(transform) };
 
@@ -477,7 +475,7 @@ namespace BinaryEngine {
 			const float bottom{ (glyph.Position.y + glyph.Size.y) * glyphScale * verticalSign };
 
 			const std::uint32_t commandIndex{ m_Data->m_SpriteRenderer.AddCommand(basis.Translation + basis.AxisX * left + basis.AxisY * top, basis.AxisX * (right - left), basis.AxisY * (bottom - top), glyph.UVMin, glyph.UVMax, specification.FillColor) };
-			m_Data->m_Queue.AddEntry(m_Data->m_SpriteRenderer.GetRenderState(), nativeTexture, commandIndex, transform.Position.z, Detail::BatchRendererType::Sprite, space);
+			m_Data->m_Queue.AddEntry(m_Data->m_SpriteRenderer.GetRenderState(), nativeTexture, commandIndex, transform.Position.z, Detail::BatchRendererType::Sprite, specification.Space);
 
 			m_Data->m_Statistics.glyphCount++;
 		}
@@ -525,7 +523,7 @@ namespace BinaryEngine {
 		const Vector2f edgeY{ basis.AxisY * quadSize.y };
 
 		const std::uint32_t commandIndex{ m_SpriteRenderer.AddCommand(basis.Translation - (edgeX + edgeY) * 0.5f, edgeX, edgeY, { uvMin.x, uvMax.y }, { uvMax.x, uvMin.y }, Color{ 0xFF, 0xFF, 0xFF, m_Specification.DefaultAlpha }) };
-		m_Queue.AddEntry(m_SpriteRenderer.GetRenderState(), nativeTexture, commandIndex, transform.Position.z, Detail::BatchRendererType::Sprite, Detail::QuadSpace::World);
+		m_Queue.AddEntry(m_SpriteRenderer.GetRenderState(), nativeTexture, commandIndex, transform.Position.z, Detail::BatchRendererType::Sprite, RenderSpace::World);
 	}
 
 	void Renderer::RendererData::ResetFrame()

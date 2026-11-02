@@ -61,7 +61,7 @@ namespace Sandbox {
 		const BinaryEngine::TextSpecification hudSpecification{
 			.Size{ s_HudTextSize },
 			.FillColor{ BinaryEngine::Color::White },
-			.Space{ BinaryEngine::TextSpace::Screen },
+			.Space{ BinaryEngine::RenderSpace::Screen },
 			.Alignment{ BinaryEngine::TextAlignment::Left },
 		};
 		m_HudEntity = m_Scene.CreateEntity("StressHud");

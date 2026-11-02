@@ -9,6 +9,7 @@
 
 #include "BinaryEngine/Renderer/CameraSpecification.h"
 #include "BinaryEngine/Renderer/Detail/BatchRendererType.h"
+#include "BinaryEngine/Renderer/RenderSpace.h"
 
 struct SDL_GPUTexture;
 
@@ -18,18 +19,13 @@ namespace BinaryEngine::Detail {
 
 	inline constexpr std::uint32_t s_AbsoluteMaxQuads{ 16000000 };
 
-	enum class QuadSpace : std::uint8_t {
-		World = 0,
-		Screen
-	};
-
 	struct RenderQueueEntry {
 		const RenderState* State{ nullptr };
 		::SDL_GPUTexture* Texture{ nullptr };
 		std::uint32_t CommandIndex{ 0 };
 		float SortZ{ 0.0f };
 		BatchRendererType RendererType{ BatchRendererType::Sprite };
-		QuadSpace Space{ QuadSpace::World };
+		RenderSpace Space{ RenderSpace::World };
 	};
 
 	struct RenderBatch {
@@ -72,7 +68,7 @@ namespace BinaryEngine::Detail {
 			return false;
 		}
 
-		void AddEntry(const RenderState* state, ::SDL_GPUTexture* texture, std::uint32_t commandIndex, float sortZ, BatchRendererType rendererType, QuadSpace space)
+		void AddEntry(const RenderState* state, ::SDL_GPUTexture* texture, std::uint32_t commandIndex, float sortZ, BatchRendererType rendererType, RenderSpace space)
 		{
 			m_Entries.emplace_back(state, texture, commandIndex, sortZ, rendererType, space);
 		}

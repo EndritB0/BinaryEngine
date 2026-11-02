@@ -24,6 +24,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/Renderer.cpp"
     "src/BinaryEngine/Renderer/Renderer.h"
     "src/BinaryEngine/Renderer/RendererSpecification.h"
+    "src/BinaryEngine/Renderer/RenderSpace.h"
     "src/BinaryEngine/Renderer/Texture2D.cpp"
     "src/BinaryEngine/Renderer/Texture2D.h"
     "src/BinaryEngine/Renderer/TextureRegion.h"

@@ -197,7 +197,7 @@ namespace Sandbox {
 		const BinaryEngine::TextSpecification overlaySpecification{
 			.Size{ s_OverlayTextSize },
 			.FillColor{ BinaryEngine::Color::White },
-			.Space{ BinaryEngine::TextSpace::Screen },
+			.Space{ BinaryEngine::RenderSpace::Screen },
 			.Alignment{ BinaryEngine::TextAlignment::Left },
 		};
 

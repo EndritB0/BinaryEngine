@@ -14,9 +14,9 @@ namespace {
 		return (bits & 0x80000000u) != 0 ? ~bits : (bits | 0x80000000u);
 	}
 
-	std::uint64_t MakeSortKey(BinaryEngine::Detail::QuadSpace space, float sortZ, std::uint32_t sceneEntryIndex)
+	std::uint64_t MakeSortKey(BinaryEngine::RenderSpace space, float sortZ, std::uint32_t sceneEntryIndex)
 	{
-		const std::uint64_t spaceBit{ space == BinaryEngine::Detail::QuadSpace::Screen ? s_ScreenSpaceKeyBit : 0 };
+		const std::uint64_t spaceBit{ space == BinaryEngine::RenderSpace::Screen ? s_ScreenSpaceKeyBit : 0 };
 		return spaceBit | (static_cast<std::uint64_t>(ToOrderableBits(sortZ)) << s_SortKeyIndexBits) | sceneEntryIndex;
 	}
 
