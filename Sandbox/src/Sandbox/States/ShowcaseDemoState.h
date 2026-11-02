@@ -1,6 +1,7 @@
 #pragma once
 
 #include <BinaryEngine/Asset/AssetTypes.h>
+#include <BinaryEngine/Core/Math.h>
 #include <BinaryEngine/Event/EventTypes.h>
 #include <BinaryEngine/Renderer/AnimationClip.h>
 #include <BinaryEngine/Renderer/OrthographicCamera.h>
@@ -25,6 +26,7 @@ namespace Sandbox {
 	private:
 		bool OnMouseScrolled(BinaryEngine::MouseScrolledEvent& event);
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
+		void DrawShapes();
 
 	private:
 		BinaryEngine::OrthographicCamera m_Camera{ m_Context.window.GetResolution(), m_Context.camera };
@@ -33,6 +35,9 @@ namespace Sandbox {
 		BinaryEngine::Scene m_ActiveScene;
 		BinaryEngine::Entity m_PlayerEntity;
 		BinaryEngine::Entity m_NameTagEntity;
+		float m_ShapeAngleDegrees{ 0.0f };
+		BinaryEngine::Vector2f m_HudPanelCenter{ 0.0f, 0.0f };
+		BinaryEngine::Vector2f m_HudPanelSize{ 0.0f, 0.0f };
 
 		BinaryEngine::AnimationClip m_IdleClip;
 		BinaryEngine::AnimationClip m_MovingClip;
