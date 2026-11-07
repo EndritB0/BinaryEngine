@@ -2,6 +2,7 @@
 #include "BinaryEngine/Scene/Scene.h"
 
 #include "BinaryEngine/Asset/AssetManager.h"
+#include "BinaryEngine/Physics/PhysicsWorld.h"
 #include "BinaryEngine/Renderer/Font.h"
 #include "BinaryEngine/Renderer/Renderer.h"
 #include "BinaryEngine/Scene/Components.h"
@@ -9,7 +10,12 @@
 
 namespace BinaryEngine {
 
-	BinaryEngine::Scene::Scene()
+	Scene::Scene() :
+		Scene(SceneSpecification{})
+	{}
+
+	Scene::Scene(const SceneSpecification& specification) :
+		m_PhysicsWorld(std::make_unique<PhysicsWorld>(PhysicsWorld::Passkey{}, specification.Physics))
 	{
 		CORE_INFO("[Scene] Scene Initialised");
 	}
@@ -32,7 +38,12 @@ namespace BinaryEngine {
 		m_Registry.destroy(entity);
 	}
 
-	void Scene::OnUpdate(TimeStep dt)
+	void Scene::OnFixedUpdate(TimeStep fixedStep)
+	{
+		m_PhysicsWorld->Step(fixedStep);
+	}
+
+	void Scene::OnUpdate(TimeStep dt, [[maybe_unused]] float interpolationAlpha)
 	{
 		const float seconds{ dt.GetSeconds() };
 
@@ -120,6 +131,16 @@ namespace BinaryEngine {
 
 			renderer.DrawText(*fontAsset, text.Text, transform.transform, text.Specification);
 		});
+	}
+
+	PhysicsWorld& Scene::GetPhysicsWorld()
+	{
+		return *m_PhysicsWorld;
+	}
+
+	const PhysicsWorld& Scene::GetPhysicsWorld() const
+	{
+		return *m_PhysicsWorld;
 	}
 
 }

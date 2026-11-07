@@ -89,7 +89,7 @@ namespace Sandbox {
 		}
 
 		UpdateHud();
-		m_Scene.OnUpdate(dt);
+		m_Scene.OnUpdate(dt, m_Context.clock.GetInterpolationAlpha());
 	}
 
 	void AudioDemoState::OnRender()

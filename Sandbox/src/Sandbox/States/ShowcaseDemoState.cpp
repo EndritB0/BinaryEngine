@@ -154,7 +154,7 @@ namespace Sandbox {
 		}
 
 		m_ShapeAngleDegrees = std::fmod(m_ShapeAngleDegrees + s_ShapeSpinDegreesPerSecond * dt.GetSeconds(), 360.0f);
-		m_ActiveScene.OnUpdate(dt);
+		m_ActiveScene.OnUpdate(dt, m_Context.clock.GetInterpolationAlpha());
 	}
 
 	void ShowcaseDemoState::OnRender()

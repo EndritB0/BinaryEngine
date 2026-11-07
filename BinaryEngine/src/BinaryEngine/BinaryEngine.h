@@ -14,11 +14,14 @@
 
 #include "BinaryEngine/Input/Input.h"
 
+#include "BinaryEngine/Scene/SceneSpecification.h"
 #include "BinaryEngine/Scene/Components.h"
 #include "BinaryEngine/Scene/Entity.h"
 #include "BinaryEngine/Scene/Scene.h"
 
 #include "BinaryEngine/Physics/PhysicsSpecification.h"
+#include "BinaryEngine/Physics/PhysicsWorldSpecification.h"
+#include "BinaryEngine/Physics/PhysicsWorld.h"
 
 #include "BinaryEngine/Window/WindowSpecification.h"
 #include "BinaryEngine/Window/Window.h"
