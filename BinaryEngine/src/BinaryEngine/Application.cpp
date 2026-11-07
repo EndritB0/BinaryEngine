@@ -5,6 +5,7 @@
 #include "BinaryEngine/Core/Core.h"
 #include "BinaryEngine/Event/Event.h"
 #include "BinaryEngine/Event/EventTypes.h"
+#include "BinaryEngine/Physics/Detail/PhysicsGlobals.h"
 #include "BinaryEngine/State/Context.h"
 
 namespace BinaryEngine {
@@ -30,6 +31,8 @@ namespace BinaryEngine {
 	Application::Application(const ApplicationSpecification& specification) :
 		m_FrameClock(specification.Clock)
 	{
+		Detail::ConfigurePhysics(specification.Physics);
+
 		if (!m_PlatformContext.IsValid())
 		{
 			return;

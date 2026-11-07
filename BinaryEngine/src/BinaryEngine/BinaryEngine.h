@@ -18,6 +18,8 @@
 #include "BinaryEngine/Scene/Entity.h"
 #include "BinaryEngine/Scene/Scene.h"
 
+#include "BinaryEngine/Physics/PhysicsSpecification.h"
+
 #include "BinaryEngine/Window/WindowSpecification.h"
 #include "BinaryEngine/Window/Window.h"
 

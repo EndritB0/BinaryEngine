@@ -74,12 +74,15 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Audio/AudioScope.h"
     "src/BinaryEngine/Audio/StreamingAudioClip.cpp"
     "src/BinaryEngine/Audio/StreamingAudioClip.h"
+    "src/BinaryEngine/Physics/PhysicsSpecification.h"
     "internal/BinaryEngine/Audio/Detail/AudioCommand.h"
     "internal/BinaryEngine/Audio/Detail/Mixer.cpp"
     "internal/BinaryEngine/Audio/Detail/Mixer.h"
     "internal/BinaryEngine/Audio/Detail/SpscQueue.h"
     "internal/BinaryEngine/Audio/Detail/VoiceSource.cpp"
     "internal/BinaryEngine/Audio/Detail/VoiceSource.h"
+    "internal/BinaryEngine/Physics/Detail/PhysicsGlobals.cpp"
+    "internal/BinaryEngine/Physics/Detail/PhysicsGlobals.h"
     "internal/BinaryEngine/Renderer/Detail/BatchRenderer.h"
     "internal/BinaryEngine/Renderer/Detail/BatchRendererType.h"
     "internal/BinaryEngine/Renderer/Detail/QuadIndexBuffer.cpp"
@@ -110,4 +113,4 @@ target_include_directories(BinaryEngine PUBLIC src PRIVATE internal)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
-target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog EnTT::EnTT PRIVATE stb SDL3::SDL3-static ProjectWarnings)
+target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog EnTT::EnTT PRIVATE stb SDL3::SDL3-static box2d::box2d ProjectWarnings)

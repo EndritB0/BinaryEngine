@@ -2,6 +2,7 @@
 
 #include "BinaryEngine/Audio/AudioSpecification.h"
 #include "BinaryEngine/Core/FrameClockSpecification.h"
+#include "BinaryEngine/Physics/PhysicsSpecification.h"
 #include "BinaryEngine/Renderer/CameraSpecification.h"
 #include "BinaryEngine/Renderer/RendererSpecification.h"
 #include "BinaryEngine/Window/WindowSpecification.h"
@@ -14,6 +15,7 @@ namespace BinaryEngine {
 		CameraSpecification Camera{};
 		AudioSpecification Audio{};
 		FrameClockSpecification Clock{};
+		PhysicsSpecification Physics{};
 	};
 
 }
