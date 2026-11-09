@@ -18,12 +18,21 @@ namespace Sandbox {
 
 	enum class AtlasSquare {
 		Crate = 0,
-		Scenery = 6,
+		IcyCrate,
+		HeavyCrate,
+		UprightCrate,
+		Debris,
+		Pane,
+		Scenery,
+		Paddle,
 		Bucket = 8
 	};
 
 	enum class AtlasDisc {
-		Ball = 0
+		Ball = 0,
+		BouncyBall,
+		Balloon,
+		Shot
 	};
 
 	BinaryEngine::TextureRegion GetAtlasRegion(AtlasSquare square);

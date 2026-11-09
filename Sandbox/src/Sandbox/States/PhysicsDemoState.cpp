@@ -6,6 +6,7 @@
 #include <BinaryEngine/Core/Color.h>
 #include <BinaryEngine/Core/FrameClock.h>
 #include <BinaryEngine/Core/Transform.h>
+#include <BinaryEngine/Input/Input.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
 #include <BinaryEngine/Physics/PhysicsEvents.h>
 #include <BinaryEngine/Physics/PhysicsWorld.h>
@@ -21,7 +22,7 @@ namespace Sandbox {
 
 		constexpr std::string_view s_FontPath{ "./resources/fonts/OpenSans-Regular.ttf" };
 		constexpr std::string_view s_HitSoundPath{ "./resources/audio/one_shot_1.wav" };
-		constexpr std::string_view s_KeyHelp{ "Mouse  left crate, right ball   X clear   C outlines" };
+		constexpr std::string_view s_KeyHelp{ "Mouse  left crate, right ball   1 icy   2 bouncy   3 heavy   4 upright   B balloon\nP panes   G bullet   H no bullet   E explode   D debris\nHold W wind   Hold T twist   X clear   C outlines" };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x1A, 0x22, 0x30 };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr float s_HudZ{ 10.0f };
@@ -31,6 +32,30 @@ namespace Sandbox {
 		constexpr float s_StackCenterX{ -200.0f };
 		constexpr float s_StackSpacing{ 36.0f };
 		constexpr std::int32_t s_StackRowCount{ 3 };
+		constexpr float s_IcyFriction{ 0.02f };
+		constexpr float s_BouncyRestitution{ 0.9f };
+		constexpr float s_HeavyDensity{ 10.0f };
+		constexpr float s_BalloonRadius{ 12.0f };
+		constexpr float s_BalloonGravityScale{ -0.25f };
+		constexpr float s_BalloonLinearDamping{ 0.5f };
+		constexpr float s_PaddleSpinDegreesPerSecond{ 60.0f };
+		constexpr std::int32_t s_PaneCount{ 3 };
+		constexpr float s_PaneSpacing{ 24.0f };
+		constexpr float s_ShotRadius{ 4.0f };
+		constexpr float s_ShotDensity{ 8.0f };
+		constexpr float s_ShotSpeed{ 9000.0f };
+		constexpr float s_ExplosionRadius{ 140.0f };
+		constexpr float s_ExplosionImpulse{ 600.0f };
+		constexpr float s_ExplosionMaxSpeedChange{ 1200.0f };
+		constexpr float s_ExplosionLeverArm{ 6.0f };
+		constexpr std::int32_t s_DebrisPieceCount{ 20 };
+		constexpr float s_DebrisSpread{ 12.0f };
+		constexpr float s_DebrisMaxSideSpeed{ 250.0f };
+		constexpr float s_DebrisMinUpwardSpeed{ 100.0f };
+		constexpr float s_DebrisMaxUpwardSpeed{ 400.0f };
+		constexpr std::uint64_t s_DebrisCategory{ 0x2 };
+		constexpr float s_TwistRadius{ 80.0f };
+		constexpr float s_TwistTorque{ 4000.0f };
 		const BinaryEngine::Vector2f s_GroundCenter{ 0.0f, -170.0f };
 		const BinaryEngine::Vector2f s_GroundSize{ 640.0f, 20.0f };
 		const BinaryEngine::Vector2f s_CeilingCenter{ 0.0f, 190.0f };
@@ -44,6 +69,17 @@ namespace Sandbox {
 		const BinaryEngine::Vector2f s_BucketWallSize{ 6.0f, 66.0f };
 		const BinaryEngine::Vector2f s_BucketTriggerCenter{ 200.0f, 22.0f };
 		const BinaryEngine::Vector2f s_BucketTriggerSize{ 64.0f, 48.0f };
+		const BinaryEngine::Vector2f s_PaddleCenter{ 0.0f, -60.0f };
+		const BinaryEngine::Vector2f s_PaddleSize{ 120.0f, 10.0f };
+		const BinaryEngine::Vector2f s_PaneSize{ 4.0f, 56.0f };
+		const BinaryEngine::Vector2f s_PaneWallCenter{ 256.0f, -132.0f };
+		const BinaryEngine::Vector2f s_DebrisSize{ 8.0f, 8.0f };
+		const BinaryEngine::Vector2f s_WindForce{ 300.0f, 0.0f };
+
+		bool IsDebris(BinaryEngine::Entity entity)
+		{
+			return entity.HasComponent<BinaryEngine::BoxColliderComponent>() && entity.GetComponent<BinaryEngine::BoxColliderComponent>().Specification.Collider.Filter.Category == s_DebrisCategory;
+		}
 
 	}
 
@@ -96,6 +132,16 @@ namespace Sandbox {
 
 	void PhysicsDemoState::OnFixedUpdate(BinaryEngine::TimeStep fixedStep)
 	{
+		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::W))
+		{
+			ApplyWind();
+		}
+
+		if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::T))
+		{
+			ApplyTwist(GetCursorWorldPosition());
+		}
+
 		m_Scene.OnFixedUpdate(fixedStep);
 		ReadPhysicsEvents();
 	}
@@ -127,6 +173,71 @@ namespace Sandbox {
 
 		switch (event.GetKeyCode())
 		{
+			case BinaryEngine::Key::Num1:
+			{
+				const BinaryEngine::ColliderSpecification icyCollider{ .Material{ .Friction{ s_IcyFriction } } };
+				RecordSpawn(CreateBoxBody("IcyCrate", GetCursorWorldPosition(), { s_CrateSize, s_CrateSize }, AtlasSquare::IcyCrate, {}, icyCollider));
+				return true;
+			}
+
+			case BinaryEngine::Key::Num2:
+			{
+				const BinaryEngine::ColliderSpecification bouncyCollider{ .Material{ .Restitution{ s_BouncyRestitution } } };
+				RecordSpawn(CreateCircleBody("BouncyBall", GetCursorWorldPosition(), s_BallRadius, AtlasDisc::BouncyBall, {}, bouncyCollider));
+				return true;
+			}
+
+			case BinaryEngine::Key::Num3:
+			{
+				const BinaryEngine::ColliderSpecification heavyCollider{ .Material{ .Density{ s_HeavyDensity } } };
+				RecordSpawn(CreateBoxBody("HeavyCrate", GetCursorWorldPosition(), { s_CrateSize, s_CrateSize }, AtlasSquare::HeavyCrate, {}, heavyCollider));
+				return true;
+			}
+
+			case BinaryEngine::Key::Num4:
+			{
+				const BinaryEngine::RigidBodySpecification uprightBody{ .FixedRotation{ true } };
+				RecordSpawn(CreateBoxBody("UprightCrate", GetCursorWorldPosition(), { s_CrateSize, s_CrateSize }, AtlasSquare::UprightCrate, uprightBody, {}));
+				return true;
+			}
+
+			case BinaryEngine::Key::B:
+			{
+				const BinaryEngine::RigidBodySpecification balloonBody{ .GravityScale{ s_BalloonGravityScale }, .LinearDamping{ s_BalloonLinearDamping } };
+				RecordSpawn(CreateCircleBody("Balloon", GetCursorWorldPosition(), s_BalloonRadius, AtlasDisc::Balloon, balloonBody, {}));
+				return true;
+			}
+
+			case BinaryEngine::Key::P:
+			{
+				SpawnPanes();
+				return true;
+			}
+
+			case BinaryEngine::Key::G:
+			{
+				FireShot(GetCursorWorldPosition(), true);
+				return true;
+			}
+
+			case BinaryEngine::Key::H:
+			{
+				FireShot(GetCursorWorldPosition(), false);
+				return true;
+			}
+
+			case BinaryEngine::Key::E:
+			{
+				Explode(GetCursorWorldPosition());
+				return true;
+			}
+
+			case BinaryEngine::Key::D:
+			{
+				SpawnDebris(GetCursorWorldPosition());
+				return true;
+			}
+
 			case BinaryEngine::Key::X:
 			{
 				RemoveSpawnedBodies();
@@ -155,11 +266,16 @@ namespace Sandbox {
 
 		if (event.GetButton() == BinaryEngine::Mouse::Right)
 		{
-			RecordSpawn(CreateCircleBody("Ball", position, s_BallRadius, AtlasDisc::Ball));
+			RecordSpawn(CreateCircleBody("Ball", position, s_BallRadius, AtlasDisc::Ball, {}, {}));
 			return true;
 		}
 
 		return false;
+	}
+
+	BinaryEngine::Vector2f PhysicsDemoState::GetCursorWorldPosition() const
+	{
+		return m_Camera.ScreenToWorld(BinaryEngine::Input::GetMousePosition());
 	}
 
 	void PhysicsDemoState::CreateScenery()
@@ -179,6 +295,9 @@ namespace Sandbox {
 		m_BucketTriggerEntity.GetComponent<BinaryEngine::TransformComponent>().transform.Position = { s_BucketTriggerCenter.x, s_BucketTriggerCenter.y, s_BodyZ };
 		m_BucketTriggerEntity.AddComponent<BinaryEngine::RigidBodyComponent>(staticBody);
 		m_BucketTriggerEntity.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ s_BucketTriggerSize }, .Collider{ .IsTrigger{ true } } });
+
+		m_PaddleEntity = CreateBoxBody("Paddle", s_PaddleCenter, s_PaddleSize, AtlasSquare::Paddle, BinaryEngine::RigidBodySpecification{ .Type{ BinaryEngine::BodyType::Kinematic } }, sceneryCollider);
+		m_Scene.GetPhysicsBody(m_PaddleEntity).SetAngularVelocity(s_PaddleSpinDegreesPerSecond);
 	}
 
 	BinaryEngine::Entity PhysicsDemoState::CreateBoxBody(std::string_view name, BinaryEngine::Vector2f position, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider)
@@ -194,7 +313,7 @@ namespace Sandbox {
 		return entity;
 	}
 
-	BinaryEngine::Entity PhysicsDemoState::CreateCircleBody(std::string_view name, BinaryEngine::Vector2f position, float radius, AtlasDisc disc)
+	BinaryEngine::Entity PhysicsDemoState::CreateCircleBody(std::string_view name, BinaryEngine::Vector2f position, float radius, AtlasDisc disc, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider)
 	{
 		BinaryEngine::Entity entity{ m_Scene.CreateEntity(std::string{ name }) };
 		BinaryEngine::Transform& transform{ entity.GetComponent<BinaryEngine::TransformComponent>().transform };
@@ -202,8 +321,8 @@ namespace Sandbox {
 		transform.Scale = GetCircleSpriteScale(radius);
 
 		entity.AddComponent<BinaryEngine::SpriteComponent>(m_AtlasHandle, GetAtlasRegion(disc));
-		entity.AddComponent<BinaryEngine::RigidBodyComponent>();
-		entity.AddComponent<BinaryEngine::CircleColliderComponent>(BinaryEngine::CircleColliderSpecification{ .Radius{ radius } });
+		entity.AddComponent<BinaryEngine::RigidBodyComponent>(body);
+		entity.AddComponent<BinaryEngine::CircleColliderComponent>(BinaryEngine::CircleColliderSpecification{ .Radius{ radius }, .Collider{ collider } });
 		return entity;
 	}
 
@@ -218,6 +337,97 @@ namespace Sandbox {
 			{
 				const float offset{ (static_cast<float>(crateIndex) - static_cast<float>(crateCount - 1) * 0.5f) * s_StackSpacing };
 				RecordSpawn(CreateBoxBody("Crate", { s_StackCenterX + offset, rowY }, { s_CrateSize, s_CrateSize }, AtlasSquare::Crate, {}, {}));
+			}
+		}
+	}
+
+	void PhysicsDemoState::SpawnPanes()
+	{
+		for (const BinaryEngine::Entity& pane : m_PaneEntities)
+		{
+			if (pane.IsValid())
+			{
+				m_Scene.DestroyEntity(pane);
+			}
+		}
+		m_PaneEntities.clear();
+
+		for (std::int32_t paneIndex{ 0 }; paneIndex < s_PaneCount; paneIndex++)
+		{
+			const float offset{ (static_cast<float>(paneIndex) - static_cast<float>(s_PaneCount - 1) * 0.5f) * s_PaneSpacing };
+			BinaryEngine::Entity pane{ CreateBoxBody("Pane", { s_PaneWallCenter.x + offset, s_PaneWallCenter.y }, s_PaneSize, AtlasSquare::Pane, {}, {}) };
+			m_PaneEntities.push_back(pane);
+			RecordSpawn(pane);
+		}
+	}
+
+	void PhysicsDemoState::FireShot(BinaryEngine::Vector2f start, bool isBullet)
+	{
+		const BinaryEngine::Vector2f toTarget{ s_PaneWallCenter - start };
+		const float distance{ glm::length(toTarget) };
+		if (distance <= 0.0f)
+		{
+			return;
+		}
+
+		const BinaryEngine::RigidBodySpecification shotBody{ .Bullet{ isBullet } };
+		const BinaryEngine::ColliderSpecification shotCollider{ .Material{ .Density{ s_ShotDensity } } };
+		BinaryEngine::Entity shot{ CreateCircleBody(isBullet ? "BulletShot" : "Shot", start, s_ShotRadius, AtlasDisc::Shot, shotBody, shotCollider) };
+		m_Scene.GetPhysicsBody(shot).SetLinearVelocity(toTarget / distance * s_ShotSpeed);
+		RecordSpawn(shot);
+	}
+
+	void PhysicsDemoState::Explode(BinaryEngine::Vector2f center)
+	{
+		for (const entt::entity entityHandle : m_Scene.GetAllEntitiesWith<BinaryEngine::RigidBodyComponent>())
+		{
+			BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(BinaryEngine::Entity{ entityHandle, &m_Scene }) };
+			const BinaryEngine::Vector2f offset{ body.GetPosition() - center };
+			const float distance{ glm::length(offset) };
+			if (!body.IsValid() || distance <= 0.0f || distance >= s_ExplosionRadius)
+			{
+				continue;
+			}
+
+			const float falloff{ 1.0f - distance / s_ExplosionRadius };
+			const float impulseMagnitude{ std::min(s_ExplosionImpulse * falloff, body.GetMass() * s_ExplosionMaxSpeedChange) };
+			const BinaryEngine::Vector2f leverPoint{ body.GetPosition() + BinaryEngine::Vector2f{ 0.0f, s_ExplosionLeverArm } };
+			body.ApplyLinearImpulse(offset / distance * impulseMagnitude, leverPoint);
+		}
+	}
+
+	void PhysicsDemoState::SpawnDebris(BinaryEngine::Vector2f center)
+	{
+		std::uniform_real_distribution<float> spread{ -s_DebrisSpread, s_DebrisSpread };
+		std::uniform_real_distribution<float> sideSpeed{ -s_DebrisMaxSideSpeed, s_DebrisMaxSideSpeed };
+		std::uniform_real_distribution<float> upwardSpeed{ s_DebrisMinUpwardSpeed, s_DebrisMaxUpwardSpeed };
+		const BinaryEngine::ColliderSpecification debrisCollider{ .Filter{ .Category{ s_DebrisCategory }, .Mask{ ~s_DebrisCategory } } };
+
+		for (std::int32_t pieceIndex{ 0 }; pieceIndex < s_DebrisPieceCount; pieceIndex++)
+		{
+			const BinaryEngine::Vector2f position{ center.x + spread(m_RandomEngine), center.y + spread(m_RandomEngine) };
+			BinaryEngine::Entity piece{ CreateBoxBody("Debris", position, s_DebrisSize, AtlasSquare::Debris, {}, debrisCollider) };
+			m_Scene.GetPhysicsBody(piece).SetLinearVelocity({ sideSpeed(m_RandomEngine), upwardSpeed(m_RandomEngine) });
+			RecordSpawn(piece);
+		}
+	}
+
+	void PhysicsDemoState::ApplyWind()
+	{
+		for (const entt::entity entityHandle : m_Scene.GetAllEntitiesWith<BinaryEngine::RigidBodyComponent>())
+		{
+			m_Scene.GetPhysicsBody(BinaryEngine::Entity{ entityHandle, &m_Scene }).ApplyForce(s_WindForce);
+		}
+	}
+
+	void PhysicsDemoState::ApplyTwist(BinaryEngine::Vector2f center)
+	{
+		for (const entt::entity entityHandle : m_Scene.GetAllEntitiesWith<BinaryEngine::RigidBodyComponent>())
+		{
+			BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(BinaryEngine::Entity{ entityHandle, &m_Scene }) };
+			if (glm::length(body.GetPosition() - center) < s_TwistRadius)
+			{
+				body.ApplyTorque(s_TwistTorque);
 			}
 		}
 	}
@@ -239,6 +449,7 @@ namespace Sandbox {
 		}
 
 		m_SpawnedEntities.clear();
+		m_PaneEntities.clear();
 	}
 
 	void PhysicsDemoState::ReadPhysicsEvents()
@@ -247,7 +458,17 @@ namespace Sandbox {
 
 		m_TouchingPairCount += static_cast<std::int64_t>(world.GetContactBeginEvents().size()) - static_cast<std::int64_t>(world.GetContactEndEvents().size());
 		m_LastStepHitCount = world.GetContactHitEvents().size();
-		PlayHitSounds(m_Audio, world.GetContactHitEvents(), m_HitSoundHandle, m_SfxBus);
+
+		std::vector<BinaryEngine::ContactHitEvent> soundHitEvents;
+		soundHitEvents.reserve(world.GetContactHitEvents().size());
+		for (const BinaryEngine::ContactHitEvent& hitEvent : world.GetContactHitEvents())
+		{
+			if (!IsDebris(hitEvent.FirstEntity) && !IsDebris(hitEvent.SecondEntity))
+			{
+				soundHitEvents.push_back(hitEvent);
+			}
+		}
+		PlayHitSounds(m_Audio, soundHitEvents, m_HitSoundHandle, m_SfxBus);
 
 		for (const BinaryEngine::TriggerBeginEvent& triggerEvent : world.GetTriggerBeginEvents())
 		{

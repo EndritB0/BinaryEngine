@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <random>
 #include <string_view>
 #include <vector>
 
@@ -35,10 +36,17 @@ namespace Sandbox {
 	private:
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 		bool OnMouseButtonPressed(BinaryEngine::MouseButtonPressedEvent& event);
+		BinaryEngine::Vector2f GetCursorWorldPosition() const;
 		void CreateScenery();
 		BinaryEngine::Entity CreateBoxBody(std::string_view name, BinaryEngine::Vector2f position, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider);
-		BinaryEngine::Entity CreateCircleBody(std::string_view name, BinaryEngine::Vector2f position, float radius, AtlasDisc disc);
+		BinaryEngine::Entity CreateCircleBody(std::string_view name, BinaryEngine::Vector2f position, float radius, AtlasDisc disc, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider);
 		void SpawnCrateStack();
+		void SpawnPanes();
+		void FireShot(BinaryEngine::Vector2f start, bool isBullet);
+		void Explode(BinaryEngine::Vector2f center);
+		void SpawnDebris(BinaryEngine::Vector2f center);
+		void ApplyWind();
+		void ApplyTwist(BinaryEngine::Vector2f center);
 		void RecordSpawn(BinaryEngine::Entity entity);
 		void RemoveSpawnedBodies();
 		void ReadPhysicsEvents();
@@ -52,8 +60,11 @@ namespace Sandbox {
 		BinaryEngine::AssetHandle m_HitSoundHandle;
 		BinaryEngine::AudioBusHandle m_SfxBus;
 		BinaryEngine::Entity m_BucketTriggerEntity;
+		BinaryEngine::Entity m_PaddleEntity;
 
 		std::vector<BinaryEngine::Entity> m_SpawnedEntities;
+		std::vector<BinaryEngine::Entity> m_PaneEntities;
+		std::mt19937 m_RandomEngine;
 		std::vector<BinaryEngine::Entity> m_BucketVisitors;
 		std::int64_t m_TouchingPairCount{ 0 };
 		std::size_t m_LastStepHitCount{ 0 };
