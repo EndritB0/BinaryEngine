@@ -161,10 +161,10 @@ namespace {
 		shapeDef.material.restitution = collider.Material.Restitution;
 		shapeDef.filter.categoryBits = collider.Filter.Category;
 		shapeDef.filter.maskBits = collider.Filter.Mask;
-		shapeDef.isSensor = collider.IsSensor;
+		shapeDef.isSensor = collider.IsTrigger;
 		shapeDef.enableContactEvents = collider.EnableContactEvents;
 		shapeDef.enableHitEvents = collider.EnableHitEvents;
-		shapeDef.enableSensorEvents = collider.EnableSensorEvents;
+		shapeDef.enableSensorEvents = collider.EnableTriggerEvents;
 		return shapeDef;
 	}
 
@@ -275,6 +275,23 @@ namespace {
 		});
 	}
 
+	std::optional<entt::entity> FindShapeEntity(b2ShapeId shapeId, const std::unordered_map<std::uint64_t, entt::entity>& destroyedShapes)
+	{
+		if (b2Shape_IsValid(shapeId))
+		{
+			return BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(shapeId));
+		}
+
+		const auto destroyedShape{ destroyedShapes.find(b2StoreShapeId(shapeId)) };
+		if (destroyedShape != destroyedShapes.end())
+		{
+			return destroyedShape->second;
+		}
+
+		CORE_ERROR("[Physics] A Box2D event named a shape the engine never recorded, so the event was dropped");
+		return std::nullopt;
+	}
+
 }
 
 namespace BinaryEngine {
@@ -357,6 +374,7 @@ namespace BinaryEngine {
 			return;
 		}
 
+		RecordDestroyedShape(shapeId, entity);
 		b2DestroyShape(box2DShapeId, true);
 	}
 
@@ -393,6 +411,8 @@ namespace BinaryEngine {
 		const b2WorldId worldId{ b2LoadWorldId(m_WorldId) };
 		b2World_Step(worldId, fixedStep.GetSeconds(), m_SubStepCount);
 		UpdateCurrentPoses(registry, b2World_GetBodyEvents(worldId));
+		ConvertEvents();
+		m_DestroyedShapes.clear();
 
 		WarnAboutWaitingColliders<BoxColliderComponent>(registry);
 		WarnAboutWaitingColliders<CircleColliderComponent>(registry);
@@ -441,6 +461,98 @@ namespace BinaryEngine {
 		return PhysicsBody{ entity, bodyState->BodyId };
 	}
 
+	void PhysicsWorld::ConvertEvents()
+	{
+		m_ContactBeginEvents.clear();
+		m_ContactEndEvents.clear();
+		m_ContactHitEvents.clear();
+		m_TriggerBeginEvents.clear();
+		m_TriggerEndEvents.clear();
+
+		const auto findEntity = [this](b2ShapeId shapeId) -> std::optional<Entity> {
+			const std::optional<entt::entity> entity{ FindShapeEntity(shapeId, m_DestroyedShapes) };
+			if (!entity)
+			{
+				return std::nullopt;
+			}
+
+			return Entity{ *entity, &m_Scene };
+		};
+
+		const b2WorldId worldId{ b2LoadWorldId(m_WorldId) };
+		const b2ContactEvents contactEvents{ b2World_GetContactEvents(worldId) };
+
+		m_ContactBeginEvents.reserve(static_cast<std::size_t>(contactEvents.beginCount));
+		for (std::int32_t eventIndex{ 0 }; eventIndex < contactEvents.beginCount; eventIndex++)
+		{
+			const b2ContactBeginTouchEvent& beginEvent{ contactEvents.beginEvents[eventIndex] };
+			const std::optional<Entity> firstEntity{ findEntity(beginEvent.shapeIdA) };
+			const std::optional<Entity> secondEntity{ findEntity(beginEvent.shapeIdB) };
+			if (firstEntity && secondEntity)
+			{
+				m_ContactBeginEvents.emplace_back(*firstEntity, *secondEntity);
+			}
+		}
+
+		m_ContactEndEvents.reserve(static_cast<std::size_t>(contactEvents.endCount));
+		for (std::int32_t eventIndex{ 0 }; eventIndex < contactEvents.endCount; eventIndex++)
+		{
+			const b2ContactEndTouchEvent& endEvent{ contactEvents.endEvents[eventIndex] };
+			const std::optional<Entity> firstEntity{ findEntity(endEvent.shapeIdA) };
+			const std::optional<Entity> secondEntity{ findEntity(endEvent.shapeIdB) };
+			if (firstEntity && secondEntity)
+			{
+				m_ContactEndEvents.emplace_back(*firstEntity, *secondEntity);
+			}
+		}
+
+		m_ContactHitEvents.reserve(static_cast<std::size_t>(contactEvents.hitCount));
+		for (std::int32_t eventIndex{ 0 }; eventIndex < contactEvents.hitCount; eventIndex++)
+		{
+			const b2ContactHitEvent& hitEvent{ contactEvents.hitEvents[eventIndex] };
+			const std::optional<Entity> firstEntity{ findEntity(hitEvent.shapeIdA) };
+			const std::optional<Entity> secondEntity{ findEntity(hitEvent.shapeIdB) };
+			if (firstEntity && secondEntity)
+			{
+				m_ContactHitEvents.emplace_back(*firstEntity, *secondEntity, Detail::ToEngineVector(hitEvent.point), Detail::ToEngineVector(hitEvent.normal), hitEvent.approachSpeed);
+			}
+		}
+
+		const b2SensorEvents sensorEvents{ b2World_GetSensorEvents(worldId) };
+
+		m_TriggerBeginEvents.reserve(static_cast<std::size_t>(sensorEvents.beginCount));
+		for (std::int32_t eventIndex{ 0 }; eventIndex < sensorEvents.beginCount; eventIndex++)
+		{
+			const b2SensorBeginTouchEvent& beginEvent{ sensorEvents.beginEvents[eventIndex] };
+			const std::optional<Entity> triggerEntity{ findEntity(beginEvent.sensorShapeId) };
+			const std::optional<Entity> visitorEntity{ findEntity(beginEvent.visitorShapeId) };
+			if (triggerEntity && visitorEntity)
+			{
+				m_TriggerBeginEvents.emplace_back(*triggerEntity, *visitorEntity);
+			}
+		}
+
+		m_TriggerEndEvents.reserve(static_cast<std::size_t>(sensorEvents.endCount));
+		for (std::int32_t eventIndex{ 0 }; eventIndex < sensorEvents.endCount; eventIndex++)
+		{
+			const b2SensorEndTouchEvent& endEvent{ sensorEvents.endEvents[eventIndex] };
+			const std::optional<Entity> triggerEntity{ findEntity(endEvent.sensorShapeId) };
+			const std::optional<Entity> visitorEntity{ findEntity(endEvent.visitorShapeId) };
+			if (triggerEntity && visitorEntity)
+			{
+				m_TriggerEndEvents.emplace_back(*triggerEntity, *visitorEntity);
+			}
+		}
+	}
+
+	void PhysicsWorld::RecordDestroyedShape(std::uint64_t shapeId, entt::entity entity)
+	{
+		if (shapeId != 0 && b2Shape_IsValid(b2LoadShapeId(shapeId)))
+		{
+			m_DestroyedShapes.insert_or_assign(shapeId, entity);
+		}
+	}
+
 	void PhysicsWorld::OnRigidBodyAdded(entt::registry& registry, entt::entity entity)
 	{
 		if (!IsValid())
@@ -486,8 +598,8 @@ namespace BinaryEngine {
 
 	void PhysicsWorld::OnRigidBodyStateRemoved(entt::registry& registry, entt::entity entity)
 	{
-		DetachColliderShape<BoxColliderComponent>(registry, entity);
-		DetachColliderShape<CircleColliderComponent>(registry, entity);
+		RecordDestroyedShape(DetachColliderShape<BoxColliderComponent>(registry, entity), entity);
+		RecordDestroyedShape(DetachColliderShape<CircleColliderComponent>(registry, entity), entity);
 
 		const b2BodyId bodyId{ b2LoadBodyId(registry.get<Detail::RigidBodyState>(entity).BodyId) };
 		if (b2Body_IsValid(bodyId))

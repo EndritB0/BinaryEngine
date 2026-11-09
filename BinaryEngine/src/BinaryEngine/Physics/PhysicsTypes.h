@@ -36,10 +36,10 @@ namespace BinaryEngine {
 	struct ColliderSpecification {
 		PhysicsMaterial Material{};
 		CollisionFilter Filter{};
-		bool IsSensor{ false };
+		bool IsTrigger{ false };
 		bool EnableContactEvents{ true };
 		bool EnableHitEvents{ true };
-		bool EnableSensorEvents{ true };
+		bool EnableTriggerEvents{ true };
 	};
 
 	struct BoxColliderSpecification {

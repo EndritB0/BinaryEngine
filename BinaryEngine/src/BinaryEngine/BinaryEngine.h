@@ -22,6 +22,7 @@
 #include "BinaryEngine/Physics/PhysicsSpecification.h"
 #include "BinaryEngine/Physics/PhysicsWorldSpecification.h"
 #include "BinaryEngine/Physics/PhysicsTypes.h"
+#include "BinaryEngine/Physics/PhysicsEvents.h"
 #include "BinaryEngine/Physics/PhysicsBody.h"
 #include "BinaryEngine/Physics/PhysicsWorld.h"
 

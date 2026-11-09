@@ -1,10 +1,13 @@
 #include "pch.h"
 #include "Sandbox/States/PhysicsDemoState.h"
 
+#include <BinaryEngine/Audio/AudioClip.h>
+#include <BinaryEngine/Audio/AudioEngine.h>
 #include <BinaryEngine/Core/Color.h>
 #include <BinaryEngine/Core/FrameClock.h>
 #include <BinaryEngine/Core/Transform.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
+#include <BinaryEngine/Physics/PhysicsEvents.h>
 #include <BinaryEngine/Physics/PhysicsWorld.h>
 #include <BinaryEngine/Renderer/Font.h>
 #include <BinaryEngine/Renderer/Renderer.h>
@@ -17,7 +20,8 @@ namespace Sandbox {
 	namespace {
 
 		constexpr std::string_view s_FontPath{ "./resources/fonts/OpenSans-Regular.ttf" };
-		constexpr std::string_view s_KeyHelp{ "Mouse  left crate, right ball   C outlines" };
+		constexpr std::string_view s_HitSoundPath{ "./resources/audio/one_shot_1.wav" };
+		constexpr std::string_view s_KeyHelp{ "Mouse  left crate, right ball   X clear   C outlines" };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x1A, 0x22, 0x30 };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr float s_HudZ{ 10.0f };
@@ -33,6 +37,13 @@ namespace Sandbox {
 		const BinaryEngine::Vector2f s_LeftWallCenter{ -310.0f, 0.0f };
 		const BinaryEngine::Vector2f s_RightWallCenter{ 310.0f, 0.0f };
 		const BinaryEngine::Vector2f s_WallSize{ 20.0f, 400.0f };
+		const BinaryEngine::Vector2f s_BucketFloorCenter{ 200.0f, -8.0f };
+		const BinaryEngine::Vector2f s_BucketFloorSize{ 84.0f, 6.0f };
+		const BinaryEngine::Vector2f s_BucketLeftWallCenter{ 161.0f, 22.0f };
+		const BinaryEngine::Vector2f s_BucketRightWallCenter{ 239.0f, 22.0f };
+		const BinaryEngine::Vector2f s_BucketWallSize{ 6.0f, 66.0f };
+		const BinaryEngine::Vector2f s_BucketTriggerCenter{ 200.0f, 22.0f };
+		const BinaryEngine::Vector2f s_BucketTriggerSize{ 64.0f, 48.0f };
 
 	}
 
@@ -53,6 +64,8 @@ namespace Sandbox {
 
 		m_Context.renderer.SetClearColor(s_ClearColor);
 		m_AtlasHandle = m_Context.assetManager.LoadAsset<BinaryEngine::Texture2D>(s_PhysicsAtlasPath, m_Context.renderer);
+		m_HitSoundHandle = m_Context.assetManager.LoadAsset<BinaryEngine::AudioClip>(s_HitSoundPath);
+		m_SfxBus = m_Context.audio.GetBus("SFX");
 
 		const BinaryEngine::AssetHandle fontHandle{ m_Context.assetManager.LoadAsset<BinaryEngine::Font>(s_FontPath, m_Context.renderer) };
 		const BinaryEngine::TextSpecification hudSpecification{
@@ -84,6 +97,7 @@ namespace Sandbox {
 	void PhysicsDemoState::OnFixedUpdate(BinaryEngine::TimeStep fixedStep)
 	{
 		m_Scene.OnFixedUpdate(fixedStep);
+		ReadPhysicsEvents();
 	}
 
 	void PhysicsDemoState::OnUpdate(BinaryEngine::TimeStep dt)
@@ -113,6 +127,12 @@ namespace Sandbox {
 
 		switch (event.GetKeyCode())
 		{
+			case BinaryEngine::Key::X:
+			{
+				RemoveSpawnedBodies();
+				return true;
+			}
+
 			case BinaryEngine::Key::C:
 			{
 				m_ShowOutlines = !m_ShowOutlines;
@@ -129,7 +149,7 @@ namespace Sandbox {
 
 		if (event.GetButton() == BinaryEngine::Mouse::Left)
 		{
-			RecordSpawn(CreateBoxBody("Crate", position, { s_CrateSize, s_CrateSize }, AtlasSquare::Crate, {}));
+			RecordSpawn(CreateBoxBody("Crate", position, { s_CrateSize, s_CrateSize }, AtlasSquare::Crate, {}, {}));
 			return true;
 		}
 
@@ -145,14 +165,23 @@ namespace Sandbox {
 	void PhysicsDemoState::CreateScenery()
 	{
 		const BinaryEngine::RigidBodySpecification staticBody{ .Type{ BinaryEngine::BodyType::Static } };
+		const BinaryEngine::ColliderSpecification sceneryCollider{ .EnableTriggerEvents{ false } };
 
-		CreateBoxBody("Ground", s_GroundCenter, s_GroundSize, AtlasSquare::Scenery, staticBody);
-		CreateBoxBody("Ceiling", s_CeilingCenter, s_GroundSize, AtlasSquare::Scenery, staticBody);
-		CreateBoxBody("LeftWall", s_LeftWallCenter, s_WallSize, AtlasSquare::Scenery, staticBody);
-		CreateBoxBody("RightWall", s_RightWallCenter, s_WallSize, AtlasSquare::Scenery, staticBody);
+		CreateBoxBody("Ground", s_GroundCenter, s_GroundSize, AtlasSquare::Scenery, staticBody, sceneryCollider);
+		CreateBoxBody("Ceiling", s_CeilingCenter, s_GroundSize, AtlasSquare::Scenery, staticBody, sceneryCollider);
+		CreateBoxBody("LeftWall", s_LeftWallCenter, s_WallSize, AtlasSquare::Scenery, staticBody, sceneryCollider);
+		CreateBoxBody("RightWall", s_RightWallCenter, s_WallSize, AtlasSquare::Scenery, staticBody, sceneryCollider);
+		CreateBoxBody("BucketFloor", s_BucketFloorCenter, s_BucketFloorSize, AtlasSquare::Bucket, staticBody, sceneryCollider);
+		CreateBoxBody("BucketLeftWall", s_BucketLeftWallCenter, s_BucketWallSize, AtlasSquare::Bucket, staticBody, sceneryCollider);
+		CreateBoxBody("BucketRightWall", s_BucketRightWallCenter, s_BucketWallSize, AtlasSquare::Bucket, staticBody, sceneryCollider);
+
+		m_BucketTriggerEntity = m_Scene.CreateEntity("BucketTrigger");
+		m_BucketTriggerEntity.GetComponent<BinaryEngine::TransformComponent>().transform.Position = { s_BucketTriggerCenter.x, s_BucketTriggerCenter.y, s_BodyZ };
+		m_BucketTriggerEntity.AddComponent<BinaryEngine::RigidBodyComponent>(staticBody);
+		m_BucketTriggerEntity.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ s_BucketTriggerSize }, .Collider{ .IsTrigger{ true } } });
 	}
 
-	BinaryEngine::Entity PhysicsDemoState::CreateBoxBody(std::string_view name, BinaryEngine::Vector2f position, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body)
+	BinaryEngine::Entity PhysicsDemoState::CreateBoxBody(std::string_view name, BinaryEngine::Vector2f position, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider)
 	{
 		BinaryEngine::Entity entity{ m_Scene.CreateEntity(std::string{ name }) };
 		BinaryEngine::Transform& transform{ entity.GetComponent<BinaryEngine::TransformComponent>().transform };
@@ -161,7 +190,7 @@ namespace Sandbox {
 
 		entity.AddComponent<BinaryEngine::SpriteComponent>(m_AtlasHandle, GetAtlasRegion(square));
 		entity.AddComponent<BinaryEngine::RigidBodyComponent>(body);
-		entity.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ size } });
+		entity.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ size }, .Collider{ collider } });
 		return entity;
 	}
 
@@ -188,14 +217,54 @@ namespace Sandbox {
 			for (std::int32_t crateIndex{ 0 }; crateIndex < crateCount; crateIndex++)
 			{
 				const float offset{ (static_cast<float>(crateIndex) - static_cast<float>(crateCount - 1) * 0.5f) * s_StackSpacing };
-				RecordSpawn(CreateBoxBody("Crate", { s_StackCenterX + offset, rowY }, { s_CrateSize, s_CrateSize }, AtlasSquare::Crate, {}));
+				RecordSpawn(CreateBoxBody("Crate", { s_StackCenterX + offset, rowY }, { s_CrateSize, s_CrateSize }, AtlasSquare::Crate, {}, {}));
 			}
 		}
 	}
 
 	void PhysicsDemoState::RecordSpawn(BinaryEngine::Entity entity)
 	{
+		m_SpawnedEntities.push_back(entity);
 		m_LastSpawnedMass = m_Scene.GetPhysicsBody(entity).GetMass();
+	}
+
+	void PhysicsDemoState::RemoveSpawnedBodies()
+	{
+		for (const BinaryEngine::Entity& entity : m_SpawnedEntities)
+		{
+			if (entity.IsValid())
+			{
+				m_Scene.DestroyEntity(entity);
+			}
+		}
+
+		m_SpawnedEntities.clear();
+	}
+
+	void PhysicsDemoState::ReadPhysicsEvents()
+	{
+		const BinaryEngine::PhysicsWorld& world{ m_Scene.GetPhysicsWorld() };
+
+		m_TouchingPairCount += static_cast<std::int64_t>(world.GetContactBeginEvents().size()) - static_cast<std::int64_t>(world.GetContactEndEvents().size());
+		m_LastStepHitCount = world.GetContactHitEvents().size();
+		PlayHitSounds(m_Audio, world.GetContactHitEvents(), m_HitSoundHandle, m_SfxBus);
+
+		for (const BinaryEngine::TriggerBeginEvent& triggerEvent : world.GetTriggerBeginEvents())
+		{
+			const bool isAlreadyInside{ std::find(m_BucketVisitors.begin(), m_BucketVisitors.end(), triggerEvent.VisitorEntity) != m_BucketVisitors.end() };
+			if (triggerEvent.TriggerEntity == m_BucketTriggerEntity && !isAlreadyInside)
+			{
+				m_BucketVisitors.push_back(triggerEvent.VisitorEntity);
+			}
+		}
+
+		for (const BinaryEngine::TriggerEndEvent& triggerEvent : world.GetTriggerEndEvents())
+		{
+			if (triggerEvent.TriggerEntity == m_BucketTriggerEntity)
+			{
+				std::erase(m_BucketVisitors, triggerEvent.VisitorEntity);
+			}
+		}
 	}
 
 	void PhysicsDemoState::UpdateHud()
@@ -211,7 +280,7 @@ namespace Sandbox {
 
 		const BinaryEngine::PhysicsWorld& world{ m_Scene.GetPhysicsWorld() };
 		std::string text{ std::format("{}: {}\n", s_KeyHelp, m_ShowOutlines ? "on" : "off") };
-		text += std::format("Bodies {}, awake {}   Steps {}   Last mass {:.2f} kg", world.GetBodyCount(), awakeCount, world.GetStepCount(), m_LastSpawnedMass);
+		text += std::format("Bodies {}, awake {}   Touching {}   Hits {}   Bucket {}   Last mass {:.2f} kg", world.GetBodyCount(), awakeCount, m_TouchingPairCount, m_LastStepHitCount, m_BucketVisitors.size(), m_LastSpawnedMass);
 		m_HudEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::move(text);
 	}
 
