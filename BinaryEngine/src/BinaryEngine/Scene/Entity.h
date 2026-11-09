@@ -49,6 +49,11 @@ namespace BinaryEngine {
 			m_Scene->m_Registry.remove<T>(m_Handle);
 		}
 
+		bool IsValid() const
+		{
+			return m_Scene != nullptr && m_Handle != entt::null && m_Scene->m_Registry.valid(m_Handle);
+		}
+
 		operator bool() const { return m_Handle != entt::null; }
 		operator entt::entity() const { return m_Handle; }
 

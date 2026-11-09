@@ -2,6 +2,7 @@
 #include "BinaryEngine/Scene/Scene.h"
 
 #include "BinaryEngine/Asset/AssetManager.h"
+#include "BinaryEngine/Physics/PhysicsBody.h"
 #include "BinaryEngine/Physics/PhysicsWorld.h"
 #include "BinaryEngine/Renderer/Font.h"
 #include "BinaryEngine/Renderer/Renderer.h"
@@ -15,8 +16,9 @@ namespace BinaryEngine {
 	{}
 
 	Scene::Scene(const SceneSpecification& specification) :
-		m_PhysicsWorld(std::make_unique<PhysicsWorld>(PhysicsWorld::Passkey{}, specification.Physics))
+		m_PhysicsWorld(std::make_unique<PhysicsWorld>(PhysicsWorld::Passkey{}, *this, specification.Physics))
 	{
+		m_PhysicsWorld->Connect(m_Registry);
 		CORE_INFO("[Scene] Scene Initialised");
 	}
 
@@ -35,15 +37,22 @@ namespace BinaryEngine {
 
 	void Scene::DestroyEntity(Entity entity)
 	{
-		m_Registry.destroy(entity);
+		const entt::entity entityHandle{ entity };
+		if (!entity.IsValid() || entity != Entity{ entityHandle, this })
+		{
+			CORE_WARN("[Scene] Can't destroy {}: it was already destroyed, or it belongs to another scene", entityHandle);
+			return;
+		}
+
+		m_Registry.destroy(entityHandle);
 	}
 
 	void Scene::OnFixedUpdate(TimeStep fixedStep)
 	{
-		m_PhysicsWorld->Step(fixedStep);
+		m_PhysicsWorld->Step(m_Registry, fixedStep);
 	}
 
-	void Scene::OnUpdate(TimeStep dt, [[maybe_unused]] float interpolationAlpha)
+	void Scene::OnUpdate(TimeStep dt, float interpolationAlpha)
 	{
 		const float seconds{ dt.GetSeconds() };
 
@@ -85,6 +94,8 @@ namespace BinaryEngine {
 			sprite.Region = clip->Frames[safeFrame];
 			sprite.UseRegion = true;
 		});
+
+		m_PhysicsWorld->Interpolate(m_Registry, interpolationAlpha);
 	}
 
 	void Scene::OnRender(Renderer& renderer, AssetManager& assetManager)
@@ -141,6 +152,11 @@ namespace BinaryEngine {
 	const PhysicsWorld& Scene::GetPhysicsWorld() const
 	{
 		return *m_PhysicsWorld;
+	}
+
+	PhysicsBody Scene::GetPhysicsBody(Entity entity)
+	{
+		return m_PhysicsWorld->FindBody(m_Registry, entity);
 	}
 
 }

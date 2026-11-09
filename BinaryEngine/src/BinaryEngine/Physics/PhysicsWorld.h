@@ -1,13 +1,18 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
+
+#include <entt/entt.hpp>
 
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Physics/PhysicsWorldSpecification.h"
+#include "BinaryEngine/Scene/Entity.h"
 
 namespace BinaryEngine {
+
+	class PhysicsBody;
+	class Scene;
 
 	class PhysicsWorld {
 	private:
@@ -16,7 +21,7 @@ namespace BinaryEngine {
 		};
 
 	public:
-		PhysicsWorld(Passkey, const std::optional<PhysicsWorldSpecification>& specification);
+		PhysicsWorld(Passkey, Scene& scene, const PhysicsWorldSpecification& specification);
 		~PhysicsWorld();
 
 		PhysicsWorld(const PhysicsWorld&) = delete;
@@ -33,9 +38,18 @@ namespace BinaryEngine {
 	private:
 		friend class Scene;
 
-		void Step(TimeStep fixedStep);
+		void Connect(entt::registry& registry);
+		void Step(entt::registry& registry, TimeStep fixedStep);
+		void Interpolate(entt::registry& registry, float interpolationAlpha);
+		PhysicsBody FindBody(entt::registry& registry, Entity entity);
+
+		void OnRigidBodyAdded(entt::registry& registry, entt::entity entity);
+		void OnRigidBodyStateRemoved(entt::registry& registry, entt::entity entity);
+		template<typename ColliderComponent>
+		void OnColliderStateRemoved(entt::registry& registry, entt::entity entity);
 
 	private:
+		Scene& m_Scene;
 		std::uint32_t m_WorldId{ 0 };
 		std::int32_t m_SubStepCount{ 0 };
 		std::uint64_t m_StepCount{ 0 };

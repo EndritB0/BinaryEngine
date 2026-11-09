@@ -4,6 +4,7 @@
 
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Transform.h"
+#include "BinaryEngine/Physics/PhysicsTypes.h"
 #include "BinaryEngine/Renderer/AnimationClip.h"
 #include "BinaryEngine/Renderer/TextSpecification.h"
 #include "BinaryEngine/Renderer/TextureRegion.h"
@@ -79,6 +80,33 @@ namespace BinaryEngine {
 			Playing = true;
 			Finished = false;
 		}
+	};
+
+	struct RigidBodyComponent {
+		RigidBodySpecification Specification{};
+
+		RigidBodyComponent() = default;
+		RigidBodyComponent(const RigidBodyComponent&) = default;
+		RigidBodyComponent(const RigidBodySpecification& specification) :
+			Specification(specification) {}
+	};
+
+	struct BoxColliderComponent {
+		BoxColliderSpecification Specification{};
+
+		BoxColliderComponent() = default;
+		BoxColliderComponent(const BoxColliderComponent&) = default;
+		BoxColliderComponent(const BoxColliderSpecification& specification) :
+			Specification(specification) {}
+	};
+
+	struct CircleColliderComponent {
+		CircleColliderSpecification Specification{};
+
+		CircleColliderComponent() = default;
+		CircleColliderComponent(const CircleColliderComponent&) = default;
+		CircleColliderComponent(const CircleColliderSpecification& specification) :
+			Specification(specification) {}
 	};
 
 }
