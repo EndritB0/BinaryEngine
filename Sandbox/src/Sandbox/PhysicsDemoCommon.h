@@ -25,14 +25,19 @@ namespace Sandbox {
 		Pane,
 		Scenery,
 		Paddle,
-		Bucket = 8
+		Bucket,
+		TableWall
 	};
 
 	enum class AtlasDisc {
 		Ball = 0,
 		BouncyBall,
 		Balloon,
-		Shot
+		Shot,
+		CuePuck,
+		RedPuck,
+		YellowPuck,
+		Pocket
 	};
 
 	BinaryEngine::TextureRegion GetAtlasRegion(AtlasSquare square);
