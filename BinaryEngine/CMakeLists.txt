@@ -18,6 +18,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Core/UUID.cpp"
     "src/BinaryEngine/Core/UUID.h"
     "src/BinaryEngine/Core/Transform.h"
+    "src/BinaryEngine/Core/RandomStream.cpp"
+    "src/BinaryEngine/Core/RandomStream.h"
     "src/BinaryEngine/Window/Window.cpp"
     "src/BinaryEngine/Window/Window.h"
     "src/BinaryEngine/Window/WindowSpecification.h"

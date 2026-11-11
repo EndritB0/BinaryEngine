@@ -3,12 +3,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <random>
 #include <string_view>
 #include <vector>
 
 #include <BinaryEngine/Asset/AssetTypes.h>
 #include <BinaryEngine/Core/Math.h>
+#include <BinaryEngine/Core/RandomStream.h>
 #include <BinaryEngine/Core/Transform.h>
 #include <BinaryEngine/Event/EventTypes.h>
 #include <BinaryEngine/Renderer/OrthographicCamera.h>
@@ -65,7 +65,7 @@ namespace Sandbox {
 		std::array<BinaryEngine::Texture2D, 3> m_ColorTextures;
 
 		std::vector<StressSprite> m_Sprites;
-		std::mt19937 m_RandomEngine;
+		BinaryEngine::RandomStream m_Random;
 		BatchingMode m_BatchingMode{ BatchingMode::Sorted };
 		bool m_MotionEnabled{ false };
 

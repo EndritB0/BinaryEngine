@@ -5,6 +5,7 @@
 #include "BinaryEngine/Core/Core.h"
 #include "BinaryEngine/Core/FrameClockSpecification.h"
 #include "BinaryEngine/Core/FrameClock.h"
+#include "BinaryEngine/Core/RandomStream.h"
 
 #include "BinaryEngine/Event/MouseCodes.h"
 #include "BinaryEngine/Event/KeyCodes.h"

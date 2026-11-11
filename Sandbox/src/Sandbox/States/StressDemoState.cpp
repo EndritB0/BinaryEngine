@@ -229,21 +229,17 @@ namespace Sandbox {
 	{
 		const BinaryEngine::Vector2f halfView{ m_Camera.GetWorldViewSize() * 0.5f };
 		const BinaryEngine::Vector3f cameraPosition{ m_Camera.GetPosition() };
-
-		std::uniform_real_distribution<float> horizontal{ cameraPosition.x - halfView.x, cameraPosition.x + halfView.x };
-		std::uniform_real_distribution<float> vertical{ cameraPosition.y - halfView.y, cameraPosition.y + halfView.y };
-		std::uniform_real_distribution<float> speed{ -s_MaxSpeed, s_MaxSpeed };
-		std::uniform_real_distribution<float> spin{ -s_MaxSpinDegreesPerSecond, s_MaxSpinDegreesPerSecond };
-		std::uniform_real_distribution<float> rotation{ 0.0f, 360.0f };
-		std::uniform_real_distribution<float> scale{ s_MinScale, s_MaxScale };
+		const BinaryEngine::Vector2f minimum{ cameraPosition.x - halfView.x, cameraPosition.y - halfView.y };
+		const BinaryEngine::Vector2f maximum{ cameraPosition.x + halfView.x, cameraPosition.y + halfView.y };
+		const BinaryEngine::Vector2f position{ m_Random.Vector2f(minimum, maximum) };
 
 		StressSprite& sprite{ m_Sprites.emplace_back() };
 		sprite.TextureIndex = spriteIndex % s_TextureCount;
-		sprite.SpriteTransform.Position = { horizontal(m_RandomEngine), vertical(m_RandomEngine), GetSortZ(sprite.TextureIndex) };
-		sprite.SpriteTransform.Rotation = { 0.0f, 0.0f, rotation(m_RandomEngine) };
-		sprite.SpriteTransform.Scale = { scale(m_RandomEngine), scale(m_RandomEngine), 1.0f };
-		sprite.Velocity = { speed(m_RandomEngine), speed(m_RandomEngine) };
-		sprite.SpinDegreesPerSecond = spin(m_RandomEngine);
+		sprite.SpriteTransform.Position = { position.x, position.y, GetSortZ(sprite.TextureIndex) };
+		sprite.SpriteTransform.Rotation = { 0.0f, 0.0f, m_Random.Float(0.0f, 360.0f) };
+		sprite.SpriteTransform.Scale = { m_Random.Float(s_MinScale, s_MaxScale), m_Random.Float(s_MinScale, s_MaxScale), 1.0f };
+		sprite.Velocity = m_Random.Vector2f({ -s_MaxSpeed, -s_MaxSpeed }, { s_MaxSpeed, s_MaxSpeed });
+		sprite.SpinDegreesPerSecond = m_Random.Float(-s_MaxSpinDegreesPerSecond, s_MaxSpinDegreesPerSecond);
 	}
 
 	float StressDemoState::GetSortZ(std::size_t textureIndex) const
