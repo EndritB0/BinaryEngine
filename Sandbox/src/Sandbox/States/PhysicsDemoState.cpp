@@ -5,6 +5,7 @@
 #include <BinaryEngine/Audio/AudioEngine.h>
 #include <BinaryEngine/Core/Color.h>
 #include <BinaryEngine/Core/FrameClock.h>
+#include <BinaryEngine/Core/Random.h>
 #include <BinaryEngine/Core/Transform.h>
 #include <BinaryEngine/Input/Input.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
@@ -398,16 +399,13 @@ namespace Sandbox {
 
 	void PhysicsDemoState::SpawnDebris(BinaryEngine::Vector2f center)
 	{
-		std::uniform_real_distribution<float> spread{ -s_DebrisSpread, s_DebrisSpread };
-		std::uniform_real_distribution<float> sideSpeed{ -s_DebrisMaxSideSpeed, s_DebrisMaxSideSpeed };
-		std::uniform_real_distribution<float> upwardSpeed{ s_DebrisMinUpwardSpeed, s_DebrisMaxUpwardSpeed };
 		const BinaryEngine::ColliderSpecification debrisCollider{ .Filter{ .Category{ s_DebrisCategory }, .Mask{ ~s_DebrisCategory } } };
 
 		for (std::int32_t pieceIndex{ 0 }; pieceIndex < s_DebrisPieceCount; pieceIndex++)
 		{
-			const BinaryEngine::Vector2f position{ center.x + spread(m_RandomEngine), center.y + spread(m_RandomEngine) };
+			const BinaryEngine::Vector2f position{ center + BinaryEngine::Random::Vector2f({ -s_DebrisSpread, -s_DebrisSpread }, { s_DebrisSpread, s_DebrisSpread }) };
 			BinaryEngine::Entity piece{ CreateBoxBody("Debris", position, s_DebrisSize, AtlasSquare::Debris, {}, debrisCollider) };
-			m_Scene.GetPhysicsBody(piece).SetLinearVelocity({ sideSpeed(m_RandomEngine), upwardSpeed(m_RandomEngine) });
+			m_Scene.GetPhysicsBody(piece).SetLinearVelocity(BinaryEngine::Random::Vector2f({ -s_DebrisMaxSideSpeed, s_DebrisMinUpwardSpeed }, { s_DebrisMaxSideSpeed, s_DebrisMaxUpwardSpeed }));
 			RecordSpawn(piece);
 		}
 	}
