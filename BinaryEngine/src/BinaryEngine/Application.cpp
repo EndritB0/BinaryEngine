@@ -72,12 +72,12 @@ namespace BinaryEngine {
 		CORE_INFO("[Application] Application Shutdown");
 	}
 
-	void Application::Run()
+	bool Application::Run()
 	{
 		if (!IsApplicationInitialised())
 		{
 			CORE_ERROR("[Application] Application has not been initalised correctly");
-			return;
+			return false;
 		}
 
 		const std::uint16_t fpsLimit{ m_Window->GetSpecification().FpsLimit };
@@ -109,6 +109,7 @@ namespace BinaryEngine {
 		}
 
 		CORE_INFO("[Application] Application Loop Ended");
+		return true;
 	}
 
 	void Application::OnEvent(Event& event)

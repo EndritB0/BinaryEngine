@@ -42,7 +42,7 @@ namespace BinaryEngine {
 			m_StateManager->ApplyPendingChanges();
 		}
 
-		void Run();
+		bool Run();
 
 	private:
 		void OnEvent(Event& event);
