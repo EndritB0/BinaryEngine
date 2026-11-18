@@ -1,7 +1,10 @@
 #pragma once
 
+#include <typeinfo>
 #include <entt/entt.hpp>
+#include <spdlog/fmt/fmt.h>
 
+#include "BinaryEngine/Log/Log.h"
 #include "BinaryEngine/Scene/Scene.h"
 
 namespace BinaryEngine {

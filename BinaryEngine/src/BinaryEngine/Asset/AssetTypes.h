@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <functional>
+#include <string_view>
+#include <spdlog/fmt/fmt.h>
 
 #include "BinaryEngine/Core/UUID.h"
 
