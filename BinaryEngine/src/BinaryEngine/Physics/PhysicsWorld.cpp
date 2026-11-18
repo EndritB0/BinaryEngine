@@ -547,6 +547,11 @@ namespace BinaryEngine {
 
 	void PhysicsWorld::RecordDestroyedShape(std::uint64_t shapeId, entt::entity entity)
 	{
+		if (m_StepCount == 0)
+		{
+			return;
+		}
+
 		if (shapeId != 0 && b2Shape_IsValid(b2LoadShapeId(shapeId)))
 		{
 			m_DestroyedShapes.insert_or_assign(shapeId, entity);
