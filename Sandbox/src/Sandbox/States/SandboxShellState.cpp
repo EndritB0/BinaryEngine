@@ -123,6 +123,12 @@ namespace Sandbox {
 			return false;
 		}
 
+		if (event.GetKeyCode() == BinaryEngine::Key::Return && (event.GetModifiers() & BinaryEngine::Modifier::Alt) != 0)
+		{
+			m_Context.window.SetFullscreen(!m_Context.window.IsFullscreen());
+			return true;
+		}
+
 		if (event.GetKeyCode() == BinaryEngine::Key::Escape)
 		{
 			APP_INFO("[SandboxShellState] ESC pressed, closing application");
@@ -240,7 +246,7 @@ namespace Sandbox {
 		{
 			text += std::format("F{} {}   ", demoIndex + 1, demos[demoIndex].Name);
 		}
-		text += "Esc quit";
+		text += "Alt+Enter fullscreen   Esc quit";
 
 		m_OverlayHeaderEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::move(text);
 	}
@@ -256,6 +262,7 @@ namespace Sandbox {
 
 		const BinaryEngine::Renderer::Statistics& statistics{ m_Context.renderer.GetStatistics() };
 		text += std::format("Quads {}  Draw calls {}  Glyphs {}  Culled {}", statistics.quadCount, statistics.drawCalls, statistics.glyphCount, statistics.culledSprites);
+		text += std::format("\nFullscreen {}", m_Context.window.IsFullscreen() ? "on" : "off");
 
 		if (m_Options.Frames.has_value())
 		{

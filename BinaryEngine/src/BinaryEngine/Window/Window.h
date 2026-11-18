@@ -29,7 +29,7 @@ namespace BinaryEngine {
 		int GetWidth() const;
 		int GetHeight() const;
 		Vector2i GetResolution() const;
-		bool IsFullscreen() const { return m_WindowSpecification.Fullscreen; }
+		bool IsFullscreen() const;
 		void SetTitle(const std::string& title);
 		void SetSize(const Vector2i& size);
 		void SetFullscreen(bool fullscreen);

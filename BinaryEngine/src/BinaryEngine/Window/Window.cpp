@@ -28,7 +28,13 @@ namespace BinaryEngine {
 	Window::Window(const WindowSpecification& specification) :
 		m_WindowSpecification(specification)
 	{
-		m_Window = SDL_CreateWindow(m_WindowSpecification.Title.c_str(), m_WindowSpecification.Resolution.x, m_WindowSpecification.Resolution.y, SDL_WINDOW_RESIZABLE);
+		SDL_WindowFlags windowFlags{ SDL_WINDOW_RESIZABLE };
+		if (m_WindowSpecification.Fullscreen)
+		{
+			windowFlags |= SDL_WINDOW_FULLSCREEN;
+		}
+
+		m_Window = SDL_CreateWindow(m_WindowSpecification.Title.c_str(), m_WindowSpecification.Resolution.x, m_WindowSpecification.Resolution.y, windowFlags);
 
 		if (!m_Window)
 		{
@@ -78,6 +84,11 @@ namespace BinaryEngine {
 		return Vector2i{ width, height };
 	}
 
+	bool Window::IsFullscreen() const
+	{
+		return (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_FULLSCREEN) != 0;
+	}
+
 	void Window::SetTitle(const std::string& title)
 	{
 		m_WindowSpecification.Title = title;
@@ -93,8 +104,13 @@ namespace BinaryEngine {
 
 	void Window::SetFullscreen(bool fullscreen)
 	{
-		SDL_SetWindowFullscreen(m_Window, fullscreen);
-		CORE_INFO("[Window] Setting fullscreen mode to: {}", fullscreen ? "true" : "false");
+		if (!SDL_SetWindowFullscreen(m_Window, fullscreen))
+		{
+			CORE_ERROR("[Window] Failed to set fullscreen {}: {}", fullscreen ? "on" : "off", SDL_GetError());
+			return;
+		}
+
+		CORE_INFO("[Window] Fullscreen set to: {}", fullscreen ? "on" : "off");
 	}
 
 	void Window::StartTextInput()
