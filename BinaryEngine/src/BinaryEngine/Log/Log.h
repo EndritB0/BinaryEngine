@@ -74,19 +74,19 @@ namespace BinaryEngine {
 
 #else
 
-#define CORE_TRACE(...)         
-#define CORE_INFO(...)          
-#define CORE_WARN(...)          
-#define CORE_ERROR(...)         
-#define CORE_CRITICAL(...)		
+#define CORE_TRACE(...)         do { if constexpr (false) { ::BinaryEngine::Log::Get().GetCoreLogger()->trace(__VA_ARGS__); } } while (0)
+#define CORE_INFO(...)          do { if constexpr (false) { ::BinaryEngine::Log::Get().GetCoreLogger()->info(__VA_ARGS__); } } while (0)
+#define CORE_WARN(...)          do { if constexpr (false) { ::BinaryEngine::Log::Get().GetCoreLogger()->warn(__VA_ARGS__); } } while (0)
+#define CORE_ERROR(...)         do { if constexpr (false) { ::BinaryEngine::Log::Get().GetCoreLogger()->error(__VA_ARGS__); } } while (0)
+#define CORE_CRITICAL(...)      do { if constexpr (false) { ::BinaryEngine::Log::Get().GetCoreLogger()->critical(__VA_ARGS__); } } while (0)
 
-#define APP_TRACE(...)          
-#define APP_INFO(...)           
-#define APP_WARN(...)           
-#define APP_ERROR(...)          
-#define APP_CRITICAL(...)       
+#define APP_TRACE(...)          do { if constexpr (false) { ::BinaryEngine::Log::Get().GetAppLogger()->trace(__VA_ARGS__); } } while (0)
+#define APP_INFO(...)           do { if constexpr (false) { ::BinaryEngine::Log::Get().GetAppLogger()->info(__VA_ARGS__); } } while (0)
+#define APP_WARN(...)           do { if constexpr (false) { ::BinaryEngine::Log::Get().GetAppLogger()->warn(__VA_ARGS__); } } while (0)
+#define APP_ERROR(...)          do { if constexpr (false) { ::BinaryEngine::Log::Get().GetAppLogger()->error(__VA_ARGS__); } } while (0)
+#define APP_CRITICAL(...)       do { if constexpr (false) { ::BinaryEngine::Log::Get().GetAppLogger()->critical(__VA_ARGS__); } } while (0)
 
-#define CORE_SET_LEVEL(level)
-#define APP_SET_LEVEL(level)
+#define CORE_SET_LEVEL(level)   do { if constexpr (false) { ::BinaryEngine::Log::SetCoreLevel(level); } } while (0)
+#define APP_SET_LEVEL(level)    do { if constexpr (false) { ::BinaryEngine::Log::SetAppLevel(level); } } while (0)
 
 #endif

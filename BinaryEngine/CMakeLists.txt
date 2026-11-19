@@ -126,5 +126,11 @@ target_compile_features(BinaryEngine PRIVATE cxx_std_20)
 target_include_directories(BinaryEngine PUBLIC src PRIVATE internal)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
+option(BINARY_ENGINE_LOGGING_DISABLE "Disable Logging" OFF)
+
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
+if(BINARY_ENGINE_LOGGING_DISABLE)
+    message(STATUS "BinaryEngine: Logging is Disabled (BINARY_ENGINE_LOGGING_DISABLE=ON)")
+    target_compile_definitions(BinaryEngine PUBLIC BINARY_ENGINE_LOGGING_DISABLE)
+endif()
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog EnTT::EnTT PRIVATE stb SDL3::SDL3-static box2d::box2d ProjectWarnings)
