@@ -7,6 +7,8 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Application.h"
     "src/BinaryEngine/ApplicationSpecification.h"
     "src/BinaryEngine/Core/Core.h"
+    "src/BinaryEngine/Core/Assert.cpp"
+    "src/BinaryEngine/Core/Assert.h"
     "src/BinaryEngine/Core/Math.h"
     "src/BinaryEngine/Core/Color.h"
     "src/BinaryEngine/Core/Timestep.h"
@@ -127,10 +129,18 @@ target_include_directories(BinaryEngine PUBLIC src PRIVATE internal)
 target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 option(BINARY_ENGINE_LOGGING_DISABLE "Disable Logging" OFF)
+option(BINARY_ENGINE_ASSERTS_DISABLE "Disable Asserts" OFF)
 
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
+
 if(BINARY_ENGINE_LOGGING_DISABLE)
     message(STATUS "BinaryEngine: Logging is Disabled (BINARY_ENGINE_LOGGING_DISABLE=ON)")
 endif()
 target_compile_definitions(BinaryEngine PUBLIC $<$<OR:$<CONFIG:Dist>,$<BOOL:${BINARY_ENGINE_LOGGING_DISABLE}>>:BINARY_ENGINE_LOGGING_DISABLE>)
+if(BINARY_ENGINE_ASSERTS_DISABLE)
+    message(STATUS "BinaryEngine: Asserts are Disabled (BINARY_ENGINE_ASSERTS_DISABLE=ON)")
+endif()
+target_compile_definitions(BinaryEngine PUBLIC $<$<OR:$<CONFIG:Dist>,$<BOOL:${BINARY_ENGINE_ASSERTS_DISABLE}>>:BINARY_ENGINE_ASSERTS_DISABLE>)
+target_compile_definitions(BinaryEngine PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:BINARY_ENGINE_DEBUG_ASSERTS>)
+
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog EnTT::EnTT PRIVATE stb SDL3::SDL3-static box2d::box2d ProjectWarnings)

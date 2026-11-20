@@ -3,6 +3,7 @@
 #include "BinaryEngine/Log/Log.h"
 
 #include "BinaryEngine/Core/Core.h"
+#include "BinaryEngine/Core/Assert.h"
 #include "BinaryEngine/Core/FrameClockSpecification.h"
 #include "BinaryEngine/Core/FrameClock.h"
 #include "BinaryEngine/Core/RandomStream.h"

@@ -8,8 +8,11 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <limits>
@@ -32,4 +35,5 @@
 #include <entt/entt.hpp>
 
 #include "BinaryEngine/Log/Log.h"
+#include "BinaryEngine/Core/Assert.h"
 #include "BinaryEngine/Core/Core.h"

@@ -9,7 +9,12 @@ namespace BinaryEngine::Detail {
 
 		int OnBox2DAssert(const char* condition, const char* fileName, int lineNumber)
 		{
-			CORE_ERROR("[Physics] Box2D assertion failed: {} ({}:{})", condition, fileName, lineNumber);
+			WriteAssertFailure(AssertSource::Core, "[Physics] Box2D assertion failed", condition, fileName, lineNumber, {});
+			if (!IsDebuggerAttached())
+			{
+				EndProcessAfterAssert();
+			}
+
 			return 1;
 		}
 
