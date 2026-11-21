@@ -51,6 +51,7 @@ namespace BinaryEngine {
 
 	float RandomStream::Float(float min, float max)
 	{
+		CORE_ASSERT(std::isfinite(max - min), "Float({}, {}) needs bounds whose distance is finite", min, max);
 		return std::fma(max - min, Float(), min);
 	}
 

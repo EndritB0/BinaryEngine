@@ -156,6 +156,7 @@ namespace BinaryEngine::Detail {
 		VoiceState& voice{ m_Voices[slot] };
 		const std::uint32_t channelCount{ voice.ChannelCount };
 		const std::uint32_t sourceFramesNeeded{ static_cast<std::uint32_t>((voice.Phase + (frameCount - 1) * voice.PhaseStep) >> s_PhaseFractionBits) };
+		CORE_RELEASE_ASSERT(static_cast<std::size_t>(sourceFramesNeeded) * channelCount <= m_SourceScratch.size(), "Voice {} needs {} frames of {} channels, but the scratch buffer holds {} samples", slot, sourceFramesNeeded, channelCount, m_SourceScratch.size());
 
 		SourceReadResult readResult{};
 		if (sourceFramesNeeded > 0)
