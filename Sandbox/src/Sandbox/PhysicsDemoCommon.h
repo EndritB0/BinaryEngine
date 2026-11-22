@@ -9,6 +9,7 @@
 #include <BinaryEngine/Core/Math.h>
 #include <BinaryEngine/Physics/PhysicsEvents.h>
 #include <BinaryEngine/Renderer/Renderer.h>
+#include <BinaryEngine/Renderer/ShapeSpecification.h>
 #include <BinaryEngine/Renderer/TextureRegion.h>
 #include <BinaryEngine/Scene/Scene.h>
 
@@ -44,6 +45,7 @@ namespace Sandbox {
 	BinaryEngine::TextureRegion GetAtlasRegion(AtlasDisc disc);
 	BinaryEngine::Vector3f GetBoxSpriteScale(BinaryEngine::Vector2f size);
 	BinaryEngine::Vector3f GetCircleSpriteScale(float radius);
+	void DrawCapsule(BinaryEngine::Renderer& renderer, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, float rotationDegrees, float sortZ, const BinaryEngine::ShapeSpecification& specification);
 	void DrawColliderOutlines(BinaryEngine::Scene& scene, BinaryEngine::Renderer& renderer);
 	void PlayHitSounds(BinaryEngine::AudioScope& audio, std::span<const BinaryEngine::ContactHitEvent> hitEvents, BinaryEngine::AssetHandle sound, BinaryEngine::AudioBusHandle bus);
 

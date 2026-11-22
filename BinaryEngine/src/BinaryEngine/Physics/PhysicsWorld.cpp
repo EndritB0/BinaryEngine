@@ -29,6 +29,11 @@ namespace {
 		return "CircleColliderComponent";
 	}
 
+	std::string_view GetComponentName([[maybe_unused]] const BinaryEngine::CapsuleColliderSpecification& specification)
+	{
+		return "CapsuleColliderComponent";
+	}
+
 	b2BodyType ToBox2DBodyType(BinaryEngine::BodyType type)
 	{
 		switch (type)
@@ -150,6 +155,34 @@ namespace {
 		return IsValidOffset(specification.Offset, GetComponentName(specification), registry, entity);
 	}
 
+	bool IsValidGeometry(const BinaryEngine::CapsuleColliderSpecification& specification, const entt::registry& registry, entt::entity entity)
+	{
+		const BinaryEngine::Vector2f size{ specification.Size };
+		if (!BinaryEngine::Detail::IsFiniteVector(size) || size.x <= 0.0f || size.y <= 0.0f)
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a CapsuleColliderComponent with Size ({}, {}). Both must be finite and above 0, so it gets no shape", GetEntityName(registry, entity), entity, size.x, size.y);
+			return false;
+		}
+
+		const float sideDifference{ std::abs(size.y - size.x) };
+		const float linearSlop{ B2_LINEAR_SLOP };
+		if (sideDifference <= linearSlop)
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a CapsuleColliderComponent with Size ({}, {}), whose sides differ by {}, at most the linear slop ({}). That's a circle: use a CircleColliderComponent, so it gets no shape", GetEntityName(registry, entity), entity, size.x, size.y, sideDifference, linearSlop);
+			return false;
+		}
+
+		return IsValidOffset(specification.Offset, GetComponentName(specification), registry, entity);
+	}
+
+	b2Capsule MakeCapsule(BinaryEngine::Vector2f size, BinaryEngine::Vector2f offset)
+	{
+		const float radius{ std::min(size.x, size.y) * 0.5f };
+		const float centerDistance{ std::abs(size.y - size.x) * 0.5f };
+		const BinaryEngine::Vector2f toCenter{ size.y >= size.x ? BinaryEngine::Vector2f{ 0.0f, centerDistance } : BinaryEngine::Vector2f{ centerDistance, 0.0f } };
+		return b2Capsule{ BinaryEngine::Detail::ToBox2DVector(offset - toCenter), BinaryEngine::Detail::ToBox2DVector(offset + toCenter), radius };
+	}
+
 	b2ShapeDef MakeShapeDef(const BinaryEngine::ColliderSpecification& collider, entt::entity entity)
 	{
 		const float worldUnitsPerMeter{ b2GetLengthUnitsPerMeter() };
@@ -178,6 +211,12 @@ namespace {
 	{
 		const b2Circle circle{ BinaryEngine::Detail::ToBox2DVector(specification.Offset), specification.Radius };
 		return b2CreateCircleShape(bodyId, &shapeDef, &circle);
+	}
+
+	b2ShapeId CreateShape(b2BodyId bodyId, const b2ShapeDef& shapeDef, const BinaryEngine::CapsuleColliderSpecification& specification)
+	{
+		const b2Capsule capsule{ MakeCapsule(specification.Size, specification.Offset) };
+		return b2CreateCapsuleShape(bodyId, &shapeDef, &capsule);
 	}
 
 	BinaryEngine::Detail::PhysicsPose ToPose(const b2WorldTransform& transform)
@@ -383,6 +422,7 @@ namespace BinaryEngine {
 		registry.storage<Detail::RigidBodyState>();
 		registry.storage<Detail::ColliderState<BoxColliderComponent>>();
 		registry.storage<Detail::ColliderState<CircleColliderComponent>>();
+		registry.storage<Detail::ColliderState<CapsuleColliderComponent>>();
 
 		registry.on_construct<RigidBodyComponent>().connect<&PhysicsWorld::OnRigidBodyAdded>(*this);
 		registry.on_destroy<RigidBodyComponent>().connect<&RemoveRigidBodyState>();
@@ -395,6 +435,10 @@ namespace BinaryEngine {
 		registry.on_construct<CircleColliderComponent>().connect<&AddColliderState<CircleColliderComponent>>();
 		registry.on_destroy<CircleColliderComponent>().connect<&RemoveColliderState<CircleColliderComponent>>();
 		registry.on_destroy<Detail::ColliderState<CircleColliderComponent>>().connect<&PhysicsWorld::OnColliderStateRemoved<CircleColliderComponent>>(*this);
+
+		registry.on_construct<CapsuleColliderComponent>().connect<&AddColliderState<CapsuleColliderComponent>>();
+		registry.on_destroy<CapsuleColliderComponent>().connect<&RemoveColliderState<CapsuleColliderComponent>>();
+		registry.on_destroy<Detail::ColliderState<CapsuleColliderComponent>>().connect<&PhysicsWorld::OnColliderStateRemoved<CapsuleColliderComponent>>(*this);
 	}
 
 	void PhysicsWorld::Step(entt::registry& registry, TimeStep fixedStep)
@@ -416,6 +460,7 @@ namespace BinaryEngine {
 
 		WarnAboutWaitingColliders<BoxColliderComponent>(registry);
 		WarnAboutWaitingColliders<CircleColliderComponent>(registry);
+		WarnAboutWaitingColliders<CapsuleColliderComponent>(registry);
 		m_StepCount++;
 	}
 
@@ -599,12 +644,14 @@ namespace BinaryEngine {
 
 		AttachCollider<BoxColliderComponent>(registry, entity, bodyId);
 		AttachCollider<CircleColliderComponent>(registry, entity, bodyId);
+		AttachCollider<CapsuleColliderComponent>(registry, entity, bodyId);
 	}
 
 	void PhysicsWorld::OnRigidBodyStateRemoved(entt::registry& registry, entt::entity entity)
 	{
 		RecordDestroyedShape(DetachColliderShape<BoxColliderComponent>(registry, entity), entity);
 		RecordDestroyedShape(DetachColliderShape<CircleColliderComponent>(registry, entity), entity);
+		RecordDestroyedShape(DetachColliderShape<CapsuleColliderComponent>(registry, entity), entity);
 
 		const b2BodyId bodyId{ b2LoadBodyId(registry.get<Detail::RigidBodyState>(entity).BodyId) };
 		if (b2Body_IsValid(bodyId))

@@ -13,6 +13,8 @@ set(SANDBOX_SOURCES
     "src/Sandbox/States/AudioDemoState.h"
     "src/Sandbox/States/PhysicsDemoState.cpp"
     "src/Sandbox/States/PhysicsDemoState.h"
+    "src/Sandbox/States/QueriesDemoState.cpp"
+    "src/Sandbox/States/QueriesDemoState.h"
     "src/Sandbox/States/SandboxShellState.cpp"
     "src/Sandbox/States/SandboxShellState.h"
     "src/Sandbox/States/ShowcaseDemoState.cpp"

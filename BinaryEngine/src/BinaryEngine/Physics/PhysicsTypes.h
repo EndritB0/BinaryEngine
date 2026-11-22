@@ -54,4 +54,10 @@ namespace BinaryEngine {
 		ColliderSpecification Collider{};
 	};
 
+	struct CapsuleColliderSpecification {
+		Vector2f Size{ 0.0f, 0.0f };
+		Vector2f Offset{ 0.0f, 0.0f };
+		ColliderSpecification Collider{};
+	};
+
 }

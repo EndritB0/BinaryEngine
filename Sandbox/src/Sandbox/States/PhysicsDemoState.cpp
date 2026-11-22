@@ -60,9 +60,9 @@ namespace Sandbox {
 		const BinaryEngine::Vector2f s_GroundCenter{ 0.0f, -170.0f };
 		const BinaryEngine::Vector2f s_GroundSize{ 640.0f, 20.0f };
 		const BinaryEngine::Vector2f s_CeilingCenter{ 0.0f, 190.0f };
-		const BinaryEngine::Vector2f s_LeftWallCenter{ -310.0f, 0.0f };
-		const BinaryEngine::Vector2f s_RightWallCenter{ 310.0f, 0.0f };
-		const BinaryEngine::Vector2f s_WallSize{ 20.0f, 400.0f };
+		const BinaryEngine::Vector2f s_LeftWallCenter{ -310.0f, 10.0f };
+		const BinaryEngine::Vector2f s_RightWallCenter{ 310.0f, 10.0f };
+		const BinaryEngine::Vector2f s_WallSize{ 20.0f, 380.0f };
 		const BinaryEngine::Vector2f s_BucketFloorCenter{ 200.0f, -8.0f };
 		const BinaryEngine::Vector2f s_BucketFloorSize{ 84.0f, 6.0f };
 		const BinaryEngine::Vector2f s_BucketLeftWallCenter{ 161.0f, 22.0f };

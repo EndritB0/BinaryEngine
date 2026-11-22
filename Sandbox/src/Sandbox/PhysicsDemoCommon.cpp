@@ -55,6 +55,34 @@ namespace Sandbox {
 		return { scale, scale, 1.0f };
 	}
 
+	void DrawCapsule(BinaryEngine::Renderer& renderer, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, float rotationDegrees, float sortZ, const BinaryEngine::ShapeSpecification& specification)
+	{
+		const float radius{ std::min(size.x, size.y) * 0.5f };
+		const float centerDistance{ std::abs(size.y - size.x) * 0.5f };
+		const float axisDegrees{ rotationDegrees + (size.y >= size.x ? 90.0f : 0.0f) };
+		const float axisRadians{ glm::radians(axisDegrees) };
+		const BinaryEngine::Vector2f axis{ std::cos(axisRadians), std::sin(axisRadians) };
+		const BinaryEngine::Vector2f firstCenter{ center - axis * centerDistance };
+		const BinaryEngine::Vector2f secondCenter{ center + axis * centerDistance };
+		const BinaryEngine::Vector3f circleScale{ radius * 2.0f, radius * 2.0f, 1.0f };
+
+		renderer.DrawCircle(BinaryEngine::Transform{ { firstCenter.x, firstCenter.y, sortZ }, { 0.0f, 0.0f, 0.0f }, circleScale }, specification);
+		renderer.DrawCircle(BinaryEngine::Transform{ { secondCenter.x, secondCenter.y, sortZ }, { 0.0f, 0.0f, 0.0f }, circleScale }, specification);
+
+		if (specification.OutlineThickness <= 0.0f)
+		{
+			const BinaryEngine::Transform middle{ { center.x, center.y, sortZ }, { 0.0f, 0.0f, axisDegrees }, { centerDistance * 2.0f, radius * 2.0f, 1.0f } };
+			renderer.DrawRectangle(middle, specification);
+			return;
+		}
+
+		const BinaryEngine::Vector2f side{ -axis.y, axis.x };
+		const float sideDistance{ radius - specification.OutlineThickness * 0.5f };
+		const BinaryEngine::LineSpecification line{ .Color{ specification.Color }, .Thickness{ specification.OutlineThickness }, .SortZ{ sortZ }, .Space{ specification.Space } };
+		renderer.DrawLine(firstCenter + side * sideDistance, secondCenter + side * sideDistance, line);
+		renderer.DrawLine(firstCenter - side * sideDistance, secondCenter - side * sideDistance, line);
+	}
+
 	void DrawColliderOutlines(BinaryEngine::Scene& scene, BinaryEngine::Renderer& renderer)
 	{
 		scene.GetAllEntitiesWith<BinaryEngine::BoxColliderComponent>().each([&scene, &renderer](entt::entity entityHandle, const BinaryEngine::BoxColliderComponent& collider) {
@@ -86,6 +114,16 @@ namespace Sandbox {
 			const float radians{ glm::radians(body.GetRotation()) };
 			const BinaryEngine::Vector2f rim{ center + BinaryEngine::Vector2f{ std::cos(radians), std::sin(radians) } * radius };
 			renderer.DrawLine(center, rim, { .Color{ color }, .Thickness{ s_RadiusLineThickness }, .SortZ{ s_OutlineZ } });
+		});
+
+		scene.GetAllEntitiesWith<BinaryEngine::CapsuleColliderComponent>().each([&scene, &renderer](entt::entity entityHandle, const BinaryEngine::CapsuleColliderComponent& collider) {
+			const BinaryEngine::PhysicsBody body{ scene.GetPhysicsBody(BinaryEngine::Entity{ entityHandle, &scene }) };
+			if (!body.IsValid())
+			{
+				return;
+			}
+
+			DrawCapsule(renderer, body.GetPosition(), collider.Specification.Size, body.GetRotation(), s_OutlineZ, { .Color{ GetOutlineColor(collider.Specification.Collider) }, .OutlineThickness{ s_OutlineThickness } });
 		});
 	}
 

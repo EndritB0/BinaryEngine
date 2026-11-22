@@ -5,6 +5,7 @@
 
 #include "Sandbox/States/AudioDemoState.h"
 #include "Sandbox/States/PhysicsDemoState.h"
+#include "Sandbox/States/QueriesDemoState.h"
 #include "Sandbox/States/ShowcaseDemoState.h"
 #include "Sandbox/States/StressDemoState.h"
 #include "Sandbox/States/TimestepDemoState.h"
@@ -21,6 +22,7 @@ namespace Sandbox {
 			{ "Timestep", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<TimestepDemoState>(); } },
 			{ "Physics", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<PhysicsDemoState>(); } },
 			{ "TopDown", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<TopDownDemoState>(); } },
+			{ "Queries", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<QueriesDemoState>(); } },
 		};
 
 		static_assert(std::size(s_Demos) <= 12, "The shell selects demos with F1-F12, so there can be at most 12");

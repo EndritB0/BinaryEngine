@@ -109,4 +109,13 @@ namespace BinaryEngine {
 			Specification(specification) {}
 	};
 
+	struct CapsuleColliderComponent {
+		CapsuleColliderSpecification Specification{};
+
+		CapsuleColliderComponent() = default;
+		CapsuleColliderComponent(const CapsuleColliderComponent&) = default;
+		CapsuleColliderComponent(const CapsuleColliderSpecification& specification) :
+			Specification(specification) {}
+	};
+
 }
