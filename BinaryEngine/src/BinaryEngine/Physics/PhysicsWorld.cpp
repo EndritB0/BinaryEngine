@@ -13,6 +13,18 @@ namespace {
 
 	constexpr float s_EarthGravityMetresPerSecondSquared{ -9.81f };
 
+	struct ClosestCastContext {
+		const BinaryEngine::QueryFilter& Filter;
+		BinaryEngine::Scene& Scene;
+		std::optional<BinaryEngine::CastHit> ClosestHit;
+	};
+
+	struct AllCastContext {
+		const BinaryEngine::QueryFilter& Filter;
+		BinaryEngine::Scene& Scene;
+		std::vector<BinaryEngine::CastHit>& Hits;
+	};
+
 	std::string_view GetEntityName(const entt::registry& registry, entt::entity entity)
 	{
 		const BinaryEngine::TagComponent* tag{ registry.try_get<BinaryEngine::TagComponent>(entity) };
@@ -331,6 +343,59 @@ namespace {
 		return std::nullopt;
 	}
 
+	b2QueryFilter ToBox2DQueryFilter(const BinaryEngine::QueryFilter& filter)
+	{
+		return b2QueryFilter{ filter.Filter.Category, filter.Filter.Mask };
+	}
+
+	bool IsValidRay(BinaryEngine::Vector2f start, BinaryEngine::Vector2f translation)
+	{
+		return BinaryEngine::Detail::IsFiniteVector(start) && BinaryEngine::Detail::IsFiniteVector(translation) && translation != BinaryEngine::Vector2f{ 0.0f, 0.0f };
+	}
+
+	bool IsSkippedShape(b2ShapeId shapeId, const BinaryEngine::QueryFilter& filter)
+	{
+		return !filter.IncludeTriggers && b2Shape_IsSensor(shapeId);
+	}
+
+	BinaryEngine::Entity GetShapeEntity(b2ShapeId shapeId, BinaryEngine::Scene& scene)
+	{
+		return BinaryEngine::Entity{ BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(shapeId)), &scene };
+	}
+
+	BinaryEngine::CastHit MakeCastHit(b2ShapeId shapeId, b2Pos point, b2Vec2 normal, float fraction, BinaryEngine::Scene& scene)
+	{
+		return BinaryEngine::CastHit{ GetShapeEntity(shapeId, scene), BinaryEngine::Detail::ToEngineVector(point), BinaryEngine::Detail::ToEngineVector(normal), fraction };
+	}
+
+	float KeepClosestCastHit(b2ShapeId shapeId, b2Pos point, b2Vec2 normal, float fraction, void* context)
+	{
+		ClosestCastContext& closestContext{ *static_cast<ClosestCastContext*>(context) };
+		if (fraction == 0.0f || IsSkippedShape(shapeId, closestContext.Filter))
+		{
+			return -1.0f;
+		}
+
+		if (!closestContext.ClosestHit || fraction < closestContext.ClosestHit->Fraction)
+		{
+			closestContext.ClosestHit = MakeCastHit(shapeId, point, normal, fraction, closestContext.Scene);
+		}
+
+		return closestContext.ClosestHit->Fraction;
+	}
+
+	float CollectCastHit(b2ShapeId shapeId, b2Pos point, b2Vec2 normal, float fraction, void* context)
+	{
+		AllCastContext& allContext{ *static_cast<AllCastContext*>(context) };
+		if (fraction == 0.0f || IsSkippedShape(shapeId, allContext.Filter))
+		{
+			return -1.0f;
+		}
+
+		allContext.Hits.push_back(MakeCastHit(shapeId, point, normal, fraction, allContext.Scene));
+		return 1.0f;
+	}
+
 }
 
 namespace BinaryEngine {
@@ -401,6 +466,34 @@ namespace BinaryEngine {
 		}
 
 		return b2World_GetCounters(b2LoadWorldId(m_WorldId)).bodyCount;
+	}
+
+	std::optional<CastHit> PhysicsWorld::CastRay(Vector2f start, Vector2f end, const QueryFilter& filter) const
+	{
+		const Vector2f translation{ end - start };
+		if (!IsValid() || !IsValidRay(start, translation))
+		{
+			return std::nullopt;
+		}
+
+		ClosestCastContext context{ filter, m_Scene, std::nullopt };
+		b2World_CastRay(b2LoadWorldId(m_WorldId), Detail::ToBox2DVector(start), Detail::ToBox2DVector(translation), ToBox2DQueryFilter(filter), KeepClosestCastHit, &context);
+		return context.ClosestHit;
+	}
+
+	std::size_t PhysicsWorld::CastRayAll(Vector2f start, Vector2f end, std::vector<CastHit>& hits, const QueryFilter& filter) const
+	{
+		hits.clear();
+		const Vector2f translation{ end - start };
+		if (!IsValid() || !IsValidRay(start, translation))
+		{
+			return 0;
+		}
+
+		AllCastContext context{ filter, m_Scene, hits };
+		b2World_CastRay(b2LoadWorldId(m_WorldId), Detail::ToBox2DVector(start), Detail::ToBox2DVector(translation), ToBox2DQueryFilter(filter), CollectCastHit, &context);
+		std::ranges::sort(hits, {}, &CastHit::Fraction);
+		return hits.size();
 	}
 
 	template<typename ColliderComponent>

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -10,6 +12,7 @@
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Core/Timestep.h"
 #include "BinaryEngine/Physics/PhysicsEvents.h"
+#include "BinaryEngine/Physics/PhysicsQueries.h"
 #include "BinaryEngine/Physics/PhysicsWorldSpecification.h"
 #include "BinaryEngine/Scene/Entity.h"
 
@@ -43,6 +46,9 @@ namespace BinaryEngine {
 		std::span<const ContactHitEvent> GetContactHitEvents() const { return m_ContactHitEvents; }
 		std::span<const TriggerBeginEvent> GetTriggerBeginEvents() const { return m_TriggerBeginEvents; }
 		std::span<const TriggerEndEvent> GetTriggerEndEvents() const { return m_TriggerEndEvents; }
+
+		std::optional<CastHit> CastRay(Vector2f start, Vector2f end, const QueryFilter& filter = QueryFilter()) const;
+		std::size_t CastRayAll(Vector2f start, Vector2f end, std::vector<CastHit>& hits, const QueryFilter& filter = QueryFilter()) const;
 
 	private:
 		friend class Scene;

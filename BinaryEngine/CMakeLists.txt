@@ -85,6 +85,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Physics/PhysicsBody.cpp"
     "src/BinaryEngine/Physics/PhysicsBody.h"
     "src/BinaryEngine/Physics/PhysicsEvents.h"
+    "src/BinaryEngine/Physics/PhysicsQueries.h"
     "src/BinaryEngine/Physics/PhysicsWorld.cpp"
     "src/BinaryEngine/Physics/PhysicsWorld.h"
     "src/BinaryEngine/Physics/PhysicsWorldSpecification.h"
