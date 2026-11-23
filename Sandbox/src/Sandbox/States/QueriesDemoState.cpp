@@ -17,8 +17,8 @@ namespace Sandbox {
 	namespace {
 
 		constexpr std::string_view s_FontPath{ "./resources/fonts/OpenSans-Regular.ttf" };
-		constexpr std::string_view s_QueryKeyHelp{ "1 ray   2 ray-all   E move the eye to the cursor   T triggers" };
-		constexpr std::string_view s_KeyHelp{ "Right mouse  capsule   X clear   C outlines" };
+		constexpr std::string_view s_QueryKeyHelp{ "1 ray   2 ray-all   3 shape cast   4 overlap   S shape   R rotate   E move the eye to the cursor   T triggers" };
+		constexpr std::string_view s_KeyHelp{ "Left mouse  pick   Right mouse  capsule   X clear   C outlines" };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x12, 0x33, 0x38 };
 		constexpr BinaryEngine::Color s_CapsuleColor{ 0xFF, 0x8C, 0x1A };
 		constexpr BinaryEngine::Color s_TriggerZoneColor{ 0xFF, 0x50, 0xFF, 0x40 };
@@ -26,22 +26,29 @@ namespace Sandbox {
 		constexpr BinaryEngine::Color s_RayColor{ 0xFF, 0xE0, 0x40 };
 		constexpr BinaryEngine::Color s_HitColor{ 0xFF, 0x40, 0x40 };
 		constexpr BinaryEngine::Color s_NormalColor{ 0x40, 0xC0, 0xFF };
+		constexpr BinaryEngine::Color s_GhostColor{ 0xC0, 0xC0, 0xC0 };
+		constexpr BinaryEngine::Color s_HighlightColor{ 0xFF, 0xFF, 0x60 };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr float s_HudZ{ 10.0f };
 		constexpr float s_QueryZ{ 6.0f };
+		constexpr float s_HighlightZ{ 5.5f };
 		constexpr float s_BodyZ{ 0.0f };
 		constexpr float s_TriggerZoneZ{ -0.5f };
 		constexpr float s_QueryLineThickness{ 1.5f };
+		constexpr float s_HighlightThickness{ 2.5f };
 		constexpr float s_EyeSize{ 8.0f };
 		constexpr float s_HitDotSize{ 6.0f };
 		constexpr float s_NormalLength{ 20.0f };
 		constexpr float s_MarkerTextSize{ 14.0f };
 		constexpr float s_MarkerLabelOffset{ 14.0f };
+		constexpr float s_QueryCircleRadius{ 16.0f };
+		constexpr float s_RotationStepDegrees{ 15.0f };
 		constexpr float s_CrateSize{ 32.0f };
 		constexpr float s_BallRadius{ 16.0f };
 		constexpr float s_SlopeRotationDegrees{ 20.0f };
 		constexpr float s_SlopeFriction{ 0.05f };
 		const BinaryEngine::Vector2f s_EyeStart{ -260.0f, -140.0f };
+		const BinaryEngine::Vector2f s_QueryBoxSize{ 32.0f, 32.0f };
 		const BinaryEngine::Vector2f s_GroundCenter{ 0.0f, -170.0f };
 		const BinaryEngine::Vector2f s_GroundSize{ 640.0f, 20.0f };
 		const BinaryEngine::Vector2f s_CeilingCenter{ 0.0f, 190.0f };
@@ -76,9 +83,35 @@ namespace Sandbox {
 			{
 				case QueryMode::Ray: return "ray";
 				case QueryMode::RayAll: return "ray-all";
+				case QueryMode::ShapeCast: return "shape cast";
+				case QueryMode::Overlap: return "overlap";
 			}
 
 			return "unknown";
+		}
+
+		std::string_view GetShapeName(QueryShapeChoice choice)
+		{
+			switch (choice)
+			{
+				case QueryShapeChoice::Circle: return "circle";
+				case QueryShapeChoice::Box: return "box";
+				case QueryShapeChoice::Capsule: return "capsule";
+			}
+
+			return "unknown";
+		}
+
+		QueryShapeChoice GetNextShapeChoice(QueryShapeChoice choice)
+		{
+			switch (choice)
+			{
+				case QueryShapeChoice::Circle: return QueryShapeChoice::Box;
+				case QueryShapeChoice::Box: return QueryShapeChoice::Capsule;
+				case QueryShapeChoice::Capsule: return QueryShapeChoice::Circle;
+			}
+
+			return QueryShapeChoice::Circle;
 		}
 
 		std::string_view GetTag(BinaryEngine::Entity entity)
@@ -100,6 +133,28 @@ namespace Sandbox {
 		{
 			renderer.DrawCircle(BinaryEngine::Transform{ { hit.Point.x, hit.Point.y, s_QueryZ }, { 0.0f, 0.0f, 0.0f }, { s_HitDotSize, s_HitDotSize, 1.0f } }, { .Color{ s_HitColor } });
 			renderer.DrawLine(hit.Point, hit.Point + hit.Normal * s_NormalLength, { .Color{ s_NormalColor }, .Thickness{ s_QueryLineThickness }, .SortZ{ s_QueryZ } });
+		}
+
+		void DrawQueryShape(BinaryEngine::Renderer& renderer, const BinaryEngine::QueryShape& shape, BinaryEngine::Color color)
+		{
+			const BinaryEngine::Vector2f center{ shape.GetCenter() };
+			const BinaryEngine::Vector2f size{ shape.GetSize() };
+			const BinaryEngine::ShapeSpecification outline{ .Color{ color }, .OutlineThickness{ s_QueryLineThickness } };
+
+			if (shape.GetType() == BinaryEngine::QueryShapeType::Capsule)
+			{
+				DrawCapsule(renderer, center, size, shape.GetRotation(), s_QueryZ, outline);
+				return;
+			}
+
+			const BinaryEngine::Transform transform{ { center.x, center.y, s_QueryZ }, { 0.0f, 0.0f, shape.GetRotation() }, { size.x, size.y, 1.0f } };
+			if (shape.GetType() == BinaryEngine::QueryShapeType::Box)
+			{
+				renderer.DrawRectangle(transform, outline);
+				return;
+			}
+
+			renderer.DrawCircle(transform, outline);
 		}
 
 	}
@@ -140,7 +195,7 @@ namespace Sandbox {
 	void QueriesDemoState::OnDetach()
 	{
 		APP_INFO("[QueriesDemoState] Detached");
-		APP_INFO("[QueriesDemoState] {} ray casts, {} ray-all casts", m_RayCastCount, m_RayAllCastCount);
+		APP_INFO("[QueriesDemoState] {} ray casts, {} ray-all casts, {} shape casts, {} overlaps, {} point picks", m_RayCastCount, m_RayAllCastCount, m_ShapeCastCount, m_OverlapCount, m_PointPickCount);
 	}
 
 	void QueriesDemoState::OnEvent(BinaryEngine::Event& event)
@@ -173,6 +228,10 @@ namespace Sandbox {
 		{
 			DrawColliderOutlines(m_Scene, renderer);
 		}
+		if (m_PickedEntity.IsValid())
+		{
+			DrawHighlight(renderer, m_PickedEntity);
+		}
 		renderer.EndScene();
 	}
 
@@ -194,6 +253,30 @@ namespace Sandbox {
 			case BinaryEngine::Key::Num2:
 			{
 				m_Mode = QueryMode::RayAll;
+				return true;
+			}
+
+			case BinaryEngine::Key::Num3:
+			{
+				m_Mode = QueryMode::ShapeCast;
+				return true;
+			}
+
+			case BinaryEngine::Key::Num4:
+			{
+				m_Mode = QueryMode::Overlap;
+				return true;
+			}
+
+			case BinaryEngine::Key::S:
+			{
+				m_ShapeChoice = GetNextShapeChoice(m_ShapeChoice);
+				return true;
+			}
+
+			case BinaryEngine::Key::R:
+			{
+				m_ShapeRotationDegrees = std::fmod(m_ShapeRotationDegrees + s_RotationStepDegrees, 360.0f);
 				return true;
 			}
 
@@ -229,6 +312,12 @@ namespace Sandbox {
 	{
 		const BinaryEngine::Vector2f position{ m_Camera.ScreenToWorld(event.GetPosition()) };
 
+		if (event.GetButton() == BinaryEngine::Mouse::Left)
+		{
+			PickBody(position);
+			return true;
+		}
+
 		if (event.GetButton() == BinaryEngine::Mouse::Right)
 		{
 			SpawnCapsule(position);
@@ -246,6 +335,18 @@ namespace Sandbox {
 	BinaryEngine::QueryFilter QueriesDemoState::MakeQueryFilter() const
 	{
 		return BinaryEngine::QueryFilter{ .IncludeTriggers{ m_IncludeTriggers } };
+	}
+
+	BinaryEngine::QueryShape QueriesDemoState::MakeQueryShape(BinaryEngine::Vector2f center) const
+	{
+		switch (m_ShapeChoice)
+		{
+			case QueryShapeChoice::Circle: return BinaryEngine::QueryShape::Circle(center, s_QueryCircleRadius);
+			case QueryShapeChoice::Box: return BinaryEngine::QueryShape::Box(center, s_QueryBoxSize, m_ShapeRotationDegrees);
+			case QueryShapeChoice::Capsule: return BinaryEngine::QueryShape::Capsule(center, s_CapsuleSize, m_ShapeRotationDegrees);
+		}
+
+		return BinaryEngine::QueryShape::Circle(center, s_QueryCircleRadius);
 	}
 
 	void QueriesDemoState::CreateLevel()
@@ -315,9 +416,7 @@ namespace Sandbox {
 
 	void QueriesDemoState::SpawnCapsule(BinaryEngine::Vector2f position)
 	{
-		const BinaryEngine::Entity capsule{ CreateCapsuleBody("Capsule", position, s_CapsuleSize, {}) };
-		m_SpawnedEntities.push_back(capsule);
-		m_LastSpawnedMass = m_Scene.GetPhysicsBody(capsule).GetMass();
+		m_SpawnedEntities.push_back(CreateCapsuleBody("Capsule", position, s_CapsuleSize, {}));
 	}
 
 	void QueriesDemoState::RemoveSpawnedBodies()
@@ -333,6 +432,23 @@ namespace Sandbox {
 		m_SpawnedEntities.clear();
 	}
 
+	void QueriesDemoState::PickBody(BinaryEngine::Vector2f position)
+	{
+		m_PointPickCount++;
+		m_PickedEntity = BinaryEngine::Entity{};
+		m_Scene.GetPhysicsWorld().OverlapShape(BinaryEngine::QueryShape::Point(position), m_OverlapHits);
+
+		for (const BinaryEngine::OverlapHit& hit : m_OverlapHits)
+		{
+			BinaryEngine::Entity entity{ hit.Entity };
+			if (entity.GetComponent<BinaryEngine::RigidBodyComponent>().Specification.Type == BinaryEngine::BodyType::Dynamic)
+			{
+				m_PickedEntity = entity;
+				return;
+			}
+		}
+	}
+
 	std::string QueriesDemoState::RunQuery(BinaryEngine::Renderer& renderer)
 	{
 		const BinaryEngine::Vector2f cursor{ GetCursorWorldPosition() };
@@ -342,6 +458,8 @@ namespace Sandbox {
 		{
 			case QueryMode::Ray: return RunRayQuery(renderer, cursor);
 			case QueryMode::RayAll: return RunRayAllQuery(renderer, cursor);
+			case QueryMode::ShapeCast: return RunShapeCastQuery(renderer, cursor);
+			case QueryMode::Overlap: return RunOverlapQuery(renderer, cursor);
 		}
 
 		return std::string{};
@@ -382,6 +500,40 @@ namespace Sandbox {
 		return std::format("Hits {}", hitCount);
 	}
 
+	std::string QueriesDemoState::RunShapeCastQuery(BinaryEngine::Renderer& renderer, BinaryEngine::Vector2f cursor)
+	{
+		m_ShapeCastCount++;
+		const BinaryEngine::QueryShape shape{ MakeQueryShape(m_EyePosition) };
+		const BinaryEngine::Vector2f translation{ cursor - m_EyePosition };
+		const std::optional<BinaryEngine::CastHit> hit{ m_Scene.GetPhysicsWorld().CastShape(shape, translation, MakeQueryFilter()) };
+		const BinaryEngine::Vector2f stopCenter{ hit ? m_EyePosition + translation * hit->Fraction : cursor };
+
+		DrawQueryShape(renderer, shape, s_RayColor);
+		renderer.DrawLine(m_EyePosition, stopCenter, { .Color{ s_RayColor }, .Thickness{ s_QueryLineThickness }, .SortZ{ s_QueryZ } });
+		DrawQueryShape(renderer, MakeQueryShape(stopCenter), s_GhostColor);
+		if (hit)
+		{
+			DrawCastHit(renderer, *hit);
+		}
+
+		return DescribeCastHit(hit);
+	}
+
+	std::string QueriesDemoState::RunOverlapQuery(BinaryEngine::Renderer& renderer, BinaryEngine::Vector2f cursor)
+	{
+		m_OverlapCount++;
+		const BinaryEngine::QueryShape shape{ MakeQueryShape(cursor) };
+		const std::size_t hitCount{ m_Scene.GetPhysicsWorld().OverlapShape(shape, m_OverlapHits, MakeQueryFilter()) };
+
+		DrawQueryShape(renderer, shape, s_RayColor);
+		for (const BinaryEngine::OverlapHit& hit : m_OverlapHits)
+		{
+			DrawHighlight(renderer, hit.Entity);
+		}
+
+		return std::format("Touching {}", hitCount);
+	}
+
 	void QueriesDemoState::DrawCapsuleBodies(BinaryEngine::Renderer& renderer)
 	{
 		m_Scene.GetAllEntitiesWith<BinaryEngine::TransformComponent, BinaryEngine::CapsuleColliderComponent>().each([&renderer](const BinaryEngine::TransformComponent& transformComponent, const BinaryEngine::CapsuleColliderComponent& collider) {
@@ -390,12 +542,53 @@ namespace Sandbox {
 		});
 	}
 
+	void QueriesDemoState::DrawHighlight(BinaryEngine::Renderer& renderer, BinaryEngine::Entity entity)
+	{
+		const BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(entity) };
+		if (!body.IsValid())
+		{
+			return;
+		}
+
+		const BinaryEngine::Vector2f center{ body.GetPosition() };
+		const float rotation{ body.GetRotation() };
+		const BinaryEngine::ShapeSpecification highlight{ .Color{ s_HighlightColor }, .OutlineThickness{ s_HighlightThickness } };
+
+		if (entity.HasComponent<BinaryEngine::BoxColliderComponent>())
+		{
+			const BinaryEngine::Vector2f size{ entity.GetComponent<BinaryEngine::BoxColliderComponent>().Specification.Size };
+			renderer.DrawRectangle(BinaryEngine::Transform{ { center.x, center.y, s_HighlightZ }, { 0.0f, 0.0f, rotation }, { size.x, size.y, 1.0f } }, highlight);
+		}
+
+		if (entity.HasComponent<BinaryEngine::CircleColliderComponent>())
+		{
+			const float diameter{ entity.GetComponent<BinaryEngine::CircleColliderComponent>().Specification.Radius * 2.0f };
+			renderer.DrawCircle(BinaryEngine::Transform{ { center.x, center.y, s_HighlightZ }, { 0.0f, 0.0f, 0.0f }, { diameter, diameter, 1.0f } }, highlight);
+		}
+
+		if (entity.HasComponent<BinaryEngine::CapsuleColliderComponent>())
+		{
+			DrawCapsule(renderer, center, entity.GetComponent<BinaryEngine::CapsuleColliderComponent>().Specification.Size, rotation, s_HighlightZ, highlight);
+		}
+	}
+
 	void QueriesDemoState::UpdateHud(std::string_view queryResult)
 	{
 		std::string text{ std::format("{}: {}\n", s_QueryKeyHelp, m_IncludeTriggers ? "on" : "off") };
 		text += std::format("{}: {}\n", s_KeyHelp, m_ShowOutlines ? "on" : "off");
-		text += std::format("Mode {}   {}\n", GetModeName(m_Mode), queryResult);
-		text += std::format("Bodies {}   Last mass {:.2f} kg", m_Scene.GetPhysicsWorld().GetBodyCount(), m_LastSpawnedMass);
+		text += std::format("Mode {}   Shape {}, rotated {:.0f}\n", GetModeName(m_Mode), GetShapeName(m_ShapeChoice), m_ShapeRotationDegrees);
+		text += std::format("{}\n", queryResult);
+
+		BinaryEngine::Entity pickedEntity{ m_PickedEntity };
+		if (pickedEntity.IsValid())
+		{
+			text += std::format("Bodies {}   Picked '{}' {:.2f} kg", m_Scene.GetPhysicsWorld().GetBodyCount(), GetTag(pickedEntity), m_Scene.GetPhysicsBody(pickedEntity).GetMass());
+		}
+		else
+		{
+			text += std::format("Bodies {}   Picked nothing", m_Scene.GetPhysicsWorld().GetBodyCount());
+		}
+
 		m_HudEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::move(text);
 	}
 

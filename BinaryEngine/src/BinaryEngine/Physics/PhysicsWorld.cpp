@@ -25,6 +25,12 @@ namespace {
 		std::vector<BinaryEngine::CastHit>& Hits;
 	};
 
+	struct OverlapContext {
+		const BinaryEngine::QueryFilter& Filter;
+		BinaryEngine::Scene& Scene;
+		std::vector<BinaryEngine::OverlapHit>& Hits;
+	};
+
 	std::string_view GetEntityName(const entt::registry& registry, entt::entity entity)
 	{
 		const BinaryEngine::TagComponent* tag{ registry.try_get<BinaryEngine::TagComponent>(entity) };
@@ -396,6 +402,58 @@ namespace {
 		return 1.0f;
 	}
 
+	bool CollectOverlapHit(b2ShapeId shapeId, void* context)
+	{
+		OverlapContext& overlapContext{ *static_cast<OverlapContext*>(context) };
+		if (!IsSkippedShape(shapeId, overlapContext.Filter))
+		{
+			overlapContext.Hits.emplace_back(GetShapeEntity(shapeId, overlapContext.Scene));
+		}
+
+		return true;
+	}
+
+	bool IsValidQueryShape(const BinaryEngine::QueryShape& shape)
+	{
+		const BinaryEngine::Vector2f size{ shape.GetSize() };
+		if (!BinaryEngine::Detail::IsFiniteVector(shape.GetCenter()) || !BinaryEngine::Detail::IsFiniteVector(size) || !std::isfinite(shape.GetRotation()))
+		{
+			return false;
+		}
+
+		return shape.GetType() == BinaryEngine::QueryShapeType::Point || (size.x > 0.0f && size.y > 0.0f);
+	}
+
+	b2ShapeProxy MakeProxy(const BinaryEngine::QueryShape& shape)
+	{
+		const BinaryEngine::Vector2f size{ shape.GetSize() };
+		const b2Rot rotation{ BinaryEngine::Detail::ToBox2DRotation(shape.GetRotation()) };
+
+		switch (shape.GetType())
+		{
+			case BinaryEngine::QueryShapeType::Point:
+			case BinaryEngine::QueryShapeType::Circle: break;
+
+			case BinaryEngine::QueryShapeType::Box:
+			{
+				const b2Vec2 halfSize{ size.x * 0.5f, size.y * 0.5f };
+				const std::array<b2Vec2, 4> corners{ b2Vec2{ -halfSize.x, -halfSize.y }, b2Vec2{ halfSize.x, -halfSize.y }, b2Vec2{ halfSize.x, halfSize.y }, b2Vec2{ -halfSize.x, halfSize.y } };
+				return b2MakeOffsetProxy(corners.data(), static_cast<int>(corners.size()), 0.0f, b2Vec2_zero, rotation);
+			}
+
+			case BinaryEngine::QueryShapeType::Capsule:
+			{
+				const b2Capsule capsule{ MakeCapsule(size, BinaryEngine::Vector2f{ 0.0f, 0.0f }) };
+				const std::array<b2Vec2, 2> centers{ capsule.center1, capsule.center2 };
+				const int pointCount{ size.x == size.y ? 1 : 2 };
+				return b2MakeOffsetProxy(centers.data(), pointCount, capsule.radius, b2Vec2_zero, rotation);
+			}
+		}
+
+		const b2Vec2 center{ b2Vec2_zero };
+		return b2MakeOffsetProxy(&center, 1, size.x * 0.5f, b2Vec2_zero, rotation);
+	}
+
 }
 
 namespace BinaryEngine {
@@ -493,6 +551,33 @@ namespace BinaryEngine {
 		AllCastContext context{ filter, m_Scene, hits };
 		b2World_CastRay(b2LoadWorldId(m_WorldId), Detail::ToBox2DVector(start), Detail::ToBox2DVector(translation), ToBox2DQueryFilter(filter), CollectCastHit, &context);
 		std::ranges::sort(hits, {}, &CastHit::Fraction);
+		return hits.size();
+	}
+
+	std::optional<CastHit> PhysicsWorld::CastShape(const QueryShape& shape, Vector2f translation, const QueryFilter& filter) const
+	{
+		if (!IsValid() || !IsValidQueryShape(shape) || !Detail::IsFiniteVector(translation))
+		{
+			return std::nullopt;
+		}
+
+		const b2ShapeProxy proxy{ MakeProxy(shape) };
+		ClosestCastContext context{ filter, m_Scene, std::nullopt };
+		b2World_CastShape(b2LoadWorldId(m_WorldId), Detail::ToBox2DVector(shape.GetCenter()), &proxy, Detail::ToBox2DVector(translation), ToBox2DQueryFilter(filter), KeepClosestCastHit, &context);
+		return context.ClosestHit;
+	}
+
+	std::size_t PhysicsWorld::OverlapShape(const QueryShape& shape, std::vector<OverlapHit>& hits, const QueryFilter& filter) const
+	{
+		hits.clear();
+		if (!IsValid() || !IsValidQueryShape(shape))
+		{
+			return 0;
+		}
+
+		const b2ShapeProxy proxy{ MakeProxy(shape) };
+		OverlapContext context{ filter, m_Scene, hits };
+		b2World_OverlapShape(b2LoadWorldId(m_WorldId), Detail::ToBox2DVector(shape.GetCenter()), &proxy, ToBox2DQueryFilter(filter), CollectOverlapHit, &context);
 		return hits.size();
 	}
 

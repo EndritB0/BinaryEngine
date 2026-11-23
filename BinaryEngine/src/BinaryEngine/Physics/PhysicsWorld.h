@@ -49,6 +49,8 @@ namespace BinaryEngine {
 
 		std::optional<CastHit> CastRay(Vector2f start, Vector2f end, const QueryFilter& filter = QueryFilter()) const;
 		std::size_t CastRayAll(Vector2f start, Vector2f end, std::vector<CastHit>& hits, const QueryFilter& filter = QueryFilter()) const;
+		std::optional<CastHit> CastShape(const QueryShape& shape, Vector2f translation, const QueryFilter& filter = QueryFilter()) const;
+		std::size_t OverlapShape(const QueryShape& shape, std::vector<OverlapHit>& hits, const QueryFilter& filter = QueryFilter()) const;
 
 	private:
 		friend class Scene;
