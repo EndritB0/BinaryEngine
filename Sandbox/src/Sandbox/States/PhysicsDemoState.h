@@ -9,6 +9,7 @@
 #include <BinaryEngine/Audio/AudioTypes.h>
 #include <BinaryEngine/Core/Math.h>
 #include <BinaryEngine/Event/EventTypes.h>
+#include <BinaryEngine/Physics/PhysicsQueries.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Renderer/OrthographicCamera.h>
 #include <BinaryEngine/Scene/Entity.h>
@@ -64,6 +65,7 @@ namespace Sandbox {
 		std::vector<BinaryEngine::Entity> m_SpawnedEntities;
 		std::vector<BinaryEngine::Entity> m_PaneEntities;
 		std::vector<BinaryEngine::Entity> m_BucketVisitors;
+		std::vector<BinaryEngine::OverlapHit> m_OverlapHits;
 		std::int64_t m_TouchingPairCount{ 0 };
 		std::size_t m_LastStepHitCount{ 0 };
 		float m_LastSpawnedMass{ 0.0f };

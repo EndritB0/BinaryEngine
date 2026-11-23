@@ -380,9 +380,10 @@ namespace Sandbox {
 
 	void PhysicsDemoState::Explode(BinaryEngine::Vector2f center)
 	{
-		for (const entt::entity entityHandle : m_Scene.GetAllEntitiesWith<BinaryEngine::RigidBodyComponent>())
+		m_Scene.GetPhysicsWorld().OverlapShape(BinaryEngine::QueryShape::Circle(center, s_ExplosionRadius), m_OverlapHits);
+		for (const BinaryEngine::OverlapHit& hit : m_OverlapHits)
 		{
-			BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(BinaryEngine::Entity{ entityHandle, &m_Scene }) };
+			BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(hit.Entity) };
 			const BinaryEngine::Vector2f offset{ body.GetPosition() - center };
 			const float distance{ glm::length(offset) };
 			if (!body.IsValid() || distance <= 0.0f || distance >= s_ExplosionRadius)
@@ -420,13 +421,10 @@ namespace Sandbox {
 
 	void PhysicsDemoState::ApplyTwist(BinaryEngine::Vector2f center)
 	{
-		for (const entt::entity entityHandle : m_Scene.GetAllEntitiesWith<BinaryEngine::RigidBodyComponent>())
+		m_Scene.GetPhysicsWorld().OverlapShape(BinaryEngine::QueryShape::Circle(center, s_TwistRadius), m_OverlapHits);
+		for (const BinaryEngine::OverlapHit& hit : m_OverlapHits)
 		{
-			BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(BinaryEngine::Entity{ entityHandle, &m_Scene }) };
-			if (glm::length(body.GetPosition() - center) < s_TwistRadius)
-			{
-				body.ApplyTorque(s_TwistTorque);
-			}
+			m_Scene.GetPhysicsBody(hit.Entity).ApplyTorque(s_TwistTorque);
 		}
 	}
 

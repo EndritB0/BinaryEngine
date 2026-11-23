@@ -6,8 +6,10 @@
 #include <BinaryEngine/Core/Color.h>
 #include <BinaryEngine/Core/FrameClock.h>
 #include <BinaryEngine/Core/Transform.h>
+#include <BinaryEngine/Input/Input.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
 #include <BinaryEngine/Physics/PhysicsEvents.h>
+#include <BinaryEngine/Physics/PhysicsQueries.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Physics/PhysicsWorld.h>
 #include <BinaryEngine/Renderer/Font.h>
@@ -24,8 +26,15 @@ namespace Sandbox {
 		constexpr std::string_view s_HitSoundPath{ "./resources/audio/one_shot_2.wav" };
 		constexpr std::string_view s_KeyHelp{ "Left mouse  shoot the cue puck (further is harder)   Right mouse  spin it   C outlines" };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x1E, 0x5A, 0x32 };
+		constexpr BinaryEngine::Color s_AimGuideColor{ 0xFF, 0xFF, 0xFF, 0xB0 };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr float s_HudZ{ 10.0f };
+		constexpr float s_AimGuideZ{ 5.0f };
+		constexpr float s_AimGuideThickness{ 1.5f };
+		constexpr float s_AimGuideLength{ 1000.0f };
+		constexpr float s_AimGuideRollLength{ 30.0f };
+		constexpr float s_AimGuideMaxCueSpeed{ 5.0f };
+		constexpr float s_AimGuideMinCursorDistance{ 1.0f };
 		constexpr float s_BodyZ{ 0.0f };
 		constexpr float s_PocketZ{ -1.0f };
 		constexpr float s_TableWallX{ 270.0f };
@@ -123,6 +132,7 @@ namespace Sandbox {
 		BinaryEngine::Renderer& renderer{ m_Context.renderer };
 		renderer.BeginScene(m_Camera);
 		m_Scene.OnRender(renderer, m_Context.assetManager);
+		DrawAimGuide(renderer);
 		if (m_ShowOutlines)
 		{
 			DrawColliderOutlines(m_Scene, renderer);
@@ -270,6 +280,42 @@ namespace Sandbox {
 				m_Scene.DestroyEntity(visitor);
 				m_PocketedCount++;
 			}
+		}
+	}
+
+	void TopDownDemoState::DrawAimGuide(BinaryEngine::Renderer& renderer)
+	{
+		const BinaryEngine::PhysicsBody cueBody{ m_Scene.GetPhysicsBody(m_CueEntity) };
+		if (!cueBody.IsValid() || glm::length(cueBody.GetLinearVelocity()) >= s_AimGuideMaxCueSpeed)
+		{
+			return;
+		}
+
+		const BinaryEngine::Vector2f cuePosition{ cueBody.GetPosition() };
+		const BinaryEngine::Vector2f toCursor{ m_Camera.ScreenToWorld(BinaryEngine::Input::GetMousePosition()) - cuePosition };
+		const float cursorDistance{ glm::length(toCursor) };
+		if (cursorDistance <= s_AimGuideMinCursorDistance)
+		{
+			return;
+		}
+
+		const BinaryEngine::Vector2f translation{ toCursor / cursorDistance * s_AimGuideLength };
+		const std::optional<BinaryEngine::CastHit> hit{ m_Scene.GetPhysicsWorld().CastShape(BinaryEngine::QueryShape::Circle(cuePosition, s_PuckRadius), translation) };
+		if (!hit)
+		{
+			return;
+		}
+
+		const BinaryEngine::Vector2f ghostCenter{ cuePosition + translation * hit->Fraction };
+		const BinaryEngine::LineSpecification guideLine{ .Color{ s_AimGuideColor }, .Thickness{ s_AimGuideThickness }, .SortZ{ s_AimGuideZ } };
+		renderer.DrawLine(cuePosition, ghostCenter, guideLine);
+		renderer.DrawCircle(BinaryEngine::Transform{ { ghostCenter.x, ghostCenter.y, s_AimGuideZ }, { 0.0f, 0.0f, 0.0f }, { s_PuckRadius * 2.0f, s_PuckRadius * 2.0f, 1.0f } }, { .Color{ s_AimGuideColor }, .OutlineThickness{ s_AimGuideThickness } });
+
+		const bool isPuck{ std::find(m_PuckEntities.begin(), m_PuckEntities.end(), hit->Entity) != m_PuckEntities.end() };
+		if (isPuck)
+		{
+			const BinaryEngine::Vector2f puckCenter{ m_Scene.GetPhysicsBody(hit->Entity).GetPosition() };
+			renderer.DrawLine(puckCenter, puckCenter - hit->Normal * s_AimGuideRollLength, guideLine);
 		}
 	}
 

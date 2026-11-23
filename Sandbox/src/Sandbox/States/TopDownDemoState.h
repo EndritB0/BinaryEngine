@@ -10,6 +10,7 @@
 #include <BinaryEngine/Event/EventTypes.h>
 #include <BinaryEngine/Physics/PhysicsWorldSpecification.h>
 #include <BinaryEngine/Renderer/OrthographicCamera.h>
+#include <BinaryEngine/Renderer/Renderer.h>
 #include <BinaryEngine/Scene/Entity.h>
 #include <BinaryEngine/Scene/Scene.h>
 #include <BinaryEngine/Scene/SceneSpecification.h>
@@ -42,6 +43,7 @@ namespace Sandbox {
 		void SpinCuePuck();
 		void ResetCuePuck();
 		void ReadPhysicsEvents();
+		void DrawAimGuide(BinaryEngine::Renderer& renderer);
 		void UpdateHud();
 
 	private:
