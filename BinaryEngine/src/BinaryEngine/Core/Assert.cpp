@@ -19,7 +19,7 @@ namespace {
 
 namespace BinaryEngine::Detail {
 
-	void WriteAssertFailure([[maybe_unused]] AssertSource source, std::string_view headline, std::string_view condition, std::string_view filePath, int lineNumber, std::string_view message)
+	void WriteAssertFailure([[maybe_unused]] LogSource source, std::string_view headline, std::string_view condition, std::string_view filePath, int lineNumber, std::string_view message)
 	{
 		std::string failureLine{ fmt::format("{}: {} ({}:{})", headline, condition, GetFileName(filePath), lineNumber) };
 		if (!message.empty())
@@ -30,7 +30,7 @@ namespace BinaryEngine::Detail {
 #ifndef BINARY_ENGINE_LOGGING_DISABLE
 		if (Log::IsInitialised())
 		{
-			const std::shared_ptr<spdlog::logger>& logger{ source == AssertSource::Core ? Log::Get().GetCoreLogger() : Log::Get().GetAppLogger() };
+			const std::shared_ptr<spdlog::logger>& logger{ source == LogSource::Core ? Log::Get().GetCoreLogger() : Log::Get().GetAppLogger() };
 			logger->critical(failureLine);
 			logger->flush();
 			return;

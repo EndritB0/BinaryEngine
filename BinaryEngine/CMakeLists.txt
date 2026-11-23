@@ -48,6 +48,7 @@ set(BINARYENGINE_SOURCES
     "src/BinaryEngine/Renderer/CameraSpecification.h"
     "src/BinaryEngine/Log/Log.cpp"
     "src/BinaryEngine/Log/Log.h"
+    "src/BinaryEngine/Log/LogSource.h"
     "src/BinaryEngine/Event/MouseCodes.h"
     "src/BinaryEngine/Event/ScanCodes.h"
     "src/BinaryEngine/Event/ScanCodes.cpp"
@@ -132,6 +133,7 @@ target_precompile_headers(BinaryEngine PRIVATE src/pch.h)
 
 option(BINARY_ENGINE_LOGGING_DISABLE "Disable Logging" OFF)
 option(BINARY_ENGINE_ASSERTS_DISABLE "Disable Asserts" OFF)
+option(BINARY_ENGINE_TIMERS_DISABLE "Disable Timers" OFF)
 
 target_compile_definitions(BinaryEngine PUBLIC ENTT_ID_TYPE=std::uint64_t)
 
@@ -144,5 +146,9 @@ if(BINARY_ENGINE_ASSERTS_DISABLE)
 endif()
 target_compile_definitions(BinaryEngine PUBLIC $<$<OR:$<CONFIG:Dist>,$<BOOL:${BINARY_ENGINE_ASSERTS_DISABLE}>>:BINARY_ENGINE_ASSERTS_DISABLE>)
 target_compile_definitions(BinaryEngine PUBLIC $<$<CONFIG:Debug,RelWithDebInfo>:BINARY_ENGINE_DEBUG_ASSERTS>)
+if(BINARY_ENGINE_TIMERS_DISABLE)
+    message(STATUS "BinaryEngine: Timers are Disabled (BINARY_ENGINE_TIMERS_DISABLE=ON)")
+endif()
+target_compile_definitions(BinaryEngine PUBLIC $<$<OR:$<CONFIG:Dist>,$<BOOL:${BINARY_ENGINE_TIMERS_DISABLE}>>:BINARY_ENGINE_TIMERS_DISABLE>)
 
 target_link_libraries(BinaryEngine PUBLIC glm::glm spdlog::spdlog EnTT::EnTT PRIVATE stb SDL3::SDL3-static box2d::box2d ProjectWarnings)

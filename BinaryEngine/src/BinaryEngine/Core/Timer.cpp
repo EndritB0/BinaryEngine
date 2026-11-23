@@ -5,29 +5,44 @@ namespace BinaryEngine {
 
 	BinaryEngine::Timer::~Timer()
 	{
-		auto end = std::chrono::high_resolution_clock::now();
-		auto duration = end - m_Start;
+		const auto duration{ std::chrono::steady_clock::now() - m_Start };
 
+		std::string message;
 		switch (m_Unit)
 		{
-			case Time::Seconds:
+			case TimeUnit::Seconds:
 			{
 				double seconds{ std::chrono::duration<double>(duration).count() };
-				CORE_INFO("{} took: {} seconds", m_Context, seconds);
+				message = std::format("[Timer] {} took: {} seconds", m_Context, seconds);
 				break;
 			}
 
-			case Time::Milliseconds:
+			case TimeUnit::Milliseconds:
 			{
 				double milliseconds{ std::chrono::duration<double, std::milli>(duration).count() };
-				CORE_INFO("{} took: {} ms", m_Context, milliseconds);
+				message = std::format("[Timer] {} took: {} ms", m_Context, milliseconds);
 				break;
 			}
 
-			case Time::Microseconds:
+			case TimeUnit::Microseconds:
 			{
 				std::int64_t microseconds{ std::chrono::duration_cast<std::chrono::microseconds>(duration).count() };
-				CORE_INFO("{} took: {} us", m_Context, microseconds);
+				message = std::format("[Timer] {} took: {} us", m_Context, microseconds);
+				break;
+			}
+		}
+
+		switch (m_Source)
+		{
+			case LogSource::Core:
+			{
+				CORE_INFO(message);
+				break;
+			}
+
+			case LogSource::App:
+			{
+				APP_INFO(message);
 				break;
 			}
 		}

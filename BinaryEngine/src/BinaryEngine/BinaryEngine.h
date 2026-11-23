@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BinaryEngine/Log/LogSource.h"
 #include "BinaryEngine/Log/Log.h"
 
 #include "BinaryEngine/Core/Core.h"
