@@ -3,6 +3,7 @@
 
 #include <BinaryEngine/Core/Color.h>
 #include <BinaryEngine/Core/Transform.h>
+#include <BinaryEngine/Physics/CharacterController.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Scene/Components.h>
@@ -124,6 +125,17 @@ namespace Sandbox {
 			}
 
 			DrawCapsule(renderer, body.GetPosition(), collider.Specification.Size, body.GetRotation(), s_OutlineZ, { .Color{ GetOutlineColor(collider.Specification.Collider) }, .OutlineThickness{ s_OutlineThickness } });
+		});
+
+		scene.GetAllEntitiesWith<BinaryEngine::CharacterControllerComponent>().each([&scene, &renderer](entt::entity entityHandle, const BinaryEngine::CharacterControllerComponent& controllerComponent) {
+			const BinaryEngine::CharacterController controller{ scene.GetCharacterController(BinaryEngine::Entity{ entityHandle, &scene }) };
+			if (!controller.IsValid())
+			{
+				return;
+			}
+
+			const BinaryEngine::CapsuleColliderSpecification& capsule{ controllerComponent.Specification.Capsule };
+			DrawCapsule(renderer, controller.GetPosition() + capsule.Offset, capsule.Size, 0.0f, s_OutlineZ, { .Color{ GetOutlineColor(capsule.Collider) }, .OutlineThickness{ s_OutlineThickness } });
 		});
 	}
 

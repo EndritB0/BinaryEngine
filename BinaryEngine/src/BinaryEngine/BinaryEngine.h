@@ -29,6 +29,8 @@
 #include "BinaryEngine/Physics/PhysicsEvents.h"
 #include "BinaryEngine/Physics/PhysicsQueries.h"
 #include "BinaryEngine/Physics/PhysicsBody.h"
+#include "BinaryEngine/Physics/CharacterControllerTypes.h"
+#include "BinaryEngine/Physics/CharacterController.h"
 #include "BinaryEngine/Physics/PhysicsWorld.h"
 
 #include "BinaryEngine/Window/WindowSpecification.h"

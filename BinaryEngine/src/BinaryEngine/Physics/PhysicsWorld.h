@@ -18,6 +18,7 @@
 
 namespace BinaryEngine {
 
+	class CharacterController;
 	class PhysicsBody;
 	class Scene;
 
@@ -59,6 +60,7 @@ namespace BinaryEngine {
 		void Step(entt::registry& registry, TimeStep fixedStep);
 		void Interpolate(entt::registry& registry, float interpolationAlpha);
 		PhysicsBody FindBody(entt::registry& registry, Entity entity);
+		CharacterController FindCharacterController(entt::registry& registry, Entity entity);
 		void ConvertEvents();
 		void RecordDestroyedShape(std::uint64_t shapeId, entt::entity entity);
 
@@ -66,6 +68,8 @@ namespace BinaryEngine {
 		void OnRigidBodyStateRemoved(entt::registry& registry, entt::entity entity);
 		template<typename ColliderComponent>
 		void OnColliderStateRemoved(entt::registry& registry, entt::entity entity);
+		void OnCharacterControllerAdded(entt::registry& registry, entt::entity entity);
+		void OnCharacterControllerStateRemoved(entt::registry& registry, entt::entity entity);
 
 	private:
 		Scene& m_Scene;

@@ -25,4 +25,9 @@ namespace BinaryEngine::Detail {
 		bool HasWarnedWaiting{ false };
 	};
 
+	struct CharacterControllerState {
+		std::uint64_t ShapeId{ 0 };
+		Vector2f Velocity{ 0.0f, 0.0f };
+	};
+
 }

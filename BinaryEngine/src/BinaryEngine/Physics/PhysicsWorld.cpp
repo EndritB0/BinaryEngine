@@ -3,6 +3,8 @@
 
 #include <box2d/box2d.h>
 
+#include "BinaryEngine/Physics/CharacterController.h"
+#include "BinaryEngine/Physics/Detail/CharacterMovement.h"
 #include "BinaryEngine/Physics/Detail/PhysicsComponents.h"
 #include "BinaryEngine/Physics/Detail/PhysicsConversions.h"
 #include "BinaryEngine/Physics/PhysicsBody.h"
@@ -12,6 +14,7 @@
 namespace {
 
 	constexpr float s_EarthGravityMetresPerSecondSquared{ -9.81f };
+	constexpr std::string_view s_ControllerCapsuleName{ "CharacterControllerComponent's capsule" };
 
 	struct ClosestCastContext {
 		const BinaryEngine::QueryFilter& Filter;
@@ -193,6 +196,26 @@ namespace {
 		return IsValidOffset(specification.Offset, GetComponentName(specification), registry, entity);
 	}
 
+	bool IsValidControllerCapsule(const BinaryEngine::CapsuleColliderSpecification& capsule, const entt::registry& registry, entt::entity entity)
+	{
+		const BinaryEngine::Vector2f size{ capsule.Size };
+		if (!BinaryEngine::Detail::IsFiniteVector(size) || size.x <= 0.0f || size.y <= 0.0f)
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a {} with Size ({}, {}). Both must be finite and above 0, so it gets no controller", GetEntityName(registry, entity), entity, s_ControllerCapsuleName, size.x, size.y);
+			return false;
+		}
+
+		const float sideDifference{ std::abs(size.y - size.x) };
+		const float linearSlop{ B2_LINEAR_SLOP };
+		if (sideDifference <= linearSlop)
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a {} with Size ({}, {}), whose sides differ by {}, at most the linear slop ({}). A controller's capsule can't be a circle, so it gets no controller", GetEntityName(registry, entity), entity, s_ControllerCapsuleName, size.x, size.y, sideDifference, linearSlop);
+			return false;
+		}
+
+		return IsValidOffset(capsule.Offset, s_ControllerCapsuleName, registry, entity) && IsValidMaterial(capsule.Collider.Material, s_ControllerCapsuleName, registry, entity);
+	}
+
 	b2Capsule MakeCapsule(BinaryEngine::Vector2f size, BinaryEngine::Vector2f offset)
 	{
 		const float radius{ std::min(size.x, size.y) * 0.5f };
@@ -260,6 +283,13 @@ namespace {
 		}
 	}
 
+	void MoveCharacters(entt::registry& registry, std::uint32_t worldId, float stepSeconds)
+	{
+		registry.view<const BinaryEngine::Detail::RigidBodyState, BinaryEngine::Detail::CharacterControllerState>().each([worldId, stepSeconds](const BinaryEngine::Detail::RigidBodyState& bodyState, BinaryEngine::Detail::CharacterControllerState& characterState) {
+			BinaryEngine::Detail::MoveCharacter(worldId, bodyState, characterState, stepSeconds);
+		});
+	}
+
 	template<typename ColliderComponent>
 	void AttachCollider(entt::registry& registry, entt::entity entity, std::uint64_t bodyId)
 	{
@@ -285,7 +315,7 @@ namespace {
 		registry.emplace<BinaryEngine::Detail::ColliderState<ColliderComponent>>(entity);
 
 		const BinaryEngine::Detail::RigidBodyState* bodyState{ registry.try_get<BinaryEngine::Detail::RigidBodyState>(entity) };
-		if (bodyState)
+		if (bodyState && !registry.all_of<BinaryEngine::Detail::CharacterControllerState>(entity))
 		{
 			AttachCollider<ColliderComponent>(registry, entity, bodyState->BodyId);
 		}
@@ -299,7 +329,18 @@ namespace {
 
 	void RemoveRigidBodyState(entt::registry& registry, entt::entity entity)
 	{
-		registry.remove<BinaryEngine::Detail::RigidBodyState>(entity);
+		if (!registry.all_of<BinaryEngine::Detail::CharacterControllerState>(entity))
+		{
+			registry.remove<BinaryEngine::Detail::RigidBodyState>(entity);
+		}
+	}
+
+	void RemoveCharacterControllerState(entt::registry& registry, entt::entity entity)
+	{
+		if (registry.remove<BinaryEngine::Detail::CharacterControllerState>(entity) > 0)
+		{
+			registry.remove<BinaryEngine::Detail::RigidBodyState>(entity);
+		}
 	}
 
 	template<typename ColliderComponent>
@@ -328,6 +369,12 @@ namespace {
 
 			colliderState.HasWarnedWaiting = true;
 			const std::string_view componentName{ GetComponentName(registry.get<ColliderComponent>(entity).Specification) };
+			if (registry.all_of<BinaryEngine::CharacterControllerComponent>(entity))
+			{
+				CORE_WARN("[Physics] '{}' ({}) has a {} and a CharacterControllerComponent, so the collider is never attached. A controller's only shape is its capsule", GetEntityName(registry, entity), entity, componentName);
+				return;
+			}
+
 			CORE_WARN("[Physics] '{}' ({}) has a {} but no RigidBodyComponent, so it doesn't collide. Add a RigidBodyComponent to give it a body", GetEntityName(registry, entity), entity, componentName);
 		});
 	}
@@ -601,6 +648,7 @@ namespace BinaryEngine {
 		registry.storage<Detail::ColliderState<BoxColliderComponent>>();
 		registry.storage<Detail::ColliderState<CircleColliderComponent>>();
 		registry.storage<Detail::ColliderState<CapsuleColliderComponent>>();
+		registry.storage<Detail::CharacterControllerState>();
 
 		registry.on_construct<RigidBodyComponent>().connect<&PhysicsWorld::OnRigidBodyAdded>(*this);
 		registry.on_destroy<RigidBodyComponent>().connect<&RemoveRigidBodyState>();
@@ -617,6 +665,10 @@ namespace BinaryEngine {
 		registry.on_construct<CapsuleColliderComponent>().connect<&AddColliderState<CapsuleColliderComponent>>();
 		registry.on_destroy<CapsuleColliderComponent>().connect<&RemoveColliderState<CapsuleColliderComponent>>();
 		registry.on_destroy<Detail::ColliderState<CapsuleColliderComponent>>().connect<&PhysicsWorld::OnColliderStateRemoved<CapsuleColliderComponent>>(*this);
+
+		registry.on_construct<CharacterControllerComponent>().connect<&PhysicsWorld::OnCharacterControllerAdded>(*this);
+		registry.on_destroy<CharacterControllerComponent>().connect<&RemoveCharacterControllerState>();
+		registry.on_destroy<Detail::CharacterControllerState>().connect<&PhysicsWorld::OnCharacterControllerStateRemoved>(*this);
 	}
 
 	void PhysicsWorld::Step(entt::registry& registry, TimeStep fixedStep)
@@ -629,6 +681,8 @@ namespace BinaryEngine {
 		registry.view<Detail::RigidBodyState>().each([](Detail::RigidBodyState& bodyState) {
 			bodyState.PreviousPose = bodyState.CurrentPose;
 		});
+
+		MoveCharacters(registry, m_WorldId, fixedStep.GetSeconds());
 
 		const b2WorldId worldId{ b2LoadWorldId(m_WorldId) };
 		b2World_Step(worldId, fixedStep.GetSeconds(), m_SubStepCount);
@@ -676,12 +730,23 @@ namespace BinaryEngine {
 		}
 
 		const Detail::RigidBodyState* bodyState{ registry.try_get<Detail::RigidBodyState>(entityHandle) };
-		if (!bodyState)
+		if (!bodyState || registry.all_of<Detail::CharacterControllerState>(entityHandle))
 		{
 			return PhysicsBody{};
 		}
 
 		return PhysicsBody{ entity, bodyState->BodyId };
+	}
+
+	CharacterController PhysicsWorld::FindCharacterController(entt::registry& registry, Entity entity)
+	{
+		const entt::entity entityHandle{ entity };
+		if (!entity || entity != Entity{ entityHandle, &m_Scene } || !registry.valid(entityHandle) || !registry.all_of<Detail::CharacterControllerState>(entityHandle))
+		{
+			return CharacterController{};
+		}
+
+		return CharacterController{ entity };
 	}
 
 	void PhysicsWorld::ConvertEvents()
@@ -788,6 +853,12 @@ namespace BinaryEngine {
 			return;
 		}
 
+		if (registry.all_of<Detail::CharacterControllerState>(entity))
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a CharacterControllerComponent, so its RigidBodyComponent gets no body. A controller owns its own body", GetEntityName(registry, entity), entity);
+			return;
+		}
+
 		const TransformComponent* transformComponent{ registry.try_get<TransformComponent>(entity) };
 		if (!transformComponent)
 		{
@@ -836,6 +907,60 @@ namespace BinaryEngine {
 		{
 			b2DestroyBody(bodyId);
 		}
+	}
+
+	void PhysicsWorld::OnCharacterControllerAdded(entt::registry& registry, entt::entity entity)
+	{
+		if (!IsValid())
+		{
+			return;
+		}
+
+		if (registry.all_of<Detail::RigidBodyState>(entity))
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a RigidBodyComponent, so its CharacterControllerComponent gets no controller. A controller owns its own body", GetEntityName(registry, entity), entity);
+			return;
+		}
+
+		const TransformComponent* transformComponent{ registry.try_get<TransformComponent>(entity) };
+		if (!transformComponent)
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a CharacterControllerComponent but no TransformComponent, so it gets no controller", GetEntityName(registry, entity), entity);
+			return;
+		}
+
+		const Vector2f position{ transformComponent->transform.Position.x, transformComponent->transform.Position.y };
+		if (!Detail::IsFiniteVector(position))
+		{
+			CORE_ERROR("[Physics] '{}' ({}) has a TransformComponent that isn't finite (position ({}, {})), so it gets no controller", GetEntityName(registry, entity), entity, position.x, position.y);
+			return;
+		}
+
+		const CharacterControllerSpecification& specification{ registry.get<CharacterControllerComponent>(entity).Specification };
+		if (!IsValidControllerCapsule(specification.Capsule, registry, entity))
+		{
+			return;
+		}
+
+		b2BodyDef bodyDef{ b2DefaultBodyDef() };
+		bodyDef.type = b2_kinematicBody;
+		bodyDef.position = Detail::ToBox2DVector(position);
+		bodyDef.enableSleep = false;
+		bodyDef.userData = Detail::ToUserData(entity);
+		const b2BodyId bodyId{ b2CreateBody(b2LoadWorldId(m_WorldId), &bodyDef) };
+
+		const b2ShapeDef shapeDef{ MakeShapeDef(specification.Capsule.Collider, entity) };
+		const b2Capsule capsule{ MakeCapsule(specification.Capsule.Size, specification.Capsule.Offset) };
+		const b2ShapeId shapeId{ b2CreateCapsuleShape(bodyId, &shapeDef, &capsule) };
+
+		const Detail::PhysicsPose creationPose{ position, 0.0f };
+		registry.emplace<Detail::RigidBodyState>(entity, b2StoreBodyId(bodyId), BodyType::Kinematic, creationPose, creationPose);
+		registry.emplace<Detail::CharacterControllerState>(entity, b2StoreShapeId(shapeId));
+	}
+
+	void PhysicsWorld::OnCharacterControllerStateRemoved(entt::registry& registry, entt::entity entity)
+	{
+		RecordDestroyedShape(registry.get<Detail::CharacterControllerState>(entity).ShapeId, entity);
 	}
 
 }

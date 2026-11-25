@@ -2,6 +2,7 @@
 #include "BinaryEngine/Scene/Scene.h"
 
 #include "BinaryEngine/Asset/AssetManager.h"
+#include "BinaryEngine/Physics/CharacterController.h"
 #include "BinaryEngine/Physics/PhysicsBody.h"
 #include "BinaryEngine/Physics/PhysicsWorld.h"
 #include "BinaryEngine/Renderer/Font.h"
@@ -157,6 +158,11 @@ namespace BinaryEngine {
 	PhysicsBody Scene::GetPhysicsBody(Entity entity)
 	{
 		return m_PhysicsWorld->FindBody(m_Registry, entity);
+	}
+
+	CharacterController Scene::GetCharacterController(Entity entity)
+	{
+		return m_PhysicsWorld->FindCharacterController(m_Registry, entity);
 	}
 
 }

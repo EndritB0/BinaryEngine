@@ -9,6 +9,8 @@ set(SANDBOX_SOURCES
     "src/Sandbox/PhysicsDemoCommon.h"
     "src/Sandbox/SandboxOptions.cpp"
     "src/Sandbox/SandboxOptions.h"
+    "src/Sandbox/States/ArenaDemoState.cpp"
+    "src/Sandbox/States/ArenaDemoState.h"
     "src/Sandbox/States/AudioDemoState.cpp"
     "src/Sandbox/States/AudioDemoState.h"
     "src/Sandbox/States/PhysicsDemoState.cpp"

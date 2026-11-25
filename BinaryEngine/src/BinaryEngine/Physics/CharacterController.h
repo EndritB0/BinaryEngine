@@ -1,0 +1,29 @@
+#pragma once
+
+#include "BinaryEngine/Core/Math.h"
+#include "BinaryEngine/Scene/Entity.h"
+
+namespace BinaryEngine {
+
+	class CharacterController {
+	public:
+		CharacterController() = default;
+
+		bool IsValid() const;
+		Entity GetEntity() const { return m_Entity; }
+
+		Vector2f GetPosition() const;
+		void SetPosition(Vector2f position);
+		Vector2f GetVelocity() const;
+		void SetVelocity(Vector2f velocity);
+
+	private:
+		friend class PhysicsWorld;
+
+		explicit CharacterController(Entity entity) :
+			m_Entity(entity) {}
+
+		Entity m_Entity{};
+	};
+
+}

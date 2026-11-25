@@ -3,6 +3,7 @@
 
 #include <BinaryEngine/State/StateManager.h>
 
+#include "Sandbox/States/ArenaDemoState.h"
 #include "Sandbox/States/AudioDemoState.h"
 #include "Sandbox/States/PhysicsDemoState.h"
 #include "Sandbox/States/QueriesDemoState.h"
@@ -23,6 +24,7 @@ namespace Sandbox {
 			{ "Physics", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<PhysicsDemoState>(); } },
 			{ "TopDown", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<TopDownDemoState>(); } },
 			{ "Queries", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<QueriesDemoState>(); } },
+			{ "Arena", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<ArenaDemoState>(); } },
 		};
 
 		static_assert(std::size(s_Demos) <= 12, "The shell selects demos with F1-F12, so there can be at most 12");

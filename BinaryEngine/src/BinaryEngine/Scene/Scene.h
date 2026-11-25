@@ -11,6 +11,7 @@
 namespace BinaryEngine {
 
 	class AssetManager;
+	class CharacterController;
 	class Entity;
 	class PhysicsBody;
 	class PhysicsWorld;
@@ -37,6 +38,7 @@ namespace BinaryEngine {
 		PhysicsWorld& GetPhysicsWorld();
 		const PhysicsWorld& GetPhysicsWorld() const;
 		PhysicsBody GetPhysicsBody(Entity entity);
+		CharacterController GetCharacterController(Entity entity);
 
 		template<typename... Components>
 		auto GetAllEntitiesWith()

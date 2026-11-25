@@ -4,6 +4,7 @@
 
 #include "BinaryEngine/Asset/AssetTypes.h"
 #include "BinaryEngine/Core/Transform.h"
+#include "BinaryEngine/Physics/CharacterControllerTypes.h"
 #include "BinaryEngine/Physics/PhysicsTypes.h"
 #include "BinaryEngine/Renderer/AnimationClip.h"
 #include "BinaryEngine/Renderer/TextSpecification.h"
@@ -115,6 +116,15 @@ namespace BinaryEngine {
 		CapsuleColliderComponent() = default;
 		CapsuleColliderComponent(const CapsuleColliderComponent&) = default;
 		CapsuleColliderComponent(const CapsuleColliderSpecification& specification) :
+			Specification(specification) {}
+	};
+
+	struct CharacterControllerComponent {
+		CharacterControllerSpecification Specification{};
+
+		CharacterControllerComponent() = default;
+		CharacterControllerComponent(const CharacterControllerComponent&) = default;
+		CharacterControllerComponent(const CharacterControllerSpecification& specification) :
 			Specification(specification) {}
 	};
 
