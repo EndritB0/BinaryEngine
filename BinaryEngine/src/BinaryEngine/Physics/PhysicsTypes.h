@@ -37,6 +37,7 @@ namespace BinaryEngine {
 		PhysicsMaterial Material{};
 		CollisionFilter Filter{};
 		bool IsTrigger{ false };
+		bool OneWay{ false };
 		bool EnableContactEvents{ true };
 		bool EnableHitEvents{ true };
 		bool EnableTriggerEvents{ true };

@@ -25,6 +25,7 @@ namespace BinaryEngine::Detail {
 	template<typename ColliderComponent>
 	struct ColliderState {
 		std::uint64_t ShapeId{ 0 };
+		bool OneWay{ false };
 		bool HasWarnedWaiting{ false };
 	};
 
@@ -43,8 +44,12 @@ namespace BinaryEngine::Detail {
 		bool IsOnFloor{ false };
 		Vector2f FloorNormal{ 0.0f, 0.0f };
 		Entity FloorEntity{};
+		std::uint64_t FloorShapeId{ 0 };
+		bool IsFloorOneWay{ false };
 		Vector2f FloorVelocity{ 0.0f, 0.0f };
 		std::vector<CharacterTouch> Touches;
+		std::uint64_t DropShapeId{ 0 };
+		bool HasOverlappedDropShape{ false };
 	};
 
 }

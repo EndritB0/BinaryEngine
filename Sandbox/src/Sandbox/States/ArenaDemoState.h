@@ -48,6 +48,8 @@ namespace Sandbox {
 		void MoveZombies(float stepSeconds);
 		void KnockBackPlayer(float stepSeconds);
 		bool IsZombie(BinaryEngine::Entity entity) const;
+		void CreateGem();
+		void CollectGems();
 		void LogStepSummary();
 		void UpdateHud();
 
@@ -65,6 +67,8 @@ namespace Sandbox {
 		std::int32_t m_KnockbackCount{ 0 };
 		std::int32_t m_TimedStepCount{ 0 };
 		double m_TimedStepSeconds{ 0.0 };
+		std::vector<BinaryEngine::Entity> m_Gems;
+		std::int32_t m_GemCount{ 0 };
 		bool m_ShowOutlines{ false };
 	};
 

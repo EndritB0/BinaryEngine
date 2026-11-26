@@ -8,6 +8,8 @@
 #include <BinaryEngine/Physics/CharacterController.h>
 #include <BinaryEngine/Core/Random.h>
 #include <BinaryEngine/Physics/CharacterControllerTypes.h>
+#include <BinaryEngine/Physics/PhysicsBody.h>
+#include <BinaryEngine/Physics/PhysicsEvents.h>
 #include <BinaryEngine/Physics/PhysicsQueries.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Physics/PhysicsWorld.h>
@@ -50,6 +52,8 @@ namespace Sandbox {
 		constexpr float s_SpawnClearance{ 80.0f };
 		constexpr float s_KnockbackSpeed{ 300.0f };
 		constexpr float s_KnockbackSeconds{ 0.4f };
+		constexpr std::int32_t s_GemCount{ 3 };
+		constexpr float s_GemRadius{ 8.0f };
 		const BinaryEngine::Vector2f s_HorizontalWallSize{ 560.0f, 20.0f };
 		const BinaryEngine::Vector2f s_VerticalWallSize{ 20.0f, 320.0f };
 		const BinaryEngine::Vector2f s_PillarSize{ 32.0f, 32.0f };
@@ -120,6 +124,11 @@ namespace Sandbox {
 		{
 			CreateZombie(start);
 		}
+
+		for (std::int32_t gemIndex{ 0 }; gemIndex < s_GemCount; gemIndex++)
+		{
+			CreateGem();
+		}
 	}
 
 	void ArenaDemoState::OnDetach()
@@ -145,6 +154,7 @@ namespace Sandbox {
 		m_TimedStepCount++;
 
 		KnockBackPlayer(fixedStep.GetSeconds());
+		CollectGems();
 	}
 
 	void ArenaDemoState::OnUpdate(BinaryEngine::TimeStep dt)
@@ -383,6 +393,42 @@ namespace Sandbox {
 		return std::ranges::find(m_Zombies, entity) != m_Zombies.end();
 	}
 
+	void ArenaDemoState::CreateGem()
+	{
+		const std::optional<BinaryEngine::Vector2f> spot{ FindFreeSpot(s_GemRadius) };
+		if (!spot)
+		{
+			return;
+		}
+
+		BinaryEngine::Entity gem{ m_Scene.CreateEntity("Gem") };
+		BinaryEngine::Transform& transform{ gem.GetComponent<BinaryEngine::TransformComponent>().transform };
+		transform.Position = { spot->x, spot->y, s_BlockZ };
+		transform.Scale = GetCircleSpriteScale(s_GemRadius);
+		gem.AddComponent<BinaryEngine::SpriteComponent>(m_AtlasHandle, GetAtlasRegion(AtlasDisc::RedPuck));
+		gem.AddComponent<BinaryEngine::RigidBodyComponent>(BinaryEngine::RigidBodySpecification{ .Type{ BinaryEngine::BodyType::Static } });
+		gem.AddComponent<BinaryEngine::CircleColliderComponent>(BinaryEngine::CircleColliderSpecification{ .Radius{ s_GemRadius }, .Collider{ .IsTrigger{ true } } });
+		m_Gems.push_back(gem);
+	}
+
+	void ArenaDemoState::CollectGems()
+	{
+		for (const BinaryEngine::TriggerBeginEvent& triggerEvent : m_Scene.GetPhysicsWorld().GetTriggerBeginEvents())
+		{
+			if (triggerEvent.VisitorEntity != m_PlayerEntity || std::ranges::find(m_Gems, triggerEvent.TriggerEntity) == m_Gems.end())
+			{
+				continue;
+			}
+
+			const std::optional<BinaryEngine::Vector2f> spot{ FindFreeSpot(s_GemRadius) };
+			if (spot)
+			{
+				m_Scene.GetPhysicsBody(triggerEvent.TriggerEntity).SetTransform(*spot, 0.0f);
+			}
+			m_GemCount++;
+		}
+	}
+
 	void ArenaDemoState::LogStepSummary()
 	{
 		const double averageMilliseconds{ m_TimedStepCount > 0 ? m_TimedStepSeconds / m_TimedStepCount * 1000.0 : 0.0 };
@@ -394,7 +440,7 @@ namespace Sandbox {
 	void ArenaDemoState::UpdateHud()
 	{
 		const double averageMilliseconds{ m_TimedStepCount > 0 ? m_TimedStepSeconds / m_TimedStepCount * 1000.0 : 0.0 };
-		m_HudEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::format("{}: {}\nZombies {}   Knockbacks {}   Step {:.3f} ms", s_KeyHelp, m_ShowOutlines ? "on" : "off", m_Zombies.size(), m_KnockbackCount, averageMilliseconds);
+		m_HudEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::format("{}: {}\nZombies {}   Gems {}   Knockbacks {}   Step {:.3f} ms", s_KeyHelp, m_ShowOutlines ? "on" : "off", m_Zombies.size(), m_GemCount, m_KnockbackCount, averageMilliseconds);
 	}
 
 }

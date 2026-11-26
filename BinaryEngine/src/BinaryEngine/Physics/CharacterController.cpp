@@ -108,4 +108,14 @@ namespace BinaryEngine {
 		return characterState ? std::span<const CharacterTouch>{ characterState->Touches } : std::span<const CharacterTouch>{};
 	}
 
+	void CharacterController::DropThrough()
+	{
+		Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
+		if (characterState && characterState->IsOnFloor && characterState->IsFloorOneWay)
+		{
+			characterState->DropShapeId = characterState->FloorShapeId;
+			characterState->HasOverlappedDropShape = false;
+		}
+	}
+
 }

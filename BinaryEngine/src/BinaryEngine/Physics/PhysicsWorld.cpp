@@ -318,6 +318,7 @@ namespace {
 
 		const b2ShapeDef shapeDef{ MakeShapeDef(specification.Collider, entity) };
 		colliderState->ShapeId = b2StoreShapeId(CreateShape(b2LoadBodyId(bodyId), shapeDef, specification));
+		colliderState->OneWay = specification.Collider.OneWay;
 	}
 
 	template<typename ColliderComponent>

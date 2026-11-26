@@ -5,6 +5,7 @@
 
 #include "BinaryEngine/Physics/Detail/PhysicsComponents.h"
 #include "BinaryEngine/Physics/Detail/PhysicsConversions.h"
+#include "BinaryEngine/Scene/Components.h"
 
 namespace {
 
@@ -22,14 +23,17 @@ namespace {
 	struct PlaneGather {
 		const entt::registry& Registry;
 		b2ShapeId OwnShapeId;
+		const BinaryEngine::Detail::CharacterControllerState& Character;
 		std::array<b2CollisionPlane, s_MaxCollisionPlanes> Planes{};
 		std::array<TouchedShape, s_MaxCollisionPlanes> TouchedShapes{};
 		int PlaneCount{ 0 };
+		bool SawDropShape{ false };
 	};
 
 	struct CapsuleSweep {
 		const entt::registry& Registry;
 		b2ShapeId OwnShapeId;
+		const BinaryEngine::Detail::CharacterControllerState& Character;
 		b2Vec2 Position;
 		b2Capsule Capsule;
 		b2Vec2 Translation;
@@ -37,6 +41,8 @@ namespace {
 	};
 
 	struct FootRay {
+		const entt::registry& Registry;
+		const BinaryEngine::Detail::CharacterControllerState& Character;
 		b2ShapeId OwnShapeId;
 		b2ShapeId ShapeId{};
 		b2Vec2 Point{};
@@ -61,6 +67,30 @@ namespace {
 		return characterState && characterState->IsSoft;
 	}
 
+	template<typename ColliderComponent>
+	bool IsOneWayCollider(const entt::registry& registry, entt::entity entity, std::uint64_t shapeId)
+	{
+		const BinaryEngine::Detail::ColliderState<ColliderComponent>* colliderState{ registry.try_get<BinaryEngine::Detail::ColliderState<ColliderComponent>>(entity) };
+		return colliderState && colliderState->ShapeId == shapeId && colliderState->OneWay;
+	}
+
+	bool IsOneWayShape(const entt::registry& registry, b2ShapeId shapeId)
+	{
+		const entt::entity entity{ BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(shapeId)) };
+		const std::uint64_t storedShapeId{ b2StoreShapeId(shapeId) };
+		return IsOneWayCollider<BinaryEngine::BoxColliderComponent>(registry, entity, storedShapeId) || IsOneWayCollider<BinaryEngine::CircleColliderComponent>(registry, entity, storedShapeId) || IsOneWayCollider<BinaryEngine::CapsuleColliderComponent>(registry, entity, storedShapeId);
+	}
+
+	bool IsOneWayFor(const entt::registry& registry, const BinaryEngine::Detail::CharacterControllerState& character, b2ShapeId shapeId)
+	{
+		return character.Mode == BinaryEngine::CharacterMode::Grounded && IsOneWayShape(registry, shapeId);
+	}
+
+	bool IsDroppedShape(const BinaryEngine::Detail::CharacterControllerState& character, b2ShapeId shapeId)
+	{
+		return character.DropShapeId != 0 && character.DropShapeId == b2StoreShapeId(shapeId);
+	}
+
 	bool GatherPlane(b2ShapeId shapeId, const b2PlaneResult* planeResult, void* context)
 	{
 		PlaneGather& gather{ *static_cast<PlaneGather*>(context) };
@@ -74,10 +104,21 @@ namespace {
 			return true;
 		}
 
+		if (IsDroppedShape(gather.Character, shapeId))
+		{
+			gather.SawDropShape = true;
+			return true;
+		}
+
 		b2Plane plane{ planeResult->plane };
 		if (!IsDynamicShape(shapeId))
 		{
 			plane.offset -= B2_LINEAR_SLOP;
+		}
+
+		if (IsOneWayFor(gather.Registry, gather.Character, shapeId) && (plane.normal.y < gather.Character.MinFloorNormalY || plane.offset > B2_LINEAR_SLOP))
+		{
+			return true;
 		}
 
 		const bool isSoft{ IsSoftController(gather.Registry, shapeId) };
@@ -118,7 +159,13 @@ namespace {
 	bool SweepAgainstShape(b2ShapeId shapeId, void* context)
 	{
 		CapsuleSweep& sweep{ *static_cast<CapsuleSweep*>(context) };
-		if (!IsSolidShape(shapeId, sweep.OwnShapeId) || IsSoftController(sweep.Registry, shapeId))
+		if (!IsSolidShape(shapeId, sweep.OwnShapeId) || IsSoftController(sweep.Registry, shapeId) || IsDroppedShape(sweep.Character, shapeId))
+		{
+			return true;
+		}
+
+		const bool isOneWay{ IsOneWayFor(sweep.Registry, sweep.Character, shapeId) };
+		if (isOneWay && sweep.Translation.y >= 0.0f)
 		{
 			return true;
 		}
@@ -133,7 +180,8 @@ namespace {
 		input.canEncroach = true;
 
 		const b2CastOutput output{ CastAgainstShape(shapeId, input) };
-		if (output.hit && output.fraction > 0.0f)
+		const bool blocks{ !isOneWay || b2RotateVector(transform.q, output.normal).y >= sweep.Character.MinFloorNormalY };
+		if (output.hit && output.fraction > 0.0f && blocks)
 		{
 			sweep.Fraction = std::min(sweep.Fraction, output.fraction);
 		}
@@ -141,13 +189,13 @@ namespace {
 		return true;
 	}
 
-	float SweepCapsule(b2WorldId worldId, const entt::registry& registry, b2ShapeId ownShapeId, b2Vec2 position, const b2Capsule& capsule, b2Vec2 translation, b2QueryFilter filter)
+	float SweepCapsule(b2WorldId worldId, const entt::registry& registry, b2ShapeId ownShapeId, const BinaryEngine::Detail::CharacterControllerState& character, b2Vec2 position, const b2Capsule& capsule, b2Vec2 translation, b2QueryFilter filter)
 	{
 		const std::array<b2Vec2, 2> centers{ capsule.center1, capsule.center2 };
 		const b2AABB startBox{ b2MakeAABB(centers.data(), static_cast<int>(centers.size()), capsule.radius + B2_LINEAR_SLOP) };
 		const b2AABB endBox{ startBox.lowerBound + translation, startBox.upperBound + translation };
 
-		CapsuleSweep sweep{ registry, ownShapeId, position, capsule, translation };
+		CapsuleSweep sweep{ registry, ownShapeId, character, position, capsule, translation };
 		b2World_OverlapAABB(worldId, position, b2AABB_Union(startBox, endBox), filter, SweepAgainstShape, &sweep);
 		return sweep.Fraction;
 	}
@@ -155,6 +203,7 @@ namespace {
 	b2Vec2 GatherAndSolve(b2WorldId worldId, b2Vec2 position, const b2Capsule& capsule, b2QueryFilter filter, b2Vec2 target, PlaneGather& gather)
 	{
 		gather.PlaneCount = 0;
+		gather.SawDropShape = false;
 		b2World_CollideMover(worldId, position, &capsule, filter, GatherPlane, &gather);
 		return b2SolvePlanes(target - position, gather.Planes.data(), gather.PlaneCount).delta;
 	}
@@ -162,14 +211,18 @@ namespace {
 	float KeepClosestFloorHit(b2ShapeId shapeId, b2Pos point, b2Vec2 normal, float fraction, void* context)
 	{
 		FootRay& ray{ *static_cast<FootRay*>(context) };
-		if (fraction == 0.0f || !IsSolidShape(shapeId, ray.OwnShapeId))
+		if (fraction == 0.0f || !IsSolidShape(shapeId, ray.OwnShapeId) || IsDroppedShape(ray.Character, shapeId) || (IsOneWayFor(ray.Registry, ray.Character, shapeId) && normal.y < ray.Character.MinFloorNormalY))
 		{
 			return -1.0f;
 		}
 
 		if (!ray.Hit || fraction < ray.Fraction)
 		{
-			ray = FootRay{ ray.OwnShapeId, shapeId, point, normal, fraction, true };
+			ray.ShapeId = shapeId;
+			ray.Point = point;
+			ray.Normal = normal;
+			ray.Fraction = fraction;
+			ray.Hit = true;
 		}
 
 		return ray.Fraction;
@@ -259,14 +312,39 @@ namespace {
 		characterState.IsOnFloor = false;
 		characterState.FloorNormal = BinaryEngine::Vector2f{ 0.0f, 0.0f };
 		characterState.FloorEntity = BinaryEngine::Entity{};
+		characterState.FloorShapeId = 0;
+		characterState.IsFloorOneWay = false;
 		characterState.FloorVelocity = BinaryEngine::Vector2f{ 0.0f, 0.0f };
 	}
 
-	void UpdateFloor(b2WorldId worldId, b2ShapeId shapeId, const b2Capsule& capsule, b2QueryFilter filter, b2Vec2 position, b2Vec2& velocity, BinaryEngine::Detail::CharacterControllerState& characterState, float stepSeconds, BinaryEngine::Scene& scene)
+	void ForgetDroppedShape(BinaryEngine::Detail::CharacterControllerState& characterState)
+	{
+		characterState.DropShapeId = 0;
+		characterState.HasOverlappedDropShape = false;
+	}
+
+	void UpdateDroppedShape(const PlaneGather& gather, BinaryEngine::Detail::CharacterControllerState& characterState)
+	{
+		if (characterState.DropShapeId == 0)
+		{
+			return;
+		}
+
+		if (gather.SawDropShape)
+		{
+			characterState.HasOverlappedDropShape = true;
+		}
+		else if (characterState.HasOverlappedDropShape)
+		{
+			ForgetDroppedShape(characterState);
+		}
+	}
+
+	void UpdateFloor(b2WorldId worldId, const entt::registry& registry, b2ShapeId shapeId, const b2Capsule& capsule, b2QueryFilter filter, b2Vec2 position, b2Vec2& velocity, BinaryEngine::Detail::CharacterControllerState& characterState, float stepSeconds, BinaryEngine::Scene& scene)
 	{
 		const float restLength{ capsule.radius + characterState.HoverHeight };
 		const float rayLength{ characterState.IsOnFloor ? 2.0f * restLength : restLength };
-		FootRay ray{ shapeId };
+		FootRay ray{ registry, characterState, shapeId };
 		b2World_CastRay(worldId, position + GetLowerCenter(capsule), b2Vec2{ 0.0f, -rayLength }, filter, KeepClosestFloorHit, &ray);
 
 		const float landingSpeed{ s_LandingSpeedMetersPerSecond * b2GetLengthUnitsPerMeter() };
@@ -282,10 +360,17 @@ namespace {
 		}
 
 		velocity.y = std::max(velocity.y, 0.0f);
+		if (!characterState.IsOnFloor)
+		{
+			ForgetDroppedShape(characterState);
+		}
+
 		characterState.SpringVelocity = b2SpringDamper(characterState.SpringFrequency, characterState.SpringDampingRatio, ray.Fraction * rayLength - restLength, characterState.SpringVelocity, stepSeconds);
 		characterState.IsOnFloor = true;
 		characterState.FloorNormal = BinaryEngine::Detail::ToEngineVector(ray.Normal);
 		characterState.FloorEntity = BinaryEngine::Entity{ BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(ray.ShapeId)), &scene };
+		characterState.FloorShapeId = b2StoreShapeId(ray.ShapeId);
+		characterState.IsFloorOneWay = IsOneWayShape(registry, ray.ShapeId);
 
 		const b2BodyId floorBodyId{ b2Shape_GetBody(ray.ShapeId) };
 		characterState.FloorVelocity = BinaryEngine::Detail::ToEngineVector(b2Body_GetWorldPointVelocity(floorBodyId, ray.Point));
@@ -313,18 +398,18 @@ namespace BinaryEngine::Detail {
 		b2Vec2 position{ b2Body_GetPosition(bodyId) };
 		if (characterState.Mode == CharacterMode::Grounded)
 		{
-			UpdateFloor(world, shapeId, capsule, filter, position, velocity, characterState, stepSeconds, scene);
+			UpdateFloor(world, registry, shapeId, capsule, filter, position, velocity, characterState, stepSeconds, scene);
 		}
 
 		const b2Vec2 floorVelocity{ ToBox2DVector(characterState.FloorVelocity) };
 		const b2Vec2 target{ position + stepSeconds * (velocity + floorVelocity + b2Vec2{ 0.0f, characterState.SpringVelocity }) };
 		b2Capsule gatherCapsule{ capsule };
 		gatherCapsule.radius += B2_LINEAR_SLOP;
-		PlaneGather gather{ registry, shapeId };
+		PlaneGather gather{ registry, shapeId, characterState };
 		b2Vec2 delta{ GatherAndSolve(world, position, gatherCapsule, filter, target, gather) };
 		for (int iteration{ 0 }; iteration < s_MaxMoveIterations; iteration++)
 		{
-			const b2Vec2 move{ SweepCapsule(world, registry, shapeId, position, capsule, delta, filter) * delta };
+			const b2Vec2 move{ SweepCapsule(world, registry, shapeId, characterState, position, capsule, delta, filter) * delta };
 			position = position + move;
 			delta = GatherAndSolve(world, position, gatherCapsule, filter, target, gather);
 			if (b2LengthSquared(move) < minMove * minMove)
@@ -334,6 +419,7 @@ namespace BinaryEngine::Detail {
 		}
 
 		StoreTouches(gather, scene, characterState);
+		UpdateDroppedShape(gather, characterState);
 
 		if (characterState.MaxPushForce > 0.0f)
 		{

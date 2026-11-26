@@ -26,6 +26,8 @@ namespace BinaryEngine {
 		Entity GetFloorEntity() const;
 		std::span<const CharacterTouch> GetTouches() const;
 
+		void DropThrough();
+
 	private:
 		friend class PhysicsWorld;
 

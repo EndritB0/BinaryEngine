@@ -8,6 +8,7 @@
 #include <BinaryEngine/Physics/CharacterController.h>
 #include <BinaryEngine/Physics/CharacterControllerTypes.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
+#include <BinaryEngine/Physics/PhysicsEvents.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Physics/PhysicsWorld.h>
 #include <BinaryEngine/Renderer/Font.h>
@@ -22,7 +23,7 @@ namespace Sandbox {
 
 		constexpr std::string_view s_FontPath{ "./resources/fonts/OpenSans-Regular.ttf" };
 		constexpr std::string_view s_CharacterPath{ "./resources/character/character_idle.png" };
-		constexpr std::string_view s_KeyHelp{ "A/D move   Space jump   R reset   C outlines" };
+		constexpr std::string_view s_KeyHelp{ "A/D move   Space jump   S+Space drop   R reset   C outlines" };
 		constexpr BinaryEngine::Color s_ClearColor{ 0x22, 0x30, 0x3C };
 		constexpr float s_HudTextSize{ 12.0f };
 		constexpr float s_HudZ{ 10.0f };
@@ -57,6 +58,7 @@ namespace Sandbox {
 		constexpr float s_ZombieScale{ 4.0f };
 		constexpr float s_ZombieSpeed{ 50.0f };
 		constexpr float s_KnockbackSeconds{ 0.5f };
+		constexpr float s_CoinRadius{ 8.0f };
 		const BinaryEngine::Vector2f s_GroundCenter{ 0.0f, -170.0f };
 		const BinaryEngine::Vector2f s_GroundSize{ 640.0f, 20.0f };
 		const BinaryEngine::Vector2f s_CeilingCenter{ 0.0f, 190.0f };
@@ -82,6 +84,15 @@ namespace Sandbox {
 		const BinaryEngine::Vector2f s_ElevatorFrom{ 260.0f, -157.0f };
 		const BinaryEngine::Vector2f s_ElevatorTo{ 260.0f, 17.0f };
 		const BinaryEngine::Vector2f s_ElevatorSize{ 56.0f, 6.0f };
+		const BinaryEngine::Vector2f s_LowOneWayCenter{ 83.0f, -84.0f };
+		const BinaryEngine::Vector2f s_HighOneWayCenter{ -60.0f, -10.0f };
+		const BinaryEngine::Vector2f s_OneWaySize{ 90.0f, 8.0f };
+		const std::array<BinaryEngine::Vector2f, 4> s_CoinSpots{
+			BinaryEngine::Vector2f{ 83.0f, -60.0f },
+			BinaryEngine::Vector2f{ -60.0f, 16.0f },
+			BinaryEngine::Vector2f{ -150.0f, -112.0f },
+			BinaryEngine::Vector2f{ 260.0f, 60.0f },
+		};
 		const BinaryEngine::Vector2f s_PlayerStart{ 17.0f, -136.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleSize{ 28.0f, 40.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleOffset{ 0.0f, 4.0f };
@@ -133,6 +144,7 @@ namespace Sandbox {
 		CreateTerrain();
 		CreateBodies();
 		CreatePlatforms();
+		CreateCoin();
 		CreatePlayer();
 		CreateZombie(s_LeftZombieStart, 1.0f);
 		CreateZombie(s_RightZombieStart, -1.0f);
@@ -142,7 +154,7 @@ namespace Sandbox {
 	{
 		const BinaryEngine::CharacterController player{ m_Scene.GetCharacterController(m_PlayerEntity) };
 		const BinaryEngine::Vector2f position{ player.GetPosition() };
-		APP_INFO("[PlatformerDemoState] player grounded {} at ({:.2f}, {:.2f}), {} jumps, {} knockbacks", player.IsOnFloor() ? "yes" : "no", position.x, position.y, m_JumpCount, m_KnockbackCount);
+		APP_INFO("[PlatformerDemoState] player grounded {} at ({:.2f}, {:.2f}), {} jumps, {} drops, {} coins, {} knockbacks", player.IsOnFloor() ? "yes" : "no", position.x, position.y, m_JumpCount, m_DropCount, m_CoinCount, m_KnockbackCount);
 		APP_INFO("[PlatformerDemoState] Detached");
 	}
 
@@ -161,6 +173,7 @@ namespace Sandbox {
 		m_Scene.OnFixedUpdate(fixedStep);
 		TurnZombiesAtWalls();
 		KnockBackPlayer(fixedStep.GetSeconds());
+		CollectCoin();
 	}
 
 	void PlatformerDemoState::OnUpdate(BinaryEngine::TimeStep dt)
@@ -192,6 +205,14 @@ namespace Sandbox {
 		{
 			case BinaryEngine::Key::Space:
 			{
+				BinaryEngine::CharacterController player{ m_Scene.GetCharacterController(m_PlayerEntity) };
+				if (BinaryEngine::Input::IsKeyPressed(BinaryEngine::Key::S) && player.IsOnFloor() && IsOneWayPlatform(player.GetFloorEntity()))
+				{
+					player.DropThrough();
+					m_DropCount++;
+					return true;
+				}
+
 				m_JumpBufferSecondsLeft = s_JumpBufferSeconds;
 				return true;
 			}
@@ -283,6 +304,11 @@ namespace Sandbox {
 	{
 		CreateMovingPlatform("SlidingPlatform", s_SlidingPlatformFrom, s_SlidingPlatformTo, s_SlidingPlatformSize, s_SlidingPlatformSpeed);
 		CreateMovingPlatform("Elevator", s_ElevatorFrom, s_ElevatorTo, s_ElevatorSize, s_ElevatorSpeed);
+
+		const BinaryEngine::RigidBodySpecification staticBody{ .Type{ BinaryEngine::BodyType::Static } };
+		const BinaryEngine::ColliderSpecification oneWayCollider{ .OneWay{ true } };
+		m_OneWayPlatforms.push_back(CreateBoxBody("LowOneWay", s_LowOneWayCenter, s_OneWaySize, AtlasSquare::Pane, staticBody, oneWayCollider));
+		m_OneWayPlatforms.push_back(CreateBoxBody("HighOneWay", s_HighOneWayCenter, s_OneWaySize, AtlasSquare::Pane, staticBody, oneWayCollider));
 	}
 
 	BinaryEngine::Entity PlatformerDemoState::CreateBoxBody(std::string_view name, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider)
@@ -313,6 +339,11 @@ namespace Sandbox {
 	{
 		const BinaryEngine::Entity platform{ CreateBoxBody(name, from, size, AtlasSquare::Paddle, BinaryEngine::RigidBodySpecification{ .Type{ BinaryEngine::BodyType::Kinematic } }, {}) };
 		m_MovingPlatforms.emplace_back(platform, from, to, speed);
+	}
+
+	void PlatformerDemoState::CreateCoin()
+	{
+		m_CoinEntity = CreateCircleBody("Coin", s_CoinSpots[m_CoinSpotIndex], s_CoinRadius, AtlasDisc::YellowPuck, BinaryEngine::RigidBodySpecification{ .Type{ BinaryEngine::BodyType::Static } }, BinaryEngine::ColliderSpecification{ .IsTrigger{ true } });
 	}
 
 	void PlatformerDemoState::CreatePlayer()
@@ -448,6 +479,25 @@ namespace Sandbox {
 		return std::ranges::any_of(m_Zombies, [entity](const Zombie& zombie) { return zombie.Entity == entity; });
 	}
 
+	bool PlatformerDemoState::IsOneWayPlatform(BinaryEngine::Entity entity) const
+	{
+		return std::ranges::find(m_OneWayPlatforms, entity) != m_OneWayPlatforms.end();
+	}
+
+	void PlatformerDemoState::CollectCoin()
+	{
+		for (const BinaryEngine::TriggerBeginEvent& triggerEvent : m_Scene.GetPhysicsWorld().GetTriggerBeginEvents())
+		{
+			if (triggerEvent.TriggerEntity == m_CoinEntity && triggerEvent.VisitorEntity == m_PlayerEntity)
+			{
+				m_CoinSpotIndex = (m_CoinSpotIndex + 1) % s_CoinSpots.size();
+				m_Scene.GetPhysicsBody(m_CoinEntity).SetTransform(s_CoinSpots[m_CoinSpotIndex], 0.0f);
+				m_CoinCount++;
+				return;
+			}
+		}
+	}
+
 	void PlatformerDemoState::UpdateHud()
 	{
 		const BinaryEngine::CharacterController player{ m_Scene.GetCharacterController(m_PlayerEntity) };
@@ -465,7 +515,7 @@ namespace Sandbox {
 		{
 			text += "Airborne";
 		}
-		text += std::format("   Velocity ({:.0f}, {:.0f})\nTouches {}   On wall {}   Knockbacks {}", velocity.x, velocity.y, player.GetTouches().size(), player.IsOnWall() ? "yes" : "no", m_KnockbackCount);
+		text += std::format("   Velocity ({:.0f}, {:.0f})\nTouches {}   On wall {}   Coins {}   Knockbacks {}", velocity.x, velocity.y, player.GetTouches().size(), player.IsOnWall() ? "yes" : "no", m_CoinCount, m_KnockbackCount);
 		m_HudEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::move(text);
 	}
 
