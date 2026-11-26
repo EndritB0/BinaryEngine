@@ -236,11 +236,12 @@ namespace {
 	void StoreTouches(const PlaneGather& gather, BinaryEngine::Scene& scene, BinaryEngine::Detail::CharacterControllerState& characterState)
 	{
 		characterState.Touches.clear();
+		characterState.Touches.reserve(static_cast<std::size_t>(gather.PlaneCount));
 		for (int planeIndex{ 0 }; planeIndex < gather.PlaneCount; planeIndex++)
 		{
 			const std::size_t index{ static_cast<std::size_t>(planeIndex) };
 			const BinaryEngine::Entity entity{ BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(gather.TouchedShapes[index].ShapeId)), &scene };
-			characterState.Touches.push_back(BinaryEngine::CharacterTouch{ entity, BinaryEngine::Detail::ToEngineVector(gather.TouchedShapes[index].Point), BinaryEngine::Detail::ToEngineVector(gather.Planes[index].plane.normal) });
+			characterState.Touches.emplace_back(entity, BinaryEngine::Detail::ToEngineVector(gather.TouchedShapes[index].Point), BinaryEngine::Detail::ToEngineVector(gather.Planes[index].plane.normal));
 		}
 	}
 
