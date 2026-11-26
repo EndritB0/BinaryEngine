@@ -45,7 +45,7 @@ namespace BinaryEngine {
 			return;
 		}
 
-		Detail::TeleportCharacter(m_Entity.GetComponent<Detail::RigidBodyState>(), position);
+		Detail::TeleportCharacter(m_Entity.GetComponent<Detail::CharacterControllerState>(), m_Entity.GetComponent<Detail::RigidBodyState>(), position);
 
 		if (m_Entity.HasComponent<TransformComponent>())
 		{
@@ -69,6 +69,24 @@ namespace BinaryEngine {
 		{
 			characterState->Velocity = velocity;
 		}
+	}
+
+	bool CharacterController::IsOnFloor() const
+	{
+		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
+		return characterState && characterState->IsOnFloor;
+	}
+
+	Vector2f CharacterController::GetFloorNormal() const
+	{
+		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
+		return characterState ? characterState->FloorNormal : Vector2f{ 0.0f, 0.0f };
+	}
+
+	Entity CharacterController::GetFloorEntity() const
+	{
+		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
+		return characterState ? characterState->FloorEntity : Entity{};
 	}
 
 }

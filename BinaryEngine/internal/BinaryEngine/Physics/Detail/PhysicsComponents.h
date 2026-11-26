@@ -3,7 +3,9 @@
 #include <cstdint>
 
 #include "BinaryEngine/Core/Math.h"
+#include "BinaryEngine/Physics/CharacterControllerTypes.h"
 #include "BinaryEngine/Physics/PhysicsTypes.h"
+#include "BinaryEngine/Scene/Entity.h"
 
 namespace BinaryEngine::Detail {
 
@@ -27,7 +29,16 @@ namespace BinaryEngine::Detail {
 
 	struct CharacterControllerState {
 		std::uint64_t ShapeId{ 0 };
+		CharacterMode Mode{ CharacterMode::Grounded };
+		float HoverHeight{ 0.0f };
+		float SpringFrequency{ 0.0f };
+		float SpringDampingRatio{ 0.0f };
+		float MinFloorNormalY{ 0.0f };
 		Vector2f Velocity{ 0.0f, 0.0f };
+		float SpringVelocity{ 0.0f };
+		bool IsOnFloor{ false };
+		Vector2f FloorNormal{ 0.0f, 0.0f };
+		Entity FloorEntity{};
 	};
 
 }

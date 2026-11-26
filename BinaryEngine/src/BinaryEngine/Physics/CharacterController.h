@@ -17,6 +17,10 @@ namespace BinaryEngine {
 		Vector2f GetVelocity() const;
 		void SetVelocity(Vector2f velocity);
 
+		bool IsOnFloor() const;
+		Vector2f GetFloorNormal() const;
+		Entity GetFloorEntity() const;
+
 	private:
 		friend class PhysicsWorld;
 

@@ -216,6 +216,17 @@ namespace {
 		return IsValidOffset(capsule.Offset, s_ControllerCapsuleName, registry, entity) && IsValidMaterial(capsule.Collider.Material, s_ControllerCapsuleName, registry, entity);
 	}
 
+	float ResolveControllerValue(float value, bool isValid, float defaultValue, std::string_view fieldName, std::string_view requirement, const entt::registry& registry, entt::entity entity)
+	{
+		if (isValid)
+		{
+			return value;
+		}
+
+		CORE_WARN("[Physics] '{}' ({}) has CharacterControllerSpecification::{} {}, which must be {}. Using {}", GetEntityName(registry, entity), entity, fieldName, value, requirement, defaultValue);
+		return defaultValue;
+	}
+
 	b2Capsule MakeCapsule(BinaryEngine::Vector2f size, BinaryEngine::Vector2f offset)
 	{
 		const float radius{ std::min(size.x, size.y) * 0.5f };
@@ -283,10 +294,10 @@ namespace {
 		}
 	}
 
-	void MoveCharacters(entt::registry& registry, std::uint32_t worldId, float stepSeconds)
+	void MoveCharacters(entt::registry& registry, BinaryEngine::Scene& scene, std::uint32_t worldId, float stepSeconds)
 	{
-		registry.view<const BinaryEngine::Detail::RigidBodyState, BinaryEngine::Detail::CharacterControllerState>().each([worldId, stepSeconds](const BinaryEngine::Detail::RigidBodyState& bodyState, BinaryEngine::Detail::CharacterControllerState& characterState) {
-			BinaryEngine::Detail::MoveCharacter(worldId, bodyState, characterState, stepSeconds);
+		registry.view<const BinaryEngine::Detail::RigidBodyState, BinaryEngine::Detail::CharacterControllerState>().each([&scene, worldId, stepSeconds](const BinaryEngine::Detail::RigidBodyState& bodyState, BinaryEngine::Detail::CharacterControllerState& characterState) {
+			BinaryEngine::Detail::MoveCharacter(worldId, scene, bodyState, characterState, stepSeconds);
 		});
 	}
 
@@ -682,7 +693,7 @@ namespace BinaryEngine {
 			bodyState.PreviousPose = bodyState.CurrentPose;
 		});
 
-		MoveCharacters(registry, m_WorldId, fixedStep.GetSeconds());
+		MoveCharacters(registry, m_Scene, m_WorldId, fixedStep.GetSeconds());
 
 		const b2WorldId worldId{ b2LoadWorldId(m_WorldId) };
 		b2World_Step(worldId, fixedStep.GetSeconds(), m_SubStepCount);
@@ -953,9 +964,19 @@ namespace BinaryEngine {
 		const b2Capsule capsule{ MakeCapsule(specification.Capsule.Size, specification.Capsule.Offset) };
 		const b2ShapeId shapeId{ b2CreateCapsuleShape(bodyId, &shapeDef, &capsule) };
 
+		const CharacterControllerSpecification defaults{};
+		const Detail::CharacterControllerState characterState{
+			.ShapeId{ b2StoreShapeId(shapeId) },
+			.Mode{ specification.Mode },
+			.HoverHeight{ ResolveControllerValue(specification.HoverHeight, std::isfinite(specification.HoverHeight) && specification.HoverHeight >= 0.0f, defaults.HoverHeight, "HoverHeight", "finite and at least 0", registry, entity) },
+			.SpringFrequency{ ResolveControllerValue(specification.SpringFrequency, std::isfinite(specification.SpringFrequency) && specification.SpringFrequency > 0.0f, defaults.SpringFrequency, "SpringFrequency", "finite and above 0", registry, entity) },
+			.SpringDampingRatio{ ResolveControllerValue(specification.SpringDampingRatio, std::isfinite(specification.SpringDampingRatio) && specification.SpringDampingRatio > 0.0f, defaults.SpringDampingRatio, "SpringDampingRatio", "finite and above 0", registry, entity) },
+			.MinFloorNormalY{ std::cos(glm::radians(ResolveControllerValue(specification.MaxSlopeAngle, std::isfinite(specification.MaxSlopeAngle) && specification.MaxSlopeAngle >= 0.0f && specification.MaxSlopeAngle <= 90.0f, defaults.MaxSlopeAngle, "MaxSlopeAngle", "between 0 and 90", registry, entity))) },
+		};
+
 		const Detail::PhysicsPose creationPose{ position, 0.0f };
 		registry.emplace<Detail::RigidBodyState>(entity, b2StoreBodyId(bodyId), BodyType::Kinematic, creationPose, creationPose);
-		registry.emplace<Detail::CharacterControllerState>(entity, b2StoreShapeId(shapeId));
+		registry.emplace<Detail::CharacterControllerState>(entity, characterState);
 	}
 
 	void PhysicsWorld::OnCharacterControllerStateRemoved(entt::registry& registry, entt::entity entity)

@@ -6,6 +6,7 @@
 #include "Sandbox/States/ArenaDemoState.h"
 #include "Sandbox/States/AudioDemoState.h"
 #include "Sandbox/States/PhysicsDemoState.h"
+#include "Sandbox/States/PlatformerDemoState.h"
 #include "Sandbox/States/QueriesDemoState.h"
 #include "Sandbox/States/ShowcaseDemoState.h"
 #include "Sandbox/States/StressDemoState.h"
@@ -24,6 +25,7 @@ namespace Sandbox {
 			{ "Physics", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<PhysicsDemoState>(); } },
 			{ "TopDown", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<TopDownDemoState>(); } },
 			{ "Queries", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<QueriesDemoState>(); } },
+			{ "Platformer", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<PlatformerDemoState>(); } },
 			{ "Arena", [](BinaryEngine::StateManager& stateManager) { stateManager.RequestPushState<ArenaDemoState>(); } },
 		};
 

@@ -176,7 +176,7 @@ namespace Sandbox {
 		transform.Scale = { s_PlayerScale, s_PlayerScale, 1.0f };
 		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterHandle, m_IdleClip.Frames.front());
 		m_PlayerEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
-		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Capsule{ .Size{ s_PlayerCapsuleSize } } });
+		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Mode{ BinaryEngine::CharacterMode::Floating }, .Capsule{ .Size{ s_PlayerCapsuleSize } } });
 	}
 
 	void ArenaDemoState::MovePlayer(float stepSeconds)

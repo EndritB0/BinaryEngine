@@ -4,8 +4,11 @@
 #include <BinaryEngine/Core/Color.h>
 #include <BinaryEngine/Core/Transform.h>
 #include <BinaryEngine/Physics/CharacterController.h>
+#include <BinaryEngine/Physics/CharacterControllerTypes.h>
 #include <BinaryEngine/Physics/PhysicsBody.h>
+#include <BinaryEngine/Physics/PhysicsQueries.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
+#include <BinaryEngine/Physics/PhysicsWorld.h>
 #include <BinaryEngine/Scene/Components.h>
 #include <BinaryEngine/Scene/Entity.h>
 
@@ -21,8 +24,10 @@ namespace Sandbox {
 		constexpr float s_OutlineZ{ 5.0f };
 		constexpr float s_OutlineThickness{ 1.5f };
 		constexpr float s_RadiusLineThickness{ 1.0f };
+		constexpr float s_FootRayThickness{ 1.0f };
 		constexpr BinaryEngine::Color s_SolidOutlineColor{ 0x50, 0xFF, 0x50, 0xFF };
 		constexpr BinaryEngine::Color s_TriggerOutlineColor{ 0xFF, 0x50, 0xFF, 0xFF };
+		constexpr BinaryEngine::Color s_FootRayColor{ 0xFF, 0xE0, 0x40, 0xFF };
 		constexpr std::size_t s_MaxHitSoundsPerStep{ 4 };
 		constexpr float s_LoudestHitSpeed{ 600.0f };
 		constexpr float s_QuietestHitVolume{ 0.1f };
@@ -31,6 +36,18 @@ namespace Sandbox {
 		BinaryEngine::Color GetOutlineColor(const BinaryEngine::ColliderSpecification& collider)
 		{
 			return collider.IsTrigger ? s_TriggerOutlineColor : s_SolidOutlineColor;
+		}
+
+		void DrawFootRay(BinaryEngine::Scene& scene, BinaryEngine::Renderer& renderer, const BinaryEngine::CharacterController& controller, const BinaryEngine::CharacterControllerSpecification& specification)
+		{
+			const BinaryEngine::Vector2f size{ specification.Capsule.Size };
+			const float radius{ std::min(size.x, size.y) * 0.5f };
+			const float centerDistance{ size.y > size.x ? (size.y - size.x) * 0.5f : 0.0f };
+			const BinaryEngine::Vector2f origin{ controller.GetPosition() + specification.Capsule.Offset - BinaryEngine::Vector2f{ 0.0f, centerDistance } };
+			const float restLength{ radius + specification.HoverHeight };
+			const BinaryEngine::Vector2f end{ origin - BinaryEngine::Vector2f{ 0.0f, controller.IsOnFloor() ? 2.0f * restLength : restLength } };
+			const std::optional<BinaryEngine::CastHit> hit{ scene.GetPhysicsWorld().CastRay(origin, end) };
+			renderer.DrawLine(origin, hit ? hit->Point : end, { .Color{ s_FootRayColor }, .Thickness{ s_FootRayThickness }, .SortZ{ s_OutlineZ } });
 		}
 
 	}
@@ -136,6 +153,10 @@ namespace Sandbox {
 
 			const BinaryEngine::CapsuleColliderSpecification& capsule{ controllerComponent.Specification.Capsule };
 			DrawCapsule(renderer, controller.GetPosition() + capsule.Offset, capsule.Size, 0.0f, s_OutlineZ, { .Color{ GetOutlineColor(capsule.Collider) }, .OutlineThickness{ s_OutlineThickness } });
+			if (controllerComponent.Specification.Mode == BinaryEngine::CharacterMode::Grounded)
+			{
+				DrawFootRay(scene, renderer, controller, controllerComponent.Specification);
+			}
 		});
 	}
 
