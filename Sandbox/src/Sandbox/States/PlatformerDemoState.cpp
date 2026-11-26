@@ -7,6 +7,7 @@
 #include <BinaryEngine/Input/Input.h>
 #include <BinaryEngine/Physics/CharacterController.h>
 #include <BinaryEngine/Physics/CharacterControllerTypes.h>
+#include <BinaryEngine/Physics/PhysicsBody.h>
 #include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Physics/PhysicsWorld.h>
 #include <BinaryEngine/Renderer/Font.h>
@@ -34,7 +35,16 @@ namespace Sandbox {
 		constexpr float s_GentleSlopeDegrees{ 30.0f };
 		constexpr float s_SteepSlopeDegrees{ 60.0f };
 		constexpr float s_SlopeThickness{ 16.0f };
+		constexpr float s_CrateSize{ 32.0f };
+		constexpr float s_IcyFriction{ 0.02f };
+		constexpr float s_HeavyDensity{ 10.0f };
+		constexpr float s_BallRadius{ 12.0f };
+		constexpr float s_PivotRadius{ 8.0f };
+		constexpr float s_SlidingPlatformSpeed{ 60.0f };
+		constexpr float s_ElevatorSpeed{ 50.0f };
 		constexpr float s_PlayerScale{ 3.0f };
+		constexpr float s_PlayerPushForce{ 400.0f };
+		constexpr float s_PlayerMass{ 2.0f };
 		constexpr float s_RunSpeed{ 160.0f };
 		constexpr float s_GroundAcceleration{ 1600.0f };
 		constexpr float s_GroundFriction{ 2000.0f };
@@ -54,6 +64,21 @@ namespace Sandbox {
 		const BinaryEngine::Vector2f s_StepSize{ 40.0f, 6.0f };
 		const BinaryEngine::Vector2f s_LedgeCenter{ -150.0f, -148.0f };
 		const BinaryEngine::Vector2f s_LedgeSize{ 40.0f, 24.0f };
+		const BinaryEngine::Vector2f s_ShelfCenter{ 180.0f, 14.0f };
+		const BinaryEngine::Vector2f s_ShelfSize{ 100.0f, 12.0f };
+		const BinaryEngine::Vector2f s_LightCrateCenter{ 50.0f, -144.0f };
+		const BinaryEngine::Vector2f s_IcyCrateCenter{ 116.0f, -144.0f };
+		const BinaryEngine::Vector2f s_HeavyCrateCenter{ 182.0f, -144.0f };
+		const BinaryEngine::Vector2f s_BallCenter{ -38.0f, -118.0f };
+		const BinaryEngine::Vector2f s_PivotCenter{ 180.0f, 28.0f };
+		const BinaryEngine::Vector2f s_PlankCenter{ 180.0f, 39.0f };
+		const BinaryEngine::Vector2f s_PlankSize{ 64.0f, 6.0f };
+		const BinaryEngine::Vector2f s_SlidingPlatformFrom{ -240.0f, -70.0f };
+		const BinaryEngine::Vector2f s_SlidingPlatformTo{ -100.0f, -70.0f };
+		const BinaryEngine::Vector2f s_SlidingPlatformSize{ 70.0f, 8.0f };
+		const BinaryEngine::Vector2f s_ElevatorFrom{ 260.0f, -157.0f };
+		const BinaryEngine::Vector2f s_ElevatorTo{ 260.0f, 17.0f };
+		const BinaryEngine::Vector2f s_ElevatorSize{ 56.0f, 6.0f };
 		const BinaryEngine::Vector2f s_PlayerStart{ -265.0f, -136.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleSize{ 28.0f, 40.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleOffset{ 0.0f, 4.0f };
@@ -98,6 +123,8 @@ namespace Sandbox {
 
 		CreateFrame();
 		CreateTerrain();
+		CreateBodies();
+		CreatePlatforms();
 		CreatePlayer();
 	}
 
@@ -118,6 +145,7 @@ namespace Sandbox {
 
 	void PlatformerDemoState::OnFixedUpdate(BinaryEngine::TimeStep fixedStep)
 	{
+		MovePlatforms();
 		MovePlayer(fixedStep.GetSeconds());
 		m_Scene.OnFixedUpdate(fixedStep);
 	}
@@ -201,6 +229,7 @@ namespace Sandbox {
 		CreateSlope("GentleSlope", { s_HillStartX, s_FloorY }, s_GentleSlopeDegrees, s_HillHeight / std::sin(glm::radians(s_GentleSlopeDegrees)));
 		CreateBlock("Plateau", { (plateauStartX + plateauEndX) * 0.5f, s_FloorY + s_HillHeight * 0.5f }, { s_PlateauWidth, s_HillHeight }, 0.0f, AtlasSquare::Scenery);
 		CreateSlope("SteepSlope", { plateauEndX, plateauTopY }, -s_SteepSlopeDegrees, s_HillHeight / std::sin(glm::radians(s_SteepSlopeDegrees)));
+		CreateBlock("Shelf", s_ShelfCenter, s_ShelfSize, 0.0f, AtlasSquare::Scenery);
 	}
 
 	BinaryEngine::Entity PlatformerDemoState::CreateBlock(std::string_view name, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, float rotationDegrees, AtlasSquare square)
@@ -225,6 +254,54 @@ namespace Sandbox {
 		CreateBlock(name, center, { length, s_SlopeThickness }, angleDegrees, AtlasSquare::Scenery);
 	}
 
+	void PlatformerDemoState::CreateBodies()
+	{
+		const BinaryEngine::Vector2f crateSize{ s_CrateSize, s_CrateSize };
+		const BinaryEngine::RigidBodySpecification crateBody{ .FixedRotation{ true } };
+		CreateBoxBody("Crate", s_LightCrateCenter, crateSize, AtlasSquare::Crate, crateBody, {});
+		CreateBoxBody("IcyCrate", s_IcyCrateCenter, crateSize, AtlasSquare::IcyCrate, crateBody, BinaryEngine::ColliderSpecification{ .Material{ .Friction{ s_IcyFriction } } });
+		CreateBoxBody("HeavyCrate", s_HeavyCrateCenter, crateSize, AtlasSquare::HeavyCrate, crateBody, BinaryEngine::ColliderSpecification{ .Material{ .Density{ s_HeavyDensity } } });
+		CreateCircleBody("Ball", s_BallCenter, s_BallRadius, AtlasDisc::Ball, {}, {});
+		CreateCircleBody("Pivot", s_PivotCenter, s_PivotRadius, AtlasDisc::Pocket, BinaryEngine::RigidBodySpecification{ .Type{ BinaryEngine::BodyType::Static } }, {});
+		CreateBoxBody("Seesaw", s_PlankCenter, s_PlankSize, AtlasSquare::Bucket, {}, {});
+	}
+
+	void PlatformerDemoState::CreatePlatforms()
+	{
+		CreateMovingPlatform("SlidingPlatform", s_SlidingPlatformFrom, s_SlidingPlatformTo, s_SlidingPlatformSize, s_SlidingPlatformSpeed);
+		CreateMovingPlatform("Elevator", s_ElevatorFrom, s_ElevatorTo, s_ElevatorSize, s_ElevatorSpeed);
+	}
+
+	BinaryEngine::Entity PlatformerDemoState::CreateBoxBody(std::string_view name, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider)
+	{
+		BinaryEngine::Entity entity{ m_Scene.CreateEntity(std::string{ name }) };
+		BinaryEngine::Transform& transform{ entity.GetComponent<BinaryEngine::TransformComponent>().transform };
+		transform.Position = { center.x, center.y, s_BlockZ };
+		transform.Scale = GetBoxSpriteScale(size);
+		entity.AddComponent<BinaryEngine::SpriteComponent>(m_AtlasHandle, GetAtlasRegion(square));
+		entity.AddComponent<BinaryEngine::RigidBodyComponent>(body);
+		entity.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ size }, .Collider{ collider } });
+		return entity;
+	}
+
+	BinaryEngine::Entity PlatformerDemoState::CreateCircleBody(std::string_view name, BinaryEngine::Vector2f center, float radius, AtlasDisc disc, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider)
+	{
+		BinaryEngine::Entity entity{ m_Scene.CreateEntity(std::string{ name }) };
+		BinaryEngine::Transform& transform{ entity.GetComponent<BinaryEngine::TransformComponent>().transform };
+		transform.Position = { center.x, center.y, s_BlockZ };
+		transform.Scale = GetCircleSpriteScale(radius);
+		entity.AddComponent<BinaryEngine::SpriteComponent>(m_AtlasHandle, GetAtlasRegion(disc));
+		entity.AddComponent<BinaryEngine::RigidBodyComponent>(body);
+		entity.AddComponent<BinaryEngine::CircleColliderComponent>(BinaryEngine::CircleColliderSpecification{ .Radius{ radius }, .Collider{ collider } });
+		return entity;
+	}
+
+	void PlatformerDemoState::CreateMovingPlatform(std::string_view name, BinaryEngine::Vector2f from, BinaryEngine::Vector2f to, BinaryEngine::Vector2f size, float speed)
+	{
+		const BinaryEngine::Entity platform{ CreateBoxBody(name, from, size, AtlasSquare::Paddle, BinaryEngine::RigidBodySpecification{ .Type{ BinaryEngine::BodyType::Kinematic } }, {}) };
+		m_MovingPlatforms.emplace_back(platform, from, to, speed);
+	}
+
 	void PlatformerDemoState::CreatePlayer()
 	{
 		m_PlayerEntity = m_Scene.CreateEntity("Player");
@@ -233,7 +310,21 @@ namespace Sandbox {
 		transform.Scale = { s_PlayerScale, s_PlayerScale, 1.0f };
 		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterHandle, m_IdleClip.Frames.front());
 		m_PlayerEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
-		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Capsule{ .Size{ s_PlayerCapsuleSize }, .Offset{ s_PlayerCapsuleOffset } } });
+		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Capsule{ .Size{ s_PlayerCapsuleSize }, .Offset{ s_PlayerCapsuleOffset } }, .MaxPushForce{ s_PlayerPushForce }, .Mass{ s_PlayerMass } });
+	}
+
+	void PlatformerDemoState::MovePlatforms()
+	{
+		for (MovingPlatform& platform : m_MovingPlatforms)
+		{
+			BinaryEngine::PhysicsBody body{ m_Scene.GetPhysicsBody(platform.Entity) };
+			if (glm::dot(platform.To - body.GetPosition(), platform.To - platform.From) <= 0.0f)
+			{
+				std::swap(platform.From, platform.To);
+			}
+
+			body.SetLinearVelocity(glm::normalize(platform.To - platform.From) * platform.Speed);
+		}
 	}
 
 	void PlatformerDemoState::MovePlayer(float stepSeconds)

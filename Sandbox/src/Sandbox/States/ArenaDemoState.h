@@ -34,6 +34,8 @@ namespace Sandbox {
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 		void CreateRoom();
 		void CreateBlock(std::string_view name, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, AtlasSquare square);
+		void CreateCrates();
+		void CreateCrate(std::string_view name, BinaryEngine::Vector2f center, AtlasSquare square, float density);
 		void CreatePlayer();
 		void MovePlayer(float stepSeconds);
 		void UpdateHud();

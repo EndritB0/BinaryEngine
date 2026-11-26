@@ -13,9 +13,15 @@ namespace {
 	constexpr float s_MinMoveMeters{ 0.01f };
 	constexpr float s_LandingSpeedMetersPerSecond{ 0.01f };
 
+	struct TouchedShape {
+		b2ShapeId ShapeId;
+		b2Vec2 Point;
+	};
+
 	struct PlaneGather {
 		b2ShapeId OwnShapeId;
 		std::array<b2CollisionPlane, s_MaxCollisionPlanes> Planes{};
+		std::array<TouchedShape, s_MaxCollisionPlanes> TouchedShapes{};
 		int PlaneCount{ 0 };
 	};
 
@@ -30,6 +36,7 @@ namespace {
 	struct FootRay {
 		b2ShapeId OwnShapeId;
 		b2ShapeId ShapeId{};
+		b2Vec2 Point{};
 		b2Vec2 Normal{};
 		float Fraction{ 1.0f };
 		bool Hit{ false };
@@ -40,6 +47,11 @@ namespace {
 		return !B2_ID_EQUALS(shapeId, ownShapeId) && !b2Shape_IsSensor(shapeId);
 	}
 
+	bool IsDynamicShape(b2ShapeId shapeId)
+	{
+		return b2Body_GetType(b2Shape_GetBody(shapeId)) == b2_dynamicBody;
+	}
+
 	bool GatherPlane(b2ShapeId shapeId, const b2PlaneResult* planeResult, void* context)
 	{
 		PlaneGather& gather{ *static_cast<PlaneGather*>(context) };
@@ -48,7 +60,15 @@ namespace {
 			return true;
 		}
 
-		gather.Planes[static_cast<std::size_t>(gather.PlaneCount)] = b2CollisionPlane{ planeResult->plane, std::numeric_limits<float>::max(), 0.0f, true };
+		b2Plane plane{ planeResult->plane };
+		if (!IsDynamicShape(shapeId))
+		{
+			plane.offset -= B2_LINEAR_SLOP;
+		}
+
+		const std::size_t planeIndex{ static_cast<std::size_t>(gather.PlaneCount) };
+		gather.Planes[planeIndex] = b2CollisionPlane{ plane, std::numeric_limits<float>::max(), 0.0f, true };
+		gather.TouchedShapes[planeIndex] = TouchedShape{ shapeId, b2TransformPoint(b2Body_GetTransform(b2Shape_GetBody(shapeId)), planeResult->point) };
 		gather.PlaneCount++;
 		return static_cast<std::size_t>(gather.PlaneCount) < s_MaxCollisionPlanes;
 	}
@@ -91,7 +111,7 @@ namespace {
 		const std::array<b2Vec2, 2> centers{ b2InvTransformPoint(transform, sweep.Position + sweep.Capsule.center1), b2InvTransformPoint(transform, sweep.Position + sweep.Capsule.center2) };
 
 		b2ShapeCastInput input{};
-		input.proxy = b2MakeProxy(centers.data(), static_cast<int>(centers.size()), sweep.Capsule.radius);
+		input.proxy = b2MakeProxy(centers.data(), static_cast<int>(centers.size()), sweep.Capsule.radius + (IsDynamicShape(shapeId) ? B2_LINEAR_SLOP : 0.0f));
 		input.translation = b2InvRotateVector(transform.q, sweep.Translation);
 		input.maxFraction = 1.0f;
 		input.canEncroach = true;
@@ -108,7 +128,7 @@ namespace {
 	float SweepCapsule(b2WorldId worldId, b2ShapeId ownShapeId, b2Vec2 position, const b2Capsule& capsule, b2Vec2 translation, b2QueryFilter filter)
 	{
 		const std::array<b2Vec2, 2> centers{ capsule.center1, capsule.center2 };
-		const b2AABB startBox{ b2MakeAABB(centers.data(), static_cast<int>(centers.size()), capsule.radius) };
+		const b2AABB startBox{ b2MakeAABB(centers.data(), static_cast<int>(centers.size()), capsule.radius + B2_LINEAR_SLOP) };
 		const b2AABB endBox{ startBox.lowerBound + translation, startBox.upperBound + translation };
 
 		CapsuleSweep sweep{ ownShapeId, position, capsule, translation };
@@ -116,7 +136,14 @@ namespace {
 		return sweep.Fraction;
 	}
 
-	float KeepClosestFloorHit(b2ShapeId shapeId, [[maybe_unused]] b2Pos point, b2Vec2 normal, float fraction, void* context)
+	b2Vec2 GatherAndSolve(b2WorldId worldId, b2Vec2 position, const b2Capsule& capsule, b2QueryFilter filter, b2Vec2 target, PlaneGather& gather)
+	{
+		gather.PlaneCount = 0;
+		b2World_CollideMover(worldId, position, &capsule, filter, GatherPlane, &gather);
+		return b2SolvePlanes(target - position, gather.Planes.data(), gather.PlaneCount).delta;
+	}
+
+	float KeepClosestFloorHit(b2ShapeId shapeId, b2Pos point, b2Vec2 normal, float fraction, void* context)
 	{
 		FootRay& ray{ *static_cast<FootRay*>(context) };
 		if (fraction == 0.0f || !IsSolidShape(shapeId, ray.OwnShapeId))
@@ -126,7 +153,7 @@ namespace {
 
 		if (!ray.Hit || fraction < ray.Fraction)
 		{
-			ray = FootRay{ ray.OwnShapeId, shapeId, normal, fraction, true };
+			ray = FootRay{ ray.OwnShapeId, shapeId, point, normal, fraction, true };
 		}
 
 		return ray.Fraction;
@@ -135,6 +162,56 @@ namespace {
 	b2Vec2 GetLowerCenter(const b2Capsule& capsule)
 	{
 		return b2Vec2{ (capsule.center1.x + capsule.center2.x) * 0.5f, std::min(capsule.center1.y, capsule.center2.y) };
+	}
+
+	void PushBodies(const PlaneGather& gather, b2Vec2 characterVelocity, float maxImpulse)
+	{
+		for (int planeIndex{ 0 }; planeIndex < gather.PlaneCount; planeIndex++)
+		{
+			const TouchedShape& touchedShape{ gather.TouchedShapes[static_cast<std::size_t>(planeIndex)] };
+			const b2BodyId bodyId{ b2Shape_GetBody(touchedShape.ShapeId) };
+			if (b2Body_GetType(bodyId) != b2_dynamicBody)
+			{
+				continue;
+			}
+
+			const b2Vec2 pushNormal{ -gather.Planes[static_cast<std::size_t>(planeIndex)].plane.normal };
+			const float mass{ b2Body_GetMass(bodyId) };
+			const float rotationalInertia{ b2Body_GetRotationalInertia(bodyId) };
+			const float leverCrossNormal{ b2Cross(touchedShape.Point - b2Body_GetWorldCenter(bodyId), pushNormal) };
+			const float inverseEffectiveMass{ (mass > 0.0f ? 1.0f / mass : 0.0f) + (rotationalInertia > 0.0f ? leverCrossNormal * leverCrossNormal / rotationalInertia : 0.0f) };
+			if (inverseEffectiveMass <= 0.0f)
+			{
+				continue;
+			}
+
+			const float normalSpeed{ b2Dot(b2Body_GetWorldPointVelocity(bodyId, touchedShape.Point) - characterVelocity, pushNormal) };
+			const float impulse{ std::min(std::max(-normalSpeed / inverseEffectiveMass, 0.0f), maxImpulse) };
+			if (impulse > 0.0f)
+			{
+				b2Body_ApplyLinearImpulse(bodyId, impulse * pushNormal, touchedShape.Point, true);
+			}
+		}
+	}
+
+	void DisableContactWhileMovingIn(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, [[maybe_unused]] void* context)
+	{
+		const b2BodyId bodyIdA{ b2Shape_GetBody(shapeIdA) };
+		const b2BodyId bodyIdB{ b2Shape_GetBody(shapeIdB) };
+		float approachSpeed{ 0.0f };
+		if (b2Body_GetType(bodyIdA) == b2_kinematicBody)
+		{
+			approachSpeed = b2Dot(b2Body_GetLinearVelocity(bodyIdA), manifold->normal);
+		}
+		else if (b2Body_GetType(bodyIdB) == b2_kinematicBody)
+		{
+			approachSpeed = -b2Dot(b2Body_GetLinearVelocity(bodyIdB), manifold->normal);
+		}
+
+		if (approachSpeed > 0.0f)
+		{
+			manifold->pointCount = 0;
+		}
 	}
 
 	void ExcludeWalkablePlanesFromClip(PlaneGather& gather, float minFloorNormalY)
@@ -155,6 +232,7 @@ namespace {
 		characterState.IsOnFloor = false;
 		characterState.FloorNormal = BinaryEngine::Vector2f{ 0.0f, 0.0f };
 		characterState.FloorEntity = BinaryEngine::Entity{};
+		characterState.FloorVelocity = BinaryEngine::Vector2f{ 0.0f, 0.0f };
 	}
 
 	void UpdateFloor(b2WorldId worldId, b2ShapeId shapeId, const b2Capsule& capsule, b2QueryFilter filter, b2Vec2 position, b2Vec2& velocity, BinaryEngine::Detail::CharacterControllerState& characterState, float stepSeconds, BinaryEngine::Scene& scene)
@@ -167,6 +245,11 @@ namespace {
 		const float landingSpeed{ s_LandingSpeedMetersPerSecond * b2GetLengthUnitsPerMeter() };
 		if (!ray.Hit || ray.Normal.y < characterState.MinFloorNormalY || velocity.y > landingSpeed)
 		{
+			if (characterState.IsOnFloor)
+			{
+				velocity = velocity + BinaryEngine::Detail::ToBox2DVector(characterState.FloorVelocity);
+			}
+
 			LeaveFloor(characterState);
 			return;
 		}
@@ -176,6 +259,13 @@ namespace {
 		characterState.IsOnFloor = true;
 		characterState.FloorNormal = BinaryEngine::Detail::ToEngineVector(ray.Normal);
 		characterState.FloorEntity = BinaryEngine::Entity{ BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(ray.ShapeId)), &scene };
+
+		const b2BodyId floorBodyId{ b2Shape_GetBody(ray.ShapeId) };
+		characterState.FloorVelocity = BinaryEngine::Detail::ToEngineVector(b2Body_GetWorldPointVelocity(floorBodyId, ray.Point));
+		if (b2Body_GetType(floorBodyId) == b2_dynamicBody)
+		{
+			b2Body_ApplyForce(floorBodyId, characterState.Mass * b2World_GetGravity(worldId), ray.Point, true);
+		}
 	}
 
 }
@@ -199,19 +289,26 @@ namespace BinaryEngine::Detail {
 			UpdateFloor(world, shapeId, capsule, filter, position, velocity, characterState, stepSeconds, scene);
 		}
 
-		const b2Vec2 target{ position + stepSeconds * (velocity + b2Vec2{ 0.0f, characterState.SpringVelocity }) };
+		const b2Vec2 floorVelocity{ ToBox2DVector(characterState.FloorVelocity) };
+		const b2Vec2 target{ position + stepSeconds * (velocity + floorVelocity + b2Vec2{ 0.0f, characterState.SpringVelocity }) };
+		b2Capsule gatherCapsule{ capsule };
+		gatherCapsule.radius += B2_LINEAR_SLOP;
 		PlaneGather gather{ shapeId };
+		b2Vec2 delta{ GatherAndSolve(world, position, gatherCapsule, filter, target, gather) };
 		for (int iteration{ 0 }; iteration < s_MaxMoveIterations; iteration++)
 		{
-			gather.PlaneCount = 0;
-			b2World_CollideMover(world, position, &capsule, filter, GatherPlane, &gather);
-			const b2PlaneSolverResult solution{ b2SolvePlanes(target - position, gather.Planes.data(), gather.PlaneCount) };
-			const b2Vec2 move{ SweepCapsule(world, shapeId, position, capsule, solution.delta, filter) * solution.delta };
+			const b2Vec2 move{ SweepCapsule(world, shapeId, position, capsule, delta, filter) * delta };
 			position = position + move;
+			delta = GatherAndSolve(world, position, gatherCapsule, filter, target, gather);
 			if (b2LengthSquared(move) < minMove * minMove)
 			{
 				break;
 			}
+		}
+
+		if (characterState.MaxPushForce > 0.0f)
+		{
+			PushBodies(gather, velocity, characterState.MaxPushForce * stepSeconds);
 		}
 
 		if (characterState.IsOnFloor)
@@ -221,6 +318,11 @@ namespace BinaryEngine::Detail {
 
 		characterState.Velocity = ToEngineVector(b2ClipVector(velocity, gather.Planes.data(), gather.PlaneCount));
 		b2Body_SetTargetTransform(bodyId, b2WorldTransform{ position, b2Rot_identity }, stepSeconds, true);
+	}
+
+	void EnableCharacterContactControl(std::uint32_t worldId)
+	{
+		b2World_SetPreSolveCallback(b2LoadWorldId(worldId), DisableContactWhileMovingIn, nullptr, nullptr);
 	}
 
 	void TeleportCharacter(CharacterControllerState& characterState, RigidBodyState& bodyState, Vector2f position)

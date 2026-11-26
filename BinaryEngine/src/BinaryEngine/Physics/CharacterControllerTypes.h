@@ -16,6 +16,8 @@ namespace BinaryEngine {
 		float SpringFrequency{ 5.0f };
 		float SpringDampingRatio{ 0.8f };
 		float MaxSlopeAngle{ 45.0f };
+		float MaxPushForce{ 0.0f };
+		float Mass{ 1.0f };
 	};
 
 }

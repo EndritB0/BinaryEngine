@@ -2,10 +2,12 @@
 
 #include <cstdint>
 #include <string_view>
+#include <vector>
 
 #include <BinaryEngine/Asset/AssetTypes.h>
 #include <BinaryEngine/Core/Math.h>
 #include <BinaryEngine/Event/EventTypes.h>
+#include <BinaryEngine/Physics/PhysicsTypes.h>
 #include <BinaryEngine/Renderer/AnimationClip.h>
 #include <BinaryEngine/Renderer/OrthographicCamera.h>
 #include <BinaryEngine/Scene/Entity.h>
@@ -30,13 +32,26 @@ namespace Sandbox {
 		virtual void OnRender() override;
 
 	private:
+		struct MovingPlatform {
+			BinaryEngine::Entity Entity;
+			BinaryEngine::Vector2f From{ 0.0f, 0.0f };
+			BinaryEngine::Vector2f To{ 0.0f, 0.0f };
+			float Speed{ 0.0f };
+		};
+
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 		bool OnKeyReleased(BinaryEngine::KeyReleasedEvent& event);
 		void CreateFrame();
 		void CreateTerrain();
 		BinaryEngine::Entity CreateBlock(std::string_view name, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, float rotationDegrees, AtlasSquare square);
 		void CreateSlope(std::string_view name, BinaryEngine::Vector2f start, float angleDegrees, float length);
+		void CreateBodies();
+		void CreatePlatforms();
+		BinaryEngine::Entity CreateBoxBody(std::string_view name, BinaryEngine::Vector2f center, BinaryEngine::Vector2f size, AtlasSquare square, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider);
+		BinaryEngine::Entity CreateCircleBody(std::string_view name, BinaryEngine::Vector2f center, float radius, AtlasDisc disc, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider);
+		void CreateMovingPlatform(std::string_view name, BinaryEngine::Vector2f from, BinaryEngine::Vector2f to, BinaryEngine::Vector2f size, float speed);
 		void CreatePlayer();
+		void MovePlatforms();
 		void MovePlayer(float stepSeconds);
 		void UpdateHud();
 
@@ -48,6 +63,7 @@ namespace Sandbox {
 		BinaryEngine::AssetHandle m_CharacterHandle;
 		BinaryEngine::AnimationClip m_IdleClip;
 
+		std::vector<MovingPlatform> m_MovingPlatforms;
 		BinaryEngine::Entity m_PlayerEntity;
 		float m_CoyoteSecondsLeft{ 0.0f };
 		float m_JumpBufferSecondsLeft{ 0.0f };

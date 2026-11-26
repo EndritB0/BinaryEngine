@@ -34,11 +34,14 @@ namespace BinaryEngine::Detail {
 		float SpringFrequency{ 0.0f };
 		float SpringDampingRatio{ 0.0f };
 		float MinFloorNormalY{ 0.0f };
+		float MaxPushForce{ 0.0f };
+		float Mass{ 0.0f };
 		Vector2f Velocity{ 0.0f, 0.0f };
 		float SpringVelocity{ 0.0f };
 		bool IsOnFloor{ false };
 		Vector2f FloorNormal{ 0.0f, 0.0f };
 		Entity FloorEntity{};
+		Vector2f FloorVelocity{ 0.0f, 0.0f };
 	};
 
 }

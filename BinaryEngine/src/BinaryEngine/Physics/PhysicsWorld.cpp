@@ -533,6 +533,7 @@ namespace BinaryEngine {
 		}
 
 		m_WorldId = b2StoreWorldId(worldId);
+		Detail::EnableCharacterContactControl(m_WorldId);
 		CORE_INFO("[Physics] World created: gravity ({:.2f}, {:.2f}) units/s^2, {} sub-steps", gravity.x, gravity.y, m_SubStepCount);
 	}
 
@@ -960,7 +961,8 @@ namespace BinaryEngine {
 		bodyDef.userData = Detail::ToUserData(entity);
 		const b2BodyId bodyId{ b2CreateBody(b2LoadWorldId(m_WorldId), &bodyDef) };
 
-		const b2ShapeDef shapeDef{ MakeShapeDef(specification.Capsule.Collider, entity) };
+		b2ShapeDef shapeDef{ MakeShapeDef(specification.Capsule.Collider, entity) };
+		shapeDef.enablePreSolveEvents = true;
 		const b2Capsule capsule{ MakeCapsule(specification.Capsule.Size, specification.Capsule.Offset) };
 		const b2ShapeId shapeId{ b2CreateCapsuleShape(bodyId, &shapeDef, &capsule) };
 
@@ -972,6 +974,8 @@ namespace BinaryEngine {
 			.SpringFrequency{ ResolveControllerValue(specification.SpringFrequency, std::isfinite(specification.SpringFrequency) && specification.SpringFrequency > 0.0f, defaults.SpringFrequency, "SpringFrequency", "finite and above 0", registry, entity) },
 			.SpringDampingRatio{ ResolveControllerValue(specification.SpringDampingRatio, std::isfinite(specification.SpringDampingRatio) && specification.SpringDampingRatio > 0.0f, defaults.SpringDampingRatio, "SpringDampingRatio", "finite and above 0", registry, entity) },
 			.MinFloorNormalY{ std::cos(glm::radians(ResolveControllerValue(specification.MaxSlopeAngle, std::isfinite(specification.MaxSlopeAngle) && specification.MaxSlopeAngle >= 0.0f && specification.MaxSlopeAngle <= 90.0f, defaults.MaxSlopeAngle, "MaxSlopeAngle", "between 0 and 90", registry, entity))) },
+			.MaxPushForce{ ResolveControllerValue(specification.MaxPushForce, std::isfinite(specification.MaxPushForce) && specification.MaxPushForce >= 0.0f, defaults.MaxPushForce, "MaxPushForce", "finite and at least 0", registry, entity) },
+			.Mass{ ResolveControllerValue(specification.Mass, std::isfinite(specification.Mass) && specification.Mass >= 0.0f, defaults.Mass, "Mass", "finite and at least 0", registry, entity) },
 		};
 
 		const Detail::PhysicsPose creationPose{ position, 0.0f };

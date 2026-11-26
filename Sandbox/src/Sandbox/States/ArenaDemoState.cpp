@@ -30,13 +30,20 @@ namespace Sandbox {
 		constexpr float s_RoomWallY{ 150.0f };
 		constexpr float s_PillarX{ 120.0f };
 		constexpr float s_PillarY{ 60.0f };
+		constexpr float s_CrateSize{ 32.0f };
+		constexpr float s_CrateDamping{ 3.0f };
+		constexpr float s_LightCrateDensity{ 1.0f };
+		constexpr float s_HeavyCrateDensity{ 10.0f };
 		constexpr float s_PlayerScale{ 2.5f };
+		constexpr float s_PlayerPushForce{ 400.0f };
 		constexpr float s_PlayerSpeed{ 150.0f };
 		constexpr float s_PlayerAcceleration{ 1200.0f };
 		constexpr float s_PlayerFriction{ 1500.0f };
 		const BinaryEngine::Vector2f s_HorizontalWallSize{ 560.0f, 20.0f };
 		const BinaryEngine::Vector2f s_VerticalWallSize{ 20.0f, 320.0f };
 		const BinaryEngine::Vector2f s_PillarSize{ 32.0f, 32.0f };
+		const std::array<BinaryEngine::Vector2f, 2> s_LightCrateCenters{ BinaryEngine::Vector2f{ -40.0f, 100.0f }, BinaryEngine::Vector2f{ 40.0f, 100.0f } };
+		const std::array<BinaryEngine::Vector2f, 2> s_HeavyCrateCenters{ BinaryEngine::Vector2f{ -40.0f, -100.0f }, BinaryEngine::Vector2f{ 40.0f, -100.0f } };
 		const BinaryEngine::Vector2f s_PlayerStart{ -200.0f, 0.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleSize{ 24.0f, 36.0f };
 
@@ -81,6 +88,7 @@ namespace Sandbox {
 		m_HudEntity.GetComponent<BinaryEngine::TransformComponent>().transform.Position = { 8.0f, 20.0f, s_HudZ };
 
 		CreateRoom();
+		CreateCrates();
 		CreatePlayer();
 	}
 
@@ -168,6 +176,31 @@ namespace Sandbox {
 		block.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ size } });
 	}
 
+	void ArenaDemoState::CreateCrates()
+	{
+		for (const BinaryEngine::Vector2f& center : s_LightCrateCenters)
+		{
+			CreateCrate("Crate", center, AtlasSquare::Crate, s_LightCrateDensity);
+		}
+
+		for (const BinaryEngine::Vector2f& center : s_HeavyCrateCenters)
+		{
+			CreateCrate("HeavyCrate", center, AtlasSquare::HeavyCrate, s_HeavyCrateDensity);
+		}
+	}
+
+	void ArenaDemoState::CreateCrate(std::string_view name, BinaryEngine::Vector2f center, AtlasSquare square, float density)
+	{
+		const BinaryEngine::Vector2f size{ s_CrateSize, s_CrateSize };
+		BinaryEngine::Entity crate{ m_Scene.CreateEntity(std::string{ name }) };
+		BinaryEngine::Transform& transform{ crate.GetComponent<BinaryEngine::TransformComponent>().transform };
+		transform.Position = { center.x, center.y, s_BlockZ };
+		transform.Scale = GetBoxSpriteScale(size);
+		crate.AddComponent<BinaryEngine::SpriteComponent>(m_AtlasHandle, GetAtlasRegion(square));
+		crate.AddComponent<BinaryEngine::RigidBodyComponent>(BinaryEngine::RigidBodySpecification{ .LinearDamping{ s_CrateDamping }, .AngularDamping{ s_CrateDamping } });
+		crate.AddComponent<BinaryEngine::BoxColliderComponent>(BinaryEngine::BoxColliderSpecification{ .Size{ size }, .Collider{ .Material{ .Density{ density } } } });
+	}
+
 	void ArenaDemoState::CreatePlayer()
 	{
 		m_PlayerEntity = m_Scene.CreateEntity("Player");
@@ -176,7 +209,7 @@ namespace Sandbox {
 		transform.Scale = { s_PlayerScale, s_PlayerScale, 1.0f };
 		m_PlayerEntity.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterHandle, m_IdleClip.Frames.front());
 		m_PlayerEntity.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
-		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Mode{ BinaryEngine::CharacterMode::Floating }, .Capsule{ .Size{ s_PlayerCapsuleSize } } });
+		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Mode{ BinaryEngine::CharacterMode::Floating }, .Capsule{ .Size{ s_PlayerCapsuleSize } }, .MaxPushForce{ s_PlayerPushForce } });
 	}
 
 	void ArenaDemoState::MovePlayer(float stepSeconds)
