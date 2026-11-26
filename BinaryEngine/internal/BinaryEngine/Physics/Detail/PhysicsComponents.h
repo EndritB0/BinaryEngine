@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "BinaryEngine/Core/Math.h"
 #include "BinaryEngine/Physics/CharacterControllerTypes.h"
@@ -36,12 +37,14 @@ namespace BinaryEngine::Detail {
 		float MinFloorNormalY{ 0.0f };
 		float MaxPushForce{ 0.0f };
 		float Mass{ 0.0f };
+		bool IsSoft{ false };
 		Vector2f Velocity{ 0.0f, 0.0f };
 		float SpringVelocity{ 0.0f };
 		bool IsOnFloor{ false };
 		Vector2f FloorNormal{ 0.0f, 0.0f };
 		Entity FloorEntity{};
 		Vector2f FloorVelocity{ 0.0f, 0.0f };
+		std::vector<CharacterTouch> Touches;
 	};
 
 }

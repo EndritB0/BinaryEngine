@@ -296,8 +296,8 @@ namespace {
 
 	void MoveCharacters(entt::registry& registry, BinaryEngine::Scene& scene, std::uint32_t worldId, float stepSeconds)
 	{
-		registry.view<const BinaryEngine::Detail::RigidBodyState, BinaryEngine::Detail::CharacterControllerState>().each([&scene, worldId, stepSeconds](const BinaryEngine::Detail::RigidBodyState& bodyState, BinaryEngine::Detail::CharacterControllerState& characterState) {
-			BinaryEngine::Detail::MoveCharacter(worldId, scene, bodyState, characterState, stepSeconds);
+		registry.view<const BinaryEngine::Detail::RigidBodyState, BinaryEngine::Detail::CharacterControllerState>().each([&registry, &scene, worldId, stepSeconds](const BinaryEngine::Detail::RigidBodyState& bodyState, BinaryEngine::Detail::CharacterControllerState& characterState) {
+			BinaryEngine::Detail::MoveCharacter(worldId, registry, scene, bodyState, characterState, stepSeconds);
 		});
 	}
 
@@ -976,6 +976,7 @@ namespace BinaryEngine {
 			.MinFloorNormalY{ std::cos(glm::radians(ResolveControllerValue(specification.MaxSlopeAngle, std::isfinite(specification.MaxSlopeAngle) && specification.MaxSlopeAngle >= 0.0f && specification.MaxSlopeAngle <= 90.0f, defaults.MaxSlopeAngle, "MaxSlopeAngle", "between 0 and 90", registry, entity))) },
 			.MaxPushForce{ ResolveControllerValue(specification.MaxPushForce, std::isfinite(specification.MaxPushForce) && specification.MaxPushForce >= 0.0f, defaults.MaxPushForce, "MaxPushForce", "finite and at least 0", registry, entity) },
 			.Mass{ ResolveControllerValue(specification.Mass, std::isfinite(specification.Mass) && specification.Mass >= 0.0f, defaults.Mass, "Mass", "finite and at least 0", registry, entity) },
+			.IsSoft{ specification.IsSoft },
 		};
 
 		const Detail::PhysicsPose creationPose{ position, 0.0f };

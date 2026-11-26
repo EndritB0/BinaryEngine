@@ -25,9 +25,11 @@ namespace Sandbox {
 		constexpr float s_OutlineThickness{ 1.5f };
 		constexpr float s_RadiusLineThickness{ 1.0f };
 		constexpr float s_FootRayThickness{ 1.0f };
+		constexpr float s_TouchNormalLength{ 12.0f };
 		constexpr BinaryEngine::Color s_SolidOutlineColor{ 0x50, 0xFF, 0x50, 0xFF };
 		constexpr BinaryEngine::Color s_TriggerOutlineColor{ 0xFF, 0x50, 0xFF, 0xFF };
 		constexpr BinaryEngine::Color s_FootRayColor{ 0xFF, 0xE0, 0x40, 0xFF };
+		constexpr BinaryEngine::Color s_TouchColor{ 0x40, 0xC0, 0xFF, 0xFF };
 		constexpr std::size_t s_MaxHitSoundsPerStep{ 4 };
 		constexpr float s_LoudestHitSpeed{ 600.0f };
 		constexpr float s_QuietestHitVolume{ 0.1f };
@@ -156,6 +158,11 @@ namespace Sandbox {
 			if (controllerComponent.Specification.Mode == BinaryEngine::CharacterMode::Grounded)
 			{
 				DrawFootRay(scene, renderer, controller, controllerComponent.Specification);
+			}
+
+			for (const BinaryEngine::CharacterTouch& touch : controller.GetTouches())
+			{
+				renderer.DrawLine(touch.Point, touch.Point + touch.Normal * s_TouchNormalLength, { .Color{ s_TouchColor }, .Thickness{ s_FootRayThickness }, .SortZ{ s_OutlineZ } });
 			}
 		});
 	}

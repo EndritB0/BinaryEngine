@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
+#include <optional>
 #include <string_view>
+#include <vector>
 
 #include <BinaryEngine/Asset/AssetTypes.h>
 #include <BinaryEngine/Core/Math.h>
@@ -37,7 +40,15 @@ namespace Sandbox {
 		void CreateCrates();
 		void CreateCrate(std::string_view name, BinaryEngine::Vector2f center, AtlasSquare square, float density);
 		void CreatePlayer();
+		void CreateZombie(BinaryEngine::Vector2f position);
+		void SpawnZombies();
+		void RemoveSpawnedZombies();
+		std::optional<BinaryEngine::Vector2f> FindFreeSpot(float clearanceRadius);
 		void MovePlayer(float stepSeconds);
+		void MoveZombies(float stepSeconds);
+		void KnockBackPlayer(float stepSeconds);
+		bool IsZombie(BinaryEngine::Entity entity) const;
+		void LogStepSummary();
 		void UpdateHud();
 
 	private:
@@ -49,6 +60,11 @@ namespace Sandbox {
 		BinaryEngine::AnimationClip m_IdleClip;
 
 		BinaryEngine::Entity m_PlayerEntity;
+		std::vector<BinaryEngine::Entity> m_Zombies;
+		float m_KnockbackSecondsLeft{ 0.0f };
+		std::int32_t m_KnockbackCount{ 0 };
+		std::int32_t m_TimedStepCount{ 0 };
+		double m_TimedStepSeconds{ 0.0 };
 		bool m_ShowOutlines{ false };
 	};
 

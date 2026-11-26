@@ -77,6 +77,19 @@ namespace BinaryEngine {
 		return characterState && characterState->IsOnFloor;
 	}
 
+	bool CharacterController::IsOnWall() const
+	{
+		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
+		if (!characterState)
+		{
+			return false;
+		}
+
+		return std::ranges::any_of(characterState->Touches, [characterState](const CharacterTouch& touch) {
+			return characterState->Mode == CharacterMode::Floating || touch.Normal.y < characterState->MinFloorNormalY;
+		});
+	}
+
 	Vector2f CharacterController::GetFloorNormal() const
 	{
 		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
@@ -87,6 +100,12 @@ namespace BinaryEngine {
 	{
 		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
 		return characterState ? characterState->FloorEntity : Entity{};
+	}
+
+	std::span<const CharacterTouch> CharacterController::GetTouches() const
+	{
+		const Detail::CharacterControllerState* characterState{ FindCharacterState(m_Entity) };
+		return characterState ? std::span<const CharacterTouch>{ characterState->Touches } : std::span<const CharacterTouch>{};
 	}
 
 }

@@ -39,6 +39,11 @@ namespace Sandbox {
 			float Speed{ 0.0f };
 		};
 
+		struct Zombie {
+			BinaryEngine::Entity Entity;
+			float Direction{ 1.0f };
+		};
+
 		bool OnKeyPressed(BinaryEngine::KeyPressedEvent& event);
 		bool OnKeyReleased(BinaryEngine::KeyReleasedEvent& event);
 		void CreateFrame();
@@ -51,8 +56,13 @@ namespace Sandbox {
 		BinaryEngine::Entity CreateCircleBody(std::string_view name, BinaryEngine::Vector2f center, float radius, AtlasDisc disc, const BinaryEngine::RigidBodySpecification& body, const BinaryEngine::ColliderSpecification& collider);
 		void CreateMovingPlatform(std::string_view name, BinaryEngine::Vector2f from, BinaryEngine::Vector2f to, BinaryEngine::Vector2f size, float speed);
 		void CreatePlayer();
+		void CreateZombie(BinaryEngine::Vector2f start, float direction);
 		void MovePlatforms();
 		void MovePlayer(float stepSeconds);
+		void MoveZombies(float stepSeconds);
+		void TurnZombiesAtWalls();
+		void KnockBackPlayer(float stepSeconds);
+		bool IsZombie(BinaryEngine::Entity entity) const;
 		void UpdateHud();
 
 	private:
@@ -69,6 +79,9 @@ namespace Sandbox {
 		float m_JumpBufferSecondsLeft{ 0.0f };
 		bool m_IsJumpReleased{ false };
 		std::int32_t m_JumpCount{ 0 };
+		std::vector<Zombie> m_Zombies;
+		float m_KnockbackSecondsLeft{ 0.0f };
+		std::int32_t m_KnockbackCount{ 0 };
 		bool m_ShowOutlines{ false };
 	};
 

@@ -54,6 +54,9 @@ namespace Sandbox {
 		constexpr float s_JumpCutFactor{ 0.5f };
 		constexpr float s_CoyoteSeconds{ 0.1f };
 		constexpr float s_JumpBufferSeconds{ 0.1f };
+		constexpr float s_ZombieScale{ 4.0f };
+		constexpr float s_ZombieSpeed{ 50.0f };
+		constexpr float s_KnockbackSeconds{ 0.5f };
 		const BinaryEngine::Vector2f s_GroundCenter{ 0.0f, -170.0f };
 		const BinaryEngine::Vector2f s_GroundSize{ 640.0f, 20.0f };
 		const BinaryEngine::Vector2f s_CeilingCenter{ 0.0f, 190.0f };
@@ -79,9 +82,14 @@ namespace Sandbox {
 		const BinaryEngine::Vector2f s_ElevatorFrom{ 260.0f, -157.0f };
 		const BinaryEngine::Vector2f s_ElevatorTo{ 260.0f, 17.0f };
 		const BinaryEngine::Vector2f s_ElevatorSize{ 56.0f, 6.0f };
-		const BinaryEngine::Vector2f s_PlayerStart{ -265.0f, -136.0f };
+		const BinaryEngine::Vector2f s_PlayerStart{ 17.0f, -136.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleSize{ 28.0f, 40.0f };
 		const BinaryEngine::Vector2f s_PlayerCapsuleOffset{ 0.0f, 4.0f };
+		const BinaryEngine::Vector2f s_LeftZombieStart{ -270.0f, -128.0f };
+		const BinaryEngine::Vector2f s_RightZombieStart{ -205.0f, -122.0f };
+		const BinaryEngine::Vector2f s_ZombieCapsuleSize{ 36.0f, 52.0f };
+		const BinaryEngine::Vector2f s_ZombieCapsuleOffset{ 0.0f, 2.0f };
+		const BinaryEngine::Vector2f s_KnockbackVelocity{ 220.0f, 200.0f };
 
 		float MoveTowards(float current, float target, float maxChange)
 		{
@@ -126,13 +134,15 @@ namespace Sandbox {
 		CreateBodies();
 		CreatePlatforms();
 		CreatePlayer();
+		CreateZombie(s_LeftZombieStart, 1.0f);
+		CreateZombie(s_RightZombieStart, -1.0f);
 	}
 
 	void PlatformerDemoState::OnDetach()
 	{
 		const BinaryEngine::CharacterController player{ m_Scene.GetCharacterController(m_PlayerEntity) };
 		const BinaryEngine::Vector2f position{ player.GetPosition() };
-		APP_INFO("[PlatformerDemoState] player grounded {} at ({:.2f}, {:.2f}), {} jumps", player.IsOnFloor() ? "yes" : "no", position.x, position.y, m_JumpCount);
+		APP_INFO("[PlatformerDemoState] player grounded {} at ({:.2f}, {:.2f}), {} jumps, {} knockbacks", player.IsOnFloor() ? "yes" : "no", position.x, position.y, m_JumpCount, m_KnockbackCount);
 		APP_INFO("[PlatformerDemoState] Detached");
 	}
 
@@ -147,7 +157,10 @@ namespace Sandbox {
 	{
 		MovePlatforms();
 		MovePlayer(fixedStep.GetSeconds());
+		MoveZombies(fixedStep.GetSeconds());
 		m_Scene.OnFixedUpdate(fixedStep);
+		TurnZombiesAtWalls();
+		KnockBackPlayer(fixedStep.GetSeconds());
 	}
 
 	void PlatformerDemoState::OnUpdate(BinaryEngine::TimeStep dt)
@@ -313,6 +326,18 @@ namespace Sandbox {
 		m_PlayerEntity.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Capsule{ .Size{ s_PlayerCapsuleSize }, .Offset{ s_PlayerCapsuleOffset } }, .MaxPushForce{ s_PlayerPushForce }, .Mass{ s_PlayerMass } });
 	}
 
+	void PlatformerDemoState::CreateZombie(BinaryEngine::Vector2f start, float direction)
+	{
+		BinaryEngine::Entity zombie{ m_Scene.CreateEntity("Zombie") };
+		BinaryEngine::Transform& transform{ zombie.GetComponent<BinaryEngine::TransformComponent>().transform };
+		transform.Position = { start.x, start.y, s_CharacterZ };
+		transform.Scale = { s_ZombieScale, s_ZombieScale, 1.0f };
+		zombie.AddComponent<BinaryEngine::SpriteComponent>(m_CharacterHandle, m_IdleClip.Frames.front());
+		zombie.AddComponent<BinaryEngine::AnimationComponent>(&m_IdleClip);
+		zombie.AddComponent<BinaryEngine::CharacterControllerComponent>(BinaryEngine::CharacterControllerSpecification{ .Capsule{ .Size{ s_ZombieCapsuleSize }, .Offset{ s_ZombieCapsuleOffset } }, .IsSoft{ true } });
+		m_Zombies.emplace_back(zombie, direction);
+	}
+
 	void PlatformerDemoState::MovePlatforms()
 	{
 		for (MovingPlatform& platform : m_MovingPlatforms)
@@ -366,6 +391,63 @@ namespace Sandbox {
 		player.SetVelocity(velocity);
 	}
 
+	void PlatformerDemoState::MoveZombies(float stepSeconds)
+	{
+		const float gravity{ s_GravityScale * m_Scene.GetPhysicsWorld().GetGravity().y };
+		for (const Zombie& zombie : m_Zombies)
+		{
+			BinaryEngine::CharacterController controller{ m_Scene.GetCharacterController(zombie.Entity) };
+			controller.SetVelocity({ zombie.Direction * s_ZombieSpeed, controller.GetVelocity().y + gravity * stepSeconds });
+		}
+	}
+
+	void PlatformerDemoState::TurnZombiesAtWalls()
+	{
+		for (Zombie& zombie : m_Zombies)
+		{
+			const BinaryEngine::CharacterController controller{ m_Scene.GetCharacterController(zombie.Entity) };
+			if (!controller.IsOnWall())
+			{
+				continue;
+			}
+
+			for (const BinaryEngine::CharacterTouch& touch : controller.GetTouches())
+			{
+				if (touch.Normal.x * zombie.Direction < 0.0f)
+				{
+					zombie.Direction = -zombie.Direction;
+					break;
+				}
+			}
+		}
+	}
+
+	void PlatformerDemoState::KnockBackPlayer(float stepSeconds)
+	{
+		m_KnockbackSecondsLeft -= stepSeconds;
+		if (m_KnockbackSecondsLeft > 0.0f)
+		{
+			return;
+		}
+
+		BinaryEngine::CharacterController player{ m_Scene.GetCharacterController(m_PlayerEntity) };
+		for (const BinaryEngine::CharacterTouch& touch : player.GetTouches())
+		{
+			if (IsZombie(touch.Entity))
+			{
+				player.SetVelocity({ touch.Normal.x < 0.0f ? -s_KnockbackVelocity.x : s_KnockbackVelocity.x, s_KnockbackVelocity.y });
+				m_KnockbackSecondsLeft = s_KnockbackSeconds;
+				m_KnockbackCount++;
+				return;
+			}
+		}
+	}
+
+	bool PlatformerDemoState::IsZombie(BinaryEngine::Entity entity) const
+	{
+		return std::ranges::any_of(m_Zombies, [entity](const Zombie& zombie) { return zombie.Entity == entity; });
+	}
+
 	void PlatformerDemoState::UpdateHud()
 	{
 		const BinaryEngine::CharacterController player{ m_Scene.GetCharacterController(m_PlayerEntity) };
@@ -383,7 +465,7 @@ namespace Sandbox {
 		{
 			text += "Airborne";
 		}
-		text += std::format("   Velocity ({:.0f}, {:.0f})", velocity.x, velocity.y);
+		text += std::format("   Velocity ({:.0f}, {:.0f})\nTouches {}   On wall {}   Knockbacks {}", velocity.x, velocity.y, player.GetTouches().size(), player.IsOnWall() ? "yes" : "no", m_KnockbackCount);
 		m_HudEntity.GetComponent<BinaryEngine::TextComponent>().Text = std::move(text);
 	}
 

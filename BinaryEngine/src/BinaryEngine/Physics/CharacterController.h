@@ -1,6 +1,9 @@
 #pragma once
 
+#include <span>
+
 #include "BinaryEngine/Core/Math.h"
+#include "BinaryEngine/Physics/CharacterControllerTypes.h"
 #include "BinaryEngine/Scene/Entity.h"
 
 namespace BinaryEngine {
@@ -18,8 +21,10 @@ namespace BinaryEngine {
 		void SetVelocity(Vector2f velocity);
 
 		bool IsOnFloor() const;
+		bool IsOnWall() const;
 		Vector2f GetFloorNormal() const;
 		Entity GetFloorEntity() const;
+		std::span<const CharacterTouch> GetTouches() const;
 
 	private:
 		friend class PhysicsWorld;

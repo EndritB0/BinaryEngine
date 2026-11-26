@@ -12,6 +12,7 @@ namespace {
 	constexpr std::size_t s_MaxCollisionPlanes{ 16 };
 	constexpr float s_MinMoveMeters{ 0.01f };
 	constexpr float s_LandingSpeedMetersPerSecond{ 0.01f };
+	constexpr float s_SoftPushLimitMeters{ 0.025f };
 
 	struct TouchedShape {
 		b2ShapeId ShapeId;
@@ -19,6 +20,7 @@ namespace {
 	};
 
 	struct PlaneGather {
+		const entt::registry& Registry;
 		b2ShapeId OwnShapeId;
 		std::array<b2CollisionPlane, s_MaxCollisionPlanes> Planes{};
 		std::array<TouchedShape, s_MaxCollisionPlanes> TouchedShapes{};
@@ -26,6 +28,7 @@ namespace {
 	};
 
 	struct CapsuleSweep {
+		const entt::registry& Registry;
 		b2ShapeId OwnShapeId;
 		b2Vec2 Position;
 		b2Capsule Capsule;
@@ -52,9 +55,20 @@ namespace {
 		return b2Body_GetType(b2Shape_GetBody(shapeId)) == b2_dynamicBody;
 	}
 
+	bool IsSoftController(const entt::registry& registry, b2ShapeId shapeId)
+	{
+		const BinaryEngine::Detail::CharacterControllerState* characterState{ registry.try_get<BinaryEngine::Detail::CharacterControllerState>(BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(shapeId))) };
+		return characterState && characterState->IsSoft;
+	}
+
 	bool GatherPlane(b2ShapeId shapeId, const b2PlaneResult* planeResult, void* context)
 	{
 		PlaneGather& gather{ *static_cast<PlaneGather*>(context) };
+		if (static_cast<std::size_t>(gather.PlaneCount) >= s_MaxCollisionPlanes)
+		{
+			return false;
+		}
+
 		if (!IsSolidShape(shapeId, gather.OwnShapeId))
 		{
 			return true;
@@ -66,8 +80,10 @@ namespace {
 			plane.offset -= B2_LINEAR_SLOP;
 		}
 
+		const bool isSoft{ IsSoftController(gather.Registry, shapeId) };
+		const float pushLimit{ isSoft ? s_SoftPushLimitMeters * b2GetLengthUnitsPerMeter() : std::numeric_limits<float>::max() };
 		const std::size_t planeIndex{ static_cast<std::size_t>(gather.PlaneCount) };
-		gather.Planes[planeIndex] = b2CollisionPlane{ plane, std::numeric_limits<float>::max(), 0.0f, true };
+		gather.Planes[planeIndex] = b2CollisionPlane{ plane, pushLimit, 0.0f, !isSoft };
 		gather.TouchedShapes[planeIndex] = TouchedShape{ shapeId, b2TransformPoint(b2Body_GetTransform(b2Shape_GetBody(shapeId)), planeResult->point) };
 		gather.PlaneCount++;
 		return static_cast<std::size_t>(gather.PlaneCount) < s_MaxCollisionPlanes;
@@ -102,7 +118,7 @@ namespace {
 	bool SweepAgainstShape(b2ShapeId shapeId, void* context)
 	{
 		CapsuleSweep& sweep{ *static_cast<CapsuleSweep*>(context) };
-		if (!IsSolidShape(shapeId, sweep.OwnShapeId))
+		if (!IsSolidShape(shapeId, sweep.OwnShapeId) || IsSoftController(sweep.Registry, shapeId))
 		{
 			return true;
 		}
@@ -125,13 +141,13 @@ namespace {
 		return true;
 	}
 
-	float SweepCapsule(b2WorldId worldId, b2ShapeId ownShapeId, b2Vec2 position, const b2Capsule& capsule, b2Vec2 translation, b2QueryFilter filter)
+	float SweepCapsule(b2WorldId worldId, const entt::registry& registry, b2ShapeId ownShapeId, b2Vec2 position, const b2Capsule& capsule, b2Vec2 translation, b2QueryFilter filter)
 	{
 		const std::array<b2Vec2, 2> centers{ capsule.center1, capsule.center2 };
 		const b2AABB startBox{ b2MakeAABB(centers.data(), static_cast<int>(centers.size()), capsule.radius + B2_LINEAR_SLOP) };
 		const b2AABB endBox{ startBox.lowerBound + translation, startBox.upperBound + translation };
 
-		CapsuleSweep sweep{ ownShapeId, position, capsule, translation };
+		CapsuleSweep sweep{ registry, ownShapeId, position, capsule, translation };
 		b2World_OverlapAABB(worldId, position, b2AABB_Union(startBox, endBox), filter, SweepAgainstShape, &sweep);
 		return sweep.Fraction;
 	}
@@ -162,6 +178,17 @@ namespace {
 	b2Vec2 GetLowerCenter(const b2Capsule& capsule)
 	{
 		return b2Vec2{ (capsule.center1.x + capsule.center2.x) * 0.5f, std::min(capsule.center1.y, capsule.center2.y) };
+	}
+
+	void StoreTouches(const PlaneGather& gather, BinaryEngine::Scene& scene, BinaryEngine::Detail::CharacterControllerState& characterState)
+	{
+		characterState.Touches.clear();
+		for (int planeIndex{ 0 }; planeIndex < gather.PlaneCount; planeIndex++)
+		{
+			const std::size_t index{ static_cast<std::size_t>(planeIndex) };
+			const BinaryEngine::Entity entity{ BinaryEngine::Detail::ToEntity(b2Shape_GetUserData(gather.TouchedShapes[index].ShapeId)), &scene };
+			characterState.Touches.push_back(BinaryEngine::CharacterTouch{ entity, BinaryEngine::Detail::ToEngineVector(gather.TouchedShapes[index].Point), BinaryEngine::Detail::ToEngineVector(gather.Planes[index].plane.normal) });
+		}
 	}
 
 	void PushBodies(const PlaneGather& gather, b2Vec2 characterVelocity, float maxImpulse)
@@ -272,7 +299,7 @@ namespace {
 
 namespace BinaryEngine::Detail {
 
-	void MoveCharacter(std::uint32_t worldId, Scene& scene, const RigidBodyState& bodyState, CharacterControllerState& characterState, float stepSeconds)
+	void MoveCharacter(std::uint32_t worldId, const entt::registry& registry, Scene& scene, const RigidBodyState& bodyState, CharacterControllerState& characterState, float stepSeconds)
 	{
 		const b2WorldId world{ b2LoadWorldId(worldId) };
 		const b2BodyId bodyId{ b2LoadBodyId(bodyState.BodyId) };
@@ -293,11 +320,11 @@ namespace BinaryEngine::Detail {
 		const b2Vec2 target{ position + stepSeconds * (velocity + floorVelocity + b2Vec2{ 0.0f, characterState.SpringVelocity }) };
 		b2Capsule gatherCapsule{ capsule };
 		gatherCapsule.radius += B2_LINEAR_SLOP;
-		PlaneGather gather{ shapeId };
+		PlaneGather gather{ registry, shapeId };
 		b2Vec2 delta{ GatherAndSolve(world, position, gatherCapsule, filter, target, gather) };
 		for (int iteration{ 0 }; iteration < s_MaxMoveIterations; iteration++)
 		{
-			const b2Vec2 move{ SweepCapsule(world, shapeId, position, capsule, delta, filter) * delta };
+			const b2Vec2 move{ SweepCapsule(world, registry, shapeId, position, capsule, delta, filter) * delta };
 			position = position + move;
 			delta = GatherAndSolve(world, position, gatherCapsule, filter, target, gather);
 			if (b2LengthSquared(move) < minMove * minMove)
@@ -305,6 +332,8 @@ namespace BinaryEngine::Detail {
 				break;
 			}
 		}
+
+		StoreTouches(gather, scene, characterState);
 
 		if (characterState.MaxPushForce > 0.0f)
 		{
